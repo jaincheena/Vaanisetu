@@ -1,0 +1,52 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Node / Frontend
+node_modules/
+frontend/dist/
+frontend/.vite/
+*.tgz
+
+# Model weights (large files, stored separately)
+C:/VaaniSetu/models/
+
+# Database & outputs
+*.db
+*.db-journal
+*.db-wal
+
+# Uploads / workspace outputs
+C:/VaaniSetu/workspace/
+C:/VaaniSetu/outputs/
+C:/VaaniSetu/uploads/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Env files
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+logs/

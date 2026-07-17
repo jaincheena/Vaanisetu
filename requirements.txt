@@ -1,0 +1,41 @@
+# VaaniSetu — Python Dependencies
+# Install with: pip install -r requirements.txt
+
+# --- Web Framework ---
+fastapi>=0.111.0
+uvicorn[standard]>=0.30.0
+python-multipart>=0.0.9
+aiofiles>=23.2.1
+sse-starlette>=2.1.0
+PyJWT>=2.8.0
+passlib[bcrypt]>=1.7.4
+
+# --- AI Models ---
+openai-whisper>=20240930
+transformers>=4.40.0
+torch>=2.3.0
+torchaudio>=2.3.0
+sentencepiece>=0.2.0
+sacremoses>=0.1.1
+accelerate>=0.30.0
+
+# --- TTS ---
+TTS>=0.22.0; python_version < "3.12"
+
+# --- Document Generation ---
+fpdf2>=2.7.9
+python-docx>=1.1.2
+pypdf>=4.2.0
+pysrt>=1.1.2
+webvtt-py>=0.4.6
+
+# --- Utilities ---
+psutil>=5.9.8
+httpx>=0.27.0
+
+# --- NLP helpers (for IndicTrans2 preprocessing) ---
+indic-nlp-library>=0.92
+langdetect>=1.0.9
+
+# --- Data / DB ---
+# sqlite3 is built-in; no extra package needed

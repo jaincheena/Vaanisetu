@@ -1,0 +1,86 @@
+"""
+VaaniSetu — FastAPI Application Entry Point
+"""
+
+import asyncio
+import logging
+from contextlib import asynccontextmanager
+from pathlib import Path
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+
+from backend.database import init_db
+from backend.models.registry import registry
+from backend.pipeline.queue import worker as queue_worker
+from backend.routers import jobs, review, impact, glossary, health, auth
+from backend.services.auth_service import seed_admin_user
+from backend.config import HOST, PORT
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+)
+logger = logging.getLogger("vaanisetu.main")
+
+FRONTEND_DIST = Path(__file__).parent.parent / "frontend" / "dist"
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    logger.info("VaaniSetu starting up …")
+    init_db()
+    seed_admin_user()
+    logger.info("Database and default admin initialised")
+
+    # Load models in a thread-pool executor to avoid blocking event loop
+    loop = asyncio.get_event_loop()
+    await loop.run_in_executor(None, registry.load_all)
+
+    # Start background job queue worker
+    asyncio.create_task(queue_worker())
+    logger.info(f"Server ready at http://{HOST}:{PORT}")
+
+    yield
+
+    # Shutdown
+    logger.info("VaaniSetu shutting down …")
+
+
+app = FastAPI(
+    title="VaaniSetu API",
+    version="1.0.0",
+    description="Offline AI Translation Platform for BAIF",
+    lifespan=lifespan,
+)
+
+# CORS — allow LAN access from any device
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# API routers
+app.include_router(auth.router)
+app.include_router(jobs.router)
+app.include_router(review.router)
+app.include_router(impact.router)
+app.include_router(glossary.router)
+app.include_router(health.router)
+
+# Serve React build — must be after API routes
+if FRONTEND_DIST.exists():
+    app.mount("/", StaticFiles(directory=str(FRONTEND_DIST), html=True), name="frontend")
+    logger.info(f"Serving frontend from {FRONTEND_DIST}")
+else:
+    logger.warning(f"Frontend dist not found at {FRONTEND_DIST} — run: npm run build")
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("backend.main:app", host=HOST, port=PORT, reload=False)

@@ -1,0 +1,1623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="VaaniSetu Documentation — Offline AI Translation Platform for BAIF. All 8 handover documents in one self-contained file.">
+<title>VaaniSetu Documentation</title>
+<style>
+  :root {
+    --bg-light: #F7F9F7;
+    --card-bg: #FFFFFF;
+    --border-color: #E2E8F0;
+    --accent: #2F855A;
+    --accent-blue: #3182CE;
+    --text-primary: #2D3748;
+    --text-muted: #718096;
+    --shadow-soft: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    --shadow-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', Roboto, Helvetica, sans-serif;
+    background: var(--bg-light);
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow-x: hidden;
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Bento Grid Layout */
+  .bento-container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 60px 40px;
+    animation: fadeIn 0.4s ease;
+  }
+
+  .bento-header {
+    text-align: center;
+    margin-bottom: 50px;
+  }
+  
+  .bento-header h1 {
+    font-size: 38px;
+    letter-spacing: 0.5px;
+    margin-bottom: 12px;
+    font-weight: 800;
+  }
+
+  .bento-header p {
+    color: var(--text-muted);
+    font-size: 17px;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  .bento-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 30px;
+    perspective: 1000px;
+  }
+
+  .bento-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 32px;
+    cursor: pointer;
+    box-shadow: var(--shadow-soft);
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .bento-card:hover {
+    transform: translateY(-8px);
+    box-shadow: var(--shadow-hover);
+    border-color: var(--accent);
+  }
+
+  .bento-icon {
+    font-size: 26px;
+    font-weight: 800;
+    color: var(--accent);
+    background: #F0FFF4;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    margin-bottom: 20px;
+  }
+
+  .bento-card h3 {
+    font-size: 22px;
+    margin-bottom: 8px;
+    color: var(--text-primary);
+    font-weight: 700;
+  }
+
+  .bento-card p {
+    font-size: 15px;
+    color: var(--text-muted);
+  }
+
+  /* Modal System */
+  #modal-container {
+    position: fixed;
+    top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(247, 249, 247, 0.85);
+    backdrop-filter: blur(8px);
+    z-index: 100;
+    overflow-y: auto;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.3s ease;
+    transform: translateY(20px);
+  }
+
+  #modal-container.modal-show {
+    opacity: 1;
+    pointer-events: all;
+    transform: translateY(0);
+  }
+
+  .modal-content {
+    max-width: 850px;
+    margin: 60px auto;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+    position: relative;
+    padding-bottom: 40px;
+  }
+
+  .close-btn {
+    position: sticky;
+    top: 24px;
+    float: right;
+    margin: 24px 24px 0 0;
+    background: #F1F5F9;
+    border: none;
+    color: var(--text-muted);
+    padding: 10px 20px;
+    border-radius: 24px;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+    z-index: 10;
+  }
+
+  .close-btn:hover {
+    background: #E2E8F0;
+    color: var(--text-primary);
+  }
+
+  /* Markdown Typography (Inside Modal) */
+  .doc-section { display: none; padding: 40px 60px; }
+  .doc-section.active { display: block; animation: fadeIn 0.4s ease; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(15px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  h1 { font-size: 36px; color: var(--text-primary); margin-bottom: 12px; font-weight: 800; line-height: 1.2; }
+  h2 { font-size: 24px; color: var(--accent); margin: 40px 0 16px; border-bottom: 2px solid #F0FFF4; padding-bottom: 8px; font-weight: 700; }
+  h3 { font-size: 18px; color: var(--text-primary); margin: 28px 0 10px; font-weight: 700; }
+  h4 { font-size: 16px; color: var(--text-muted); margin: 16px 0 6px; }
+  p  { color: #4A5568; margin-bottom: 16px; font-size: 16px; line-height: 1.7; }
+  a  { color: var(--accent-blue); text-decoration: none; font-weight: 600; }
+  a:hover { text-decoration: underline; }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; margin: 24px 0; font-size: 15px; background: #FFFFFF; border-radius: 12px; overflow: hidden; border: 1px solid var(--border-color); }
+  th { background: #F8FAFC; color: var(--text-muted); text-align: left; padding: 14px 18px; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border-color); }
+  td { padding: 14px 18px; border-bottom: 1px solid var(--border-color); color: #2D3748; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #F8FAFC; }
+
+  /* Code blocks */
+  pre, code { font-family: 'Consolas', monospace; }
+  pre {
+    background: #F8FAFC;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 20px;
+    overflow-x: auto;
+    font-size: 14px;
+    color: var(--text-primary);
+    margin: 20px 0 28px;
+  }
+  code { background: #F1F5F9; padding: 3px 8px; border-radius: 6px; font-size: 85%; color: var(--accent-blue); }
+  pre code { background: transparent; padding: 0; color: inherit; }
+
+  ul, ol { padding-left: 28px; margin-bottom: 16px; color: #4A5568; font-size: 16px; line-height: 1.7; }
+  li { margin-bottom: 8px; }
+
+  /* Callouts */
+  .callout {
+    padding: 20px 24px;
+    border-radius: 12px;
+    margin: 28px 0;
+    display: flex;
+    gap: 16px;
+    font-size: 15px;
+    line-height: 1.6;
+    background: #F8FAFC;
+    border: 1px solid var(--border-color);
+  }
+  .callout-note   { border-left: 5px solid var(--accent-blue); background: #EFF6FF; border-color: #BFDBFE; }
+  .callout-warn   { border-left: 5px solid #F59E0B; background: #FFFBEB; border-color: #FDE68A; }
+  .callout-danger { border-left: 5px solid #E53E3E; background: #FEF2F2; border-color: #FECACA; }
+
+  /* Gamification Quizzes */
+  .quiz-box { background: #F8FAFC; border: 1px solid var(--border-color); border-radius: 12px; padding: 24px; margin: 32px 0; box-shadow: var(--shadow-soft); }
+  .quiz-title { font-size: 18px; font-weight: 800; color: var(--accent-blue); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .quiz-option { display: block; width: 100%; text-align: left; padding: 14px 18px; background: #FFFFFF; border: 2px solid var(--border-color); border-radius: 8px; margin-bottom: 10px; cursor: pointer; transition: all 0.2s; font-size: 15px; font-weight: 600; color: var(--text-primary); }
+  .quiz-option:hover { background: #F1F5F9; border-color: #CBD5E1; transform: translateX(4px); }
+  .quiz-option.correct { background: #F0FFF4; border-color: #68D391; color: #276749; pointer-events: none; }
+  .quiz-option.incorrect { background: #FEF2F2; border-color: #FC8181; color: #9B2C2C; opacity: 0.6; pointer-events: none; }
+  .quiz-success-msg { display: none; color: #2F855A; font-weight: 800; margin-top: 12px; font-size: 16px; animation: fadeIn 0.4s ease; text-align: center; background: #C6F6D5; padding: 10px; border-radius: 8px; }
+  
+  /* Visual Breakers */
+  .svg-breaker { display: flex; justify-content: center; margin: 40px 0; opacity: 0.95; padding: 20px; background: #F7FAFC; border-radius: 16px; border: 1px solid var(--border-color); }
+  .svg-breaker svg { max-width: 140px; height: auto; transition: transform 0.3s ease; }
+  .svg-breaker:hover svg { transform: scale(1.05); }
+  .svg-breaker:hover svg { transform: scale(1.05); }
+
+  /* Translation Toggle */
+  .lang-toggle { position: absolute; top: 24px; right: 24px; display: flex; gap: 8px; background: #FFFFFF; padding: 6px; border-radius: 30px; box-shadow: var(--shadow-soft); border: 1px solid var(--border-color); z-index: 50; }
+  .lang-btn { background: transparent; border: none; padding: 8px 16px; border-radius: 20px; font-weight: 700; font-size: 13px; color: var(--text-muted); cursor: pointer; transition: all 0.2s; }
+  .lang-btn:hover { color: var(--text-primary); }
+  .lang-btn.active { background: var(--accent-blue); color: #FFF; }
+</style>
+</head>
+<body>
+  <div class="lang-toggle">
+    <button class="lang-btn active" onclick="setLanguage('en')" id="btn-en">EN</button>
+    <button class="lang-btn" onclick="setLanguage('hi')" id="btn-hi">हिन्दी</button>
+    <button class="lang-btn" onclick="setLanguage('mr')" id="btn-mr">मराठी</button>
+  </div>
+
+<div class="bento-container">
+  <div class="bento-header">
+     <h1><span style="color:var(--accent)" id="header-title">VaaniSetu</span> <span style="font-weight:400; color:var(--text-muted);" id="header-sub">Learning Deck</span></h1>
+     <p id="header-desc">Select a learning card to read the plain-English documentation.</p>
+  </div>
+  <div class="bento-grid">
+     <div class="bento-card" onclick="openDoc('doc1')"><div class="bento-icon">01</div><h3 id="card1-title">Solution Overview</h3><p id="card1-desc">Platform architecture and core metrics</p></div>
+     <div class="bento-card" onclick="openDoc('doc2')"><div class="bento-icon">02</div><h3 id="card2-title">Assumptions & Scope</h3><p id="card2-desc">Project constraints and license overview</p></div>
+     <div class="bento-card" onclick="openDoc('doc3')"><div class="bento-icon">03</div><h3 id="card3-title">Architecture & Flow</h3><p id="card3-desc">7-stage processing pipeline network</p></div>
+     <div class="bento-card" onclick="openDoc('doc4')"><div class="bento-icon">04</div><h3 id="card4-title">Setup & Installation</h3><p id="card4-desc">Online & USB offline installation guide</p></div>
+     <div class="bento-card" onclick="openDoc('doc5')"><div class="bento-icon">05</div><h3 id="card5-title">Access & Dependencies</h3><p id="card5-desc">Hardware requirements and secure ports</p></div>
+     <div class="bento-card" onclick="openDoc('doc6')"><div class="bento-icon">06</div><h3 id="card6-title">Operating Guide</h3><p id="card6-desc">Daily routines and tactical processing</p></div>
+     <div class="bento-card" onclick="openDoc('doc7')"><div class="bento-icon">07</div><h3 id="card7-title">Limitations & Risks</h3><p id="card7-desc">Known bottlenecks and disaster recovery</p></div>
+     <div class="bento-card" onclick="openDoc('doc8')"><div class="bento-icon">08</div><h3 id="card8-title">Training Plan</h3><p id="card8-desc">90-day adoption roadmap and scenarios</p></div>
+     <div class="bento-card" onclick="openDoc('doc9')"><div class="bento-icon">09</div><h3 id="card9-title">Staff FAQ</h3><p id="card9-desc">Common questions for field officers</p></div>
+  </div>
+</div>
+
+<div id="modal-container" class="modal-hide">
+  <div class="modal-content">
+    <button class="close-btn" onclick="closeDoc()">✖ Close Card</button>
+
+<!-- DOC 1 -->
+<section id="doc1" class="doc-section active">
+  <div id="doc1-content">
+    <h1>🌱 Solution Overview</h1>
+    <p><strong>VaaniSetu</strong> (meaning "voice bridge") is a fully offline AI-powered translation platform built for BAIF Development Research Foundation. It translates agricultural training videos, audio, and text into 22 official Indian languages without requiring internet after setup.</p>
+  
+    <h2>Why Was It Built?</h2>
+    <p>BAIF's field content reaches farming communities across India, but professional translation is expensive (₹850+/min), slow, and unavailable offline. VaaniSetu brings AI translation into the office — instantly, cost-free at runtime, and fully private.</p>
+  
+    <h2>Who Uses It?</h2>
+    <table>
+      <tr><th>Role</th><th>Use</th></tr>
+      <tr><td>Training Officers</td><td>Upload training videos → get translations in minutes</td></tr>
+      <tr><td>Field Coordinators</td><td>Reverse Bridge — farmer audio → English for HQ</td></tr>
+      <tr><td>Content Reviewers</td><td>Approve amber-confidence translations</td></tr>
+      <tr><td>IT Admin</td><td>Server management and backups</td></tr>
+      <tr><td>Programme Managers</td><td>Impact Ledger PDF for donor reporting</td></tr>
+    </table>
+  
+    <h2>Seven Innovations</h2>
+    <table>
+      <tr><th>#</th><th>Innovation</th><th>What It Does</th></tr>
+      <tr><td>1</td><td><strong>Job Pipeline</strong></td><td>7-stage automated processing: validate→extract→transcribe→translate→generate→package ZIP</td></tr>
+      <tr><td>2</td><td><strong>Translation Memory</strong></td><td>Caches past translations — same sentence never translated twice. Builds Glossary automatically.</td></tr>
+      <tr><td>3</td><td><strong>Confidence Gate</strong></td><td>Per-sentence confidence score: 🟢 ready, 🟡 review first, 🔴 manual intervention</td></tr>
+      <tr><td>4</td><td><strong>Reverse Bridge</strong></td><td>Farmer audio → transcribed + translated to English for HQ experts</td></tr>
+      <tr><td>5</td><td><strong>Impact Ledger</strong></td><td>Hours translated, ₹ saved, farmers reachable — PDF export for donors</td></tr>
+      <tr><td>6</td><td><strong>IVR / Feature Phone Export</strong></td><td>Auto-generates 8kHz mono audio for direct telecom broadcast to basic phones</td></tr>
+      <tr><td>7</td><td><strong>WhatsApp Auto-Splitter</strong></td><td>Slices translated videos into &lt;15MB chunks to bypass WhatsApp limits</td></tr>
+    </table>
+  
+    <h2>Key Metrics</h2>
+    <table>
+      <tr><th>Metric</th><th>Value</th></tr>
+      <tr><td>Languages</td><td>22 official Indian languages</td></tr>
+      <tr><td>Input formats</td><td>Video, Audio, Documents (.txt, .pdf, .docx, .csv)</td></tr>
+      <tr><td>Output formats per job</td><td>.txt, .docx, .srt, .vtt, .mp3, .mp4, .zip</td></tr>
+      <tr><td>Internet at runtime</td><td><strong>None required</strong></td></tr>
+      <tr><td>LAN access</td><td>All office devices via browser</td></tr>
+      <tr><td>Data stays</td><td>100% on premises — never leaves building</td></tr>
+    </table>
+  </div>
+
+  <!-- Visual Breaker -->
+  <div class="svg-breaker">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#3182CE" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+      <path d="M9 12l2 2 4-4"></path>
+    </svg>
+  </div>
+
+  <!-- Gamification Quiz 1 -->
+  <div class="quiz-box" id="quiz-1">
+    <div class="quiz-title">🧠 Knowledge Check</div>
+    <p>Does the VaaniSetu platform require a fast internet connection to perform translations?</p>
+    <button class="quiz-option" onclick="checkAnswer('quiz-1', this, false)">A) Yes, because it connects to the cloud.</button>
+    <button class="quiz-option" onclick="checkAnswer('quiz-1', this, true)">B) No, it works 100% offline securely.</button>
+    <button class="quiz-option" onclick="checkAnswer('quiz-1', this, false)">C) Only during video uploads.</button>
+    <div class="quiz-success-msg">🎉 Correct! Data never leaves the building.</div>
+  </div>
+</section>
+
+<!-- DOC 2 -->
+<section id="doc2" class="doc-section">
+  <h1>📋 Assumptions & Scope</h1>
+  <h2>In Scope</h2>
+  <ul>
+    <li>Translation of video, audio, and text into 22 Indian languages</li>
+    <li>Whisper speech-to-text with timestamped segments</li>
+    <li>Confidence scoring and Review Queue</li>
+    <li>Reverse Bridge (regional → English)</li>
+    <li>Translation Memory (auto-learning cache)</li>
+    <li>Impact Ledger with PDF export</li>
+    <li>Glossary with DOCX export</li>
+    <li>Offline-first, browser-based, LAN-accessible</li>
+    <li>Windows 11 .bat scripts for all operations</li>
+    <li>JWT-based user authentication and Role-Based Access (Admin/User)</li>
+  </ul>
+  <h2>Out of Scope</h2>
+  <ul>
+    <li>Mobile/tablet native app (browser covers this)</li>
+    <li>Cloud sync or backup</li>
+    <li>Image/scanned PDF text recognition</li>
+    <li>Real-time streaming translation</li>
+    <li>Languages outside the 22 scheduled Indian languages</li>
+  </ul>
+  <h2>Nine Assumptions</h2>
+  <table>
+    <tr><th>#</th><th>Assumption</th></tr>
+    <tr><td>1</td><td>Server computer stays on during working hours</td></tr>
+    <tr><td>2</td><td>Office has working LAN (wired or WiFi)</td></tr>
+    <tr><td>3</td><td>At least one trained reviewer checks Review Queue daily</td></tr>
+    <tr><td>4</td><td>FFmpeg installed and available on PATH</td></tr>
+    <tr><td>5</td><td>Initial setup done on internet-connected machine</td></tr>
+    <tr><td>6</td><td>AI accuracy sufficient for agriculture domain with TM supplementing</td></tr>
+    <tr><td>7</td><td>16 GB RAM is minimum — other apps should be closed during processing</td></tr>
+    <tr><td>8</td><td>Workspace cleaned periodically by IT admin</td></tr>
+    <tr><td>9</td><td>Weekly external backup is sufficient for disaster recovery</td></tr>
+  </table>
+  <h2>Licence Summary</h2>
+  <table>
+    <tr><th>Component</th><th>Licence</th><th>OK for NGO use?</th></tr>
+    <tr><td>Whisper</td><td>MIT</td><td>✅ Yes</td></tr>
+    <tr><td>IndicTrans2</td><td>MIT</td><td>✅ Yes</td></tr>
+    <tr><td>Coqui TTS</td><td>MPL-2.0</td><td>✅ Yes (attribution)</td></tr>
+    <tr><td>FastAPI / React / PyTorch</td><td>MIT / BSD</td><td>✅ Yes</td></tr>
+    <tr><td>FFmpeg</td><td>LGPL/GPL</td><td>✅ Yes (internal use)</td></tr>
+  </table>
+</section>
+
+<!-- DOC 3 -->
+<section id="doc3" class="doc-section">
+  <div id="doc3-content">
+    <h1>🏗️ Architecture & Flow (Simplified)</h1>
+    
+    <p>Rather than complex technical diagrams, it's easier to think of VaaniSetu as a seamless, high-speed <strong>assembly line</strong> running locally on your office computer.</p>
+
+  <h2>The Journey of a Video</h2>
+  
+  <ol>
+    <li>
+      <strong>The Intake (File Upload)</strong><br>
+      You upload a training video. The system immediately strips away the video picture to focus completely on the audio track.
+    </li>
+    <li>
+      <strong>The Listener (Transcription)</strong><br>
+      Our AI "Listener" (called Whisper) carefully listens to the audio and writes everything down into sentences, noting exactly what second each sentence was spoken.
+    </li>
+    <li>
+      <strong>Checking the Vault (Translation Memory)</strong><br>
+      This is the smartest part of the system. Before translating, VaaniSetu checks its internal vault. If someone at BAIF has translated this exact same sentence before, it pulls the human-approved version out of the vault to save time and guarantee quality!
+    </li>
+    <li>
+      <strong>The Translator (AI Translation)</strong><br>
+      For any new sentences not in the vault, the AI steps in. It translates the sentence and assigns a <strong>Confidence Score</strong>. 
+      <ul>
+        <li>If it is very sure, it marks it <strong>Green</strong>.</li>
+        <li>If it is slightly unsure, it marks it <strong>Amber</strong> for you to double-check.</li>
+      </ul>
+    </li>
+    <li>
+      <strong>The Assembly Line (Outputs)</strong><br>
+      The system then packages the new text into PDFs, Word Documents, Subtitle files, and even generates a synthetic voice track. It zips them all together in a single folder ready for you to download!
+    </li>
+  </ol>
+
+  <h2>Formats Supported</h2>
+  <div class="callout callout-note">
+    <strong>💡 Tip:</strong> You can upload almost any media type.
+  </div>
+  <table>
+    <tr><th>What you upload</th><th>What the system does</th></tr>
+    <tr><td><strong>Video Files</strong> (.mp4, .mkv)</td><td>Extracts audio, translates, and generates new subtitled videos.</td></tr>
+    <tr><td><strong>Audio Files</strong> (.mp3, .wav)</td><td>Translates and generates new audio in the regional language.</td></tr>
+    <tr><td><strong>Document Files</strong> (.txt, .pdf, .docx, .csv)</td><td>Reads the text directly and provides translated documents.</td></tr>
+  </table>
+  </div>
+
+  <!-- Visual Breaker -->
+  <div class="svg-breaker">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#2F855A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+      <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+    </svg>
+  </div>
+
+  <!-- Gamification Quiz 2 -->
+  <div class="quiz-box" id="quiz-2">
+    <div class="quiz-title">🧠 Knowledge Check</div>
+    <p>What does the AI do if it encounters a sentence it is not fully confident in translating?</p>
+    <button class="quiz-option" onclick="checkAnswer('quiz-2', this, false)">A) It deletes the file immediately to be safe.</button>
+    <button class="quiz-option" onclick="checkAnswer('quiz-2', this, true)">B) It marks it "Amber" and sends it to the Review Queue.</button>
+    <button class="quiz-option" onclick="checkAnswer('quiz-2', this, false)">C) It translates it anyway without telling anyone.</button>
+    <div class="quiz-success-msg">🎉 Correct! Safety first — human reviewers always check Amber results.</div>
+  </div>
+</section>
+
+<!-- DOC 4 -->
+<section id="doc4" class="doc-section">
+  <h1>⚙️ Setup & Installation</h1>
+
+  <h2>Method A — Internet Setup</h2>
+  <h3>Step 1: Check Prerequisites</h3>
+  <p>Run <code>scripts\check_hardware.bat</code> — all items must show [PASS]</p>
+  <ul>
+    <li>Windows 11 64-bit</li>
+    <li>16 GB RAM, 200 GB free disk</li>
+    <li>Python 3.11+, Node.js 18+, FFmpeg in PATH</li>
+  </ul>
+
+  <h3>Step 2: Install Software</h3>
+  <p>Run <code>scripts\setup.bat</code> — installs Python packages + builds React UI (~30 min)</p>
+
+  <h3>Step 3: Download Models</h3>
+  <p>Run <code>scripts\download_models.bat</code> — downloads ~6-8 GB of AI models</p>
+
+  <h3>Step 4: Start Server</h3>
+  <p>Run <code>scripts\start_vaanisetu.bat</code> — browser opens automatically when ready</p>
+
+  <h2>Method B — USB Offline Install</h2>
+  <p>Prepare USB on an internet PC first (run Method A, then copy files to USB). On offline PC, run <code>install_from_usb.bat</code> from the USB drive.</p>
+
+  <h2>Troubleshooting</h2>
+  <table>
+    <tr><th>Problem</th><th>Solution</th></tr>
+    <tr><td>Blank browser page</td><td>Run <code>npm run build</code> in frontend folder</td></tr>
+    <tr><td>"Models: Loading…" stays &gt;10 min</td><td>Restart PC, check models folder not empty</td></tr>
+    <tr><td>FFmpeg error</td><td>Add <code>C:\ffmpeg\bin</code> to System PATH</td></tr>
+    <tr><td>Port 8765 in use</td><td>Run <code>netstat -ano | findstr 8765</code>, kill the PID</td></tr>
+    <tr><td>Job stuck in "queued"</td><td>Restart server: stop.bat then start.bat</td></tr>
+  </table>
+</section>
+
+<!-- DOC 5 -->
+<section id="doc5" class="doc-section">
+  <h1>🔌 Access & Dependencies</h1>
+
+  <h2>Accessing VaaniSetu</h2>
+  <table>
+    <tr><th>From</th><th>Address</th></tr>
+    <tr><td>Server machine</td><td><code>http://localhost:8765</code></td></tr>
+    <tr><td>Any office LAN device</td><td><code>http://[SERVER-IP]:8765</code></td></tr>
+  </table>
+  <p><strong>Note on Security:</strong> VaaniSetu operates with JWT Authentication. Default administrative seating is provided out of the box (Username: <code>admin</code>, Password: <code>baif2026</code>). Non-admin accounts will have read-only or restricted access to specific impact ledgers and translation glossaries.</p>
+
+  <h2>Hardware Requirements</h2>
+  <table>
+    <tr><th>Component</th><th>Minimum</th><th>Recommended</th></tr>
+    <tr><td>CPU</td><td>i5 / Ryzen 5 8th gen</td><td>i7 / Ryzen 7</td></tr>
+    <tr><td>RAM</td><td>16 GB</td><td>32 GB</td></tr>
+    <tr><td>Storage</td><td>250 GB free</td><td>500 GB SSD</td></tr>
+    <tr><td>OS</td><td>Windows 11 64-bit</td><td>Windows 11 64-bit</td></tr>
+    <tr><td>GPU</td><td>Not required</td><td>Not required</td></tr>
+  </table>
+
+  <h2>Port Configuration</h2>
+  <table>
+    <tr><th>Port</th><th>Service</th><th>Firewall</th></tr>
+    <tr><td>8765</td><td>VaaniSetu API + UI</td><td>Allow inbound TCP on LAN</td></tr>
+    <tr><td>5173</td><td>Vite dev (dev only)</td><td>Block on production</td></tr>
+  </table>
+  <pre>netsh advfirewall firewall add rule name="VaaniSetu" dir=in action=allow protocol=TCP localport=8765</pre>
+
+  <h2>Model Files</h2>
+  <table>
+    <tr><th>Directory</th><th>Size</th><th>Contents</th></tr>
+    <tr><td>models\whisper\</td><td>~3 GB</td><td>Whisper large-v3-turbo</td></tr>
+    <tr><td>models\indictrans2-en-indic\</td><td>~1.5 GB</td><td>English → Indian languages</td></tr>
+    <tr><td>models\indictrans2-indic-en\</td><td>~1.5 GB</td><td>Indian languages → English</td></tr>
+    <tr><td>models\coqui_xtts\</td><td>~2 GB</td><td>Text-to-speech (optional)</td></tr>
+  </table>
+  <div class="callout callout-warn">⚠️ Do not delete model files. Keep a backup copy on external drive.</div>
+</section>
+
+<!-- DOC 6 -->
+<section id="doc6" class="doc-section">
+  <div id="doc6-content">
+    <h1>📘 Operating Guide</h1>
+  
+    <h2>Daily Routine</h2>
+  <table>
+    <tr><th>Task</th><th>Who</th><th>When</th></tr>
+    <tr><td>Start server</td><td>IT Admin</td><td>Start of day</td></tr>
+    <tr><td>Submit jobs</td><td>Training Officers</td><td>As needed</td></tr>
+    <tr><td>Review amber segments</td><td>Content Reviewer</td><td>Daily</td></tr>
+    <tr><td>Export impact report</td><td>Programme Manager</td><td>Monthly</td></tr>
+    <tr><td>Backup</td><td>IT Admin</td><td>Weekly</td></tr>
+    <tr><td>Stop server</td><td>IT Admin</td><td>End of day</td></tr>
+  </table>
+
+  <h2>Submitting a Job</h2>
+  <ol>
+    <li>Open <code>http://localhost:8765</code> and <strong>login</strong></li>
+    <li>Click <strong>Upload</strong> in the sidebar</li>
+    <li>Choose mode: <em>Translate Content</em> or <em>Reverse Bridge</em></li>
+    <li>Select source language and target language chips</li>
+    <li>(Optional) Toggle <strong>Resource Saver Mode</strong> if your PC is slow</li>
+    <li>Drag your file into the upload zone</li>
+    <li>Click <strong>Start Translation</strong> — watch the 7-stage progress bar</li>
+    <li>Download the ZIP when complete</li>
+  </ol>
+
+  <h2>Confidence Badges</h2>
+  <table>
+    <tr><th>Badge</th><th>Meaning</th><th>Action</th></tr>
+    <tr><td>🟢 Green (≥85%)</td><td>AI is confident</td><td>Ready to distribute</td></tr>
+    <tr><td>🟡 Amber (65-84%)</td><td>AI is uncertain</td><td>Review Queue → approve first</td></tr>
+    <tr><td>🔴 Red (&lt;65%)</td><td>AI is not confident</td><td>Manual check + possible redo</td></tr>
+  </table>
+
+  <div class="callout callout-warn">⚠️ Never distribute content with amber segments until Review Queue shows 0 pending items.</div>
+
+  <h2>Output ZIP Contents</h2>
+  <table>
+    <tr><th>File</th><th>What It Is</th></tr>
+    <tr><td>translation_Hindi.txt</td><td>Plain text translation</td></tr>
+    <tr><td>bilingual_Hindi.docx</td><td>Word doc — source + translation side-by-side</td></tr>
+    <tr><td>subtitles_Hindi.srt</td><td>Subtitle file for video players</td></tr>
+    <tr><td>subtitles_Hindi.vtt</td><td>Web subtitle file</td></tr>
+    <tr><td>audio_Hindi.mp3</td><td>AI-spoken audio in target language</td></tr>
+    <tr><td>ivr_audio_Hindi.wav</td><td>8kHz mono audio for feature phones & IVR</td></tr>
+    <tr><td>captioned_Hindi.mp4</td><td>Video with burned subtitles</td></tr>
+    <tr><td>whatsapp_part00_Hindi.mp4</td><td>Video chunked for WhatsApp (&lt;15MB)</td></tr>
+    <tr><td>manifest.json</td><td>Job metadata</td></tr>
+  </table>
+
+  <h2>Quick Reference Card</h2>
+  <pre>
+START:   scripts\start_vaanisetu.bat
+STOP:    scripts\stop_vaanisetu.bat
+BACKUP:  scripts\backup.bat
+URL:     http://localhost:8765
+
+CONFIDENCE:  🟢 ≥85% ready  |  🟡 65-84% review  |  🔴 &lt;65% manual
+  </pre>
+  </div>
+
+  <!-- Visual Breaker -->
+  <div class="svg-breaker">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#DD6B20" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 2v20"></path>
+      <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+    </svg>
+  </div>
+
+  <!-- Gamification Quiz 3 -->
+  <div class="quiz-box" id="quiz-3">
+    <div class="quiz-title">🧠 Knowledge Check</div>
+    <p>What is the most critical rule before distributing a video outside of the office?</p>
+    <button class="quiz-option" onclick="checkAnswer('quiz-3', this, false)">A) Upload it to YouTube immediately.</button>
+    <button class="quiz-option" onclick="checkAnswer('quiz-3', this, false)">B) Ask the IT Admin to increase storage.</button>
+    <button class="quiz-option" onclick="checkAnswer('quiz-3', this, true)">C) Never distribute content if there are pending Amber segments in the Review Queue.</button>
+    <div class="quiz-success-msg">🎉 Correct! Golden Rule: Always clear the Review Queue before sharing!</div>
+  </div>
+</section>
+
+<!-- DOC 7 -->
+<section id="doc7" class="doc-section">
+  <h1>⚠️ Limitations & Risks</h1>
+
+  <h2>Known Limitations</h2>
+  <table>
+    <tr><th>Limitation</th><th>Detail</th><th>Workaround</th></tr>
+    <tr><td>Speed on long files</td><td>60-min video ~25-40 min on CPU</td><td>Schedule jobs overnight</td></tr>
+    <tr><td>One job at a time</td><td>FIFO queue; others wait</td><td>Plan submissions in advance</td></tr>
+    <tr><td>No image/PDF translation</td><td>Cannot read scanned PDFs</td><td>Export text first, upload .txt</td></tr>
+    <tr><td>Dialect support</td><td>AI uses standard language forms</td><td>Reviewers can adjust dialects</td></tr>
+    <tr><td>TTS quality varies</td><td>Some languages sound robotic</td><td>Reference only; add human voice for final</td></tr>
+    <tr><td>RAM ceiling</td><td>Cannot run on &lt;16 GB</td><td>Use <strong>Resource Saver Mode</strong> or close apps</td></tr>
+  </table>
+
+  <h2>Risk Register</h2>
+  <table>
+    <tr><th>Risk</th><th>Likelihood</th><th>Impact</th><th>Mitigation</th></tr>
+    <tr><td>Disk failure</td><td>Medium</td><td>High</td><td>Weekly backup to external drive</td></tr>
+    <tr><td>Model files corrupted</td><td>Low</td><td>High</td><td>Keep USB copy of models</td></tr>
+    <tr><td>Staff turnover</td><td>Medium</td><td>Medium</td><td>Train 2 people per role</td></tr>
+    <tr><td>Translation quality issues</td><td>Low</td><td>Medium</td><td>Confidence Gate + Review Queue</td></tr>
+    <tr><td>Power cut during job</td><td>Medium</td><td>Medium</td><td>UPS recommended; re-submit job</td></tr>
+    <tr><td>Amber reviews ignored</td><td>Medium</td><td>High</td><td>Make clearance mandatory in SOP</td></tr>
+  </table>
+
+  <h2>Emergency: Server Crashed</h2>
+  <ol>
+    <li>Run <code>stop_vaanisetu.bat</code></li>
+    <li>Restart computer</li>
+    <li>Run <code>start_vaanisetu.bat</code> — wait for "Models: Ready"</li>
+    <li>Go to History — re-submit the failed job</li>
+  </ol>
+</section>
+
+<!-- DOC 8 -->
+<section id="doc8" class="doc-section">
+  <h1>🎓 Training Plan</h1>
+
+  <h2>Session 1 — Staff (2 Hours)</h2>
+  <table>
+    <tr><th>Time</th><th>Activity</th></tr>
+    <tr><td>0:00–0:15</td><td>Welcome + why VaaniSetu</td></tr>
+    <tr><td>0:15–0:30</td><td>Interface tour (sidebar, top banner)</td></tr>
+    <tr><td>0:30–0:55</td><td>Live demo: submit a 5-min training video</td></tr>
+    <tr><td>0:55–1:15</td><td>Confidence badges explained with examples</td></tr>
+    <tr><td>1:15–1:40</td><td>Review Queue: approve, edit, reject hands-on</td></tr>
+    <tr><td>1:40–1:50</td><td>Reverse Bridge mode demo</td></tr>
+    <tr><td>1:50–2:00</td><td>Q&A + Quick Reference Card handout</td></tr>
+  </table>
+
+  <h3>Staff Competency Checklist</h3>
+  <ul>
+    <li>☐ Open VaaniSetu from any office device</li>
+    <li>☐ Submit a job with correct source + target languages</li>
+    <li>☐ Interpret green/amber/red badges</li>
+    <li>☐ Approve/edit/reject Review Queue items</li>
+    <li>☐ Download output ZIP and identify file formats</li>
+    <li>☐ Use Reverse Bridge for farmer recordings</li>
+  </ul>
+
+  <h2>Session 2 — IT Admin (1 Hour)</h2>
+  <table>
+    <tr><th>Time</th><th>Activity</th></tr>
+    <tr><td>0:00–0:10</td><td>System overview — what's installed where</td></tr>
+    <tr><td>0:10–0:20</td><td>Start/stop server + .bat scripts</td></tr>
+    <tr><td>0:20–0:35</td><td>Weekly backup procedure</td></tr>
+    <tr><td>0:35–0:45</td><td>Disk management + cleanup</td></tr>
+    <tr><td>0:45–0:55</td><td>Troubleshooting walkthrough</td></tr>
+    <tr><td>0:55–1:00</td><td>Emergency procedures</td></tr>
+  </table>
+
+  <h2>90-Day Adoption Plan</h2>
+  <table>
+    <tr><th>Week</th><th>Milestone</th></tr>
+    <tr><td>Week 1</td><td>Setup + model download (IT Admin)</td></tr>
+    <tr><td>Week 2</td><td>Staff training + 2 pilot jobs</td></tr>
+    <tr><td>Week 3-4</td><td>5-10 real jobs; review all amber segments</td></tr>
+    <tr><td>Week 5-6</td><td>Review Queue as daily routine</td></tr>
+    <tr><td>Week 7-8</td><td>Validate Glossary terms</td></tr>
+    <tr><td>Week 9-10</td><td>First Impact Ledger export for management</td></tr>
+    <tr><td>Month 3</td><td>Full adoption — standard workflow</td></tr>
+  </table>
+</section>
+
+<!-- DOC 9 — STAFF FAQ -->
+<section id="doc9" class="doc-section">
+  <h1>❓ Staff FAQ</h1>
+  <p>Plain-English answers to common questions from training officers, field coordinators, content reviewers, and IT admins.</p>
+
+  <h2>A — Getting Started</h2>
+
+  <h3>How do I open VaaniSetu? Do I need to install anything?</h3>
+  <p>No installation needed. Open any browser and type the office server address (e.g. <code>http://192.168.1.100:8765</code>). Your IT admin will give you the exact address — save it as a bookmark. Works on laptops, tablets, and phones connected to the office WiFi.</p>
+
+  <h3>Do I need an account or password?</h3>
+  <p>No. VaaniSetu has no login. Anyone on the office WiFi can open it.</p>
+
+  <h3>What file types can I upload?</h3>
+  <table>
+    <tr><th>Type</th><th>Formats</th></tr>
+    <tr><td>Video</td><td>.mp4, .mkv, .avi, .mov, .webm</td></tr>
+    <tr><td>Audio</td><td>.mp3, .wav, .m4a, .ogg, .flac</td></tr>
+    <tr><td>Text</td><td>.txt</td></tr>
+    <tr><td>Maximum size</td><td>2 GB per file</td></tr>
+  </table>
+  <div class="callout callout-note">Cannot upload PowerPoint or Image files. For unsupported document types, use the new "Short Text" mode to paste text.</div>
+
+  <h3>The server address doesn’t open. What do I do?</h3>
+  <ol>
+    <li>Check you’re on office WiFi (not mobile data)</li>
+    <li>Check the server computer is switched on</li>
+    <li>Check IT admin has started the server (<code>start_vaanisetu.bat</code>)</li>
+    <li>Try refreshing (F5)</li>
+    <li>If still failing — contact IT admin</li>
+  </ol>
+
+  <h2>B — Submitting a Job</h2>
+
+  <h3>Translate Content vs Reverse Bridge — which do I use?</h3>
+  <table>
+    <tr><th>Mode</th><th>Use when…</th></tr>
+    <tr><td><strong>Translate Content</strong></td><td>You have BAIF training material and want to translate it into regional languages for farmers</td></tr>
+    <tr><td><strong>Reverse Bridge</strong></td><td>A farmer recorded a query in their local language and you want to understand it in English for HQ experts</td></tr>
+  </table>
+
+  <h3>How long does translation take?</h3>
+  <table>
+    <tr><th>Content Length</th><th>Time (3–4 languages)</th></tr>
+    <tr><td>5-minute clip</td><td>8–12 minutes</td></tr>
+    <tr><td>20-minute video</td><td>30–45 minutes</td></tr>
+    <tr><td>60-minute session</td><td>90–120 minutes</td></tr>
+  </table>
+  <p style="color:var(--text-muted);font-size:13px">Tip: Submit long videos before lunch or at end of day. Download when you return.</p>
+
+  <h3>Can I close the browser while a job is running?</h3>
+  <p>Yes. The job continues on the server. Come back to <strong>History</strong> later and download the ZIP when it shows “Completed.”</p>
+
+  <h3>Can two people submit jobs at the same time?</h3>
+  <p>Yes — both are accepted and queued. Jobs process one at a time. Queue position is shown in the top banner.</p>
+
+  <h2>C — Understanding Results</h2>
+
+  <h3>What do the 🟢 🟡 🔴 badges mean?</h3>
+  <table>
+    <tr><th>Badge</th><th>Meaning</th><th>Action</th></tr>
+    <tr><td>🟢 Green (≥85%)</td><td>AI is very confident</td><td>Safe to distribute</td></tr>
+    <tr><td>🟡 Amber (65–84%)</td><td>AI is somewhat uncertain</td><td>Check Review Queue first</td></tr>
+    <tr><td>🔴 Red (&lt;65%)</td><td>AI is not confident</td><td>Bilingual person must review</td></tr>
+  </table>
+  <div class="callout callout-warn">⚠️ Never distribute Amber or Red content until it shows “Cleared for Distribution” in the Review Queue.</div>
+
+  <h3>What’s inside the ZIP file?</h3>
+  <table>
+    <tr><th>File</th><th>Use it for…</th></tr>
+    <tr><td>translation_Hindi.txt</td><td>SMS, feature phone, BAIF app</td></tr>
+    <tr><td>bilingual_Hindi.docx</td><td>Print as handout for field officers</td></tr>
+    <tr><td>subtitles_Hindi.srt</td><td>Add subtitles in a video editor</td></tr>
+    <tr><td>subtitles_Hindi.vtt</td><td>Upload with video to YouTube/website</td></tr>
+    <tr><td>audio_Hindi.mp3</td><td>Community radio, WhatsApp audio, IVR</td></tr>
+    <tr><td>captioned_Hindi.mp4</td><td>WhatsApp groups, community TV screen</td></tr>
+  </table>
+
+  <h3>Where are my old translations? Can I download them again?</h3>
+  <p>Yes. Go to <strong>History</strong> in the sidebar, find your job, and click <strong>⬇️ ZIP</strong>.</p>
+
+  <h2>D — Review Queue</h2>
+
+  <h3>Who should do the reviews?</h3>
+  <p>Bilingual staff or volunteers who speak both the source and the target language. No technical knowledge needed — they just read and judge whether the translation sounds correct.</p>
+
+  <h3>Do I have to review every sentence?</h3>
+  <p>No. Only Amber and Red sentences appear. Green sentences (typically 70–80%) are auto-accepted. You review only the uncertain 20–30%.</p>
+
+  <h3>How do I use the Review Queue?</h3>
+  <ol>
+    <li>Click <strong>Review Queue</strong> in the sidebar</li>
+    <li>Enter your name in the “Reviewer Name” box</li>
+    <li>For each card: read source (left), read translation (right)</li>
+    <li>Choose: <strong>✓ Approve</strong> / <strong>✏️ Save Edit</strong> / <strong>✗ Reject</strong></li>
+  </ol>
+  <p>Your corrections are saved permanently — the AI will use them in all future jobs.</p>
+
+  <h2>E — Privacy &amp; Safety</h2>
+
+  <h3>Does farmer audio get sent to Google or any outside server?</h3>
+  <p><strong>No.</strong> Everything stays on the BAIF office computer. No internet is used during translation. No farmer data ever leaves your building.</p>
+
+  <h3>Is it safe to translate dosage or chemical safety content?</h3>
+  <div class="callout callout-warn">⚠️ For any content involving pesticide dosages, chemical usage, or medical advice — always require a qualified bilingual reviewer to check the Review Queue before distributing, even if the badge shows Green.</div>
+
+  <h2>F — Troubleshooting</h2>
+
+  <h3>Top banner says “Models: Loading…”</h3>
+  <p>Normal at startup — AI models take 2–5 minutes to load. Wait and refresh. If still loading after 10 minutes, contact IT admin.</p>
+
+  <h3>Error: “Unsupported file type”</h3>
+  <p>PDF, Word, PowerPoint, and image files are not accepted. Copy your text into Notepad, save as <code>.txt</code>, and upload that instead.</p>
+
+  <h3>Job shows “failed” in History</h3>
+  <p>Possible causes: corrupted file, silent video, or server ran out of memory. Try re-uploading. If it fails again, contact IT admin with the job ID shown in History.</p>
+
+  <h3>Top banner shows “Disk: low” in red</h3>
+  <p>Tell IT admin immediately. New jobs may fail until old files are cleared. IT admin can fix this in under 10 minutes.</p>
+
+  <h3>Regional language text shows as boxes/question marks in Word</h3>
+  <p>Font issue on the viewer’s computer. Select the text in Word and change the font to <strong>Mangal</strong> (Hindi/Devanagari) or <strong>Nirmala UI</strong> (Tamil, Telugu, Bengali). Windows 11 includes these fonts by default.</p>
+
+  <h2>G — Impact Ledger &amp; Glossary</h2>
+
+  <h3>What is the Impact Ledger?</h3>
+  <p>Automatically tracks hours translated, money saved vs. professional agencies, and farmers reachable. Click <strong>📄 Export PDF</strong> to get a report for donor submissions.</p>
+
+  <h3>The “farmers reachable” number looks wrong. Can it be adjusted?</h3>
+  <p>Yes. The Rate Configuration table at the bottom of the Impact Ledger page lets your programme manager adjust the multipliers per language to match your field data.</p>
+
+  <h3>What is the Glossary?</h3>
+  <p>A dictionary of terms BAIF has translated 3+ times with high confidence — automatically built from your jobs. Click <strong>📄 Export DOCX</strong> to share it with external language reviewers.</p>
+</section>
+
+  </div>
+</div>
+
+<script>
+  function openDoc(id) {
+    document.querySelectorAll('.doc-section').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    
+    const modal = document.getElementById('modal-container');
+    modal.className = 'modal-show';
+    modal.scrollTop = 0; // Scroll back to top on open
+  }
+
+  function closeDoc() {
+    document.getElementById('modal-container').className = 'modal-hide';
+  }
+
+  function checkAnswer(quizId, btnElement, isCorrect) {
+    const quizBox = document.getElementById(quizId);
+    const options = quizBox.querySelectorAll('.quiz-option');
+    
+    // Reset all options
+    options.forEach(opt => {
+      opt.classList.remove('correct', 'incorrect');
+      opt.style.pointerEvents = 'none'; // Lock quiz after answering
+    });
+
+    if (isCorrect) {
+      btnElement.classList.add('correct');
+      const successMsg = quizBox.querySelector('.quiz-success-msg');
+      successMsg.style.display = 'block';
+    } else {
+      btnElement.classList.add('incorrect');
+      // Highlight correct one
+      options.forEach(opt => {
+        if (opt.getAttribute('onclick').includes('true')) {
+          opt.classList.add('correct');
+        }
+      });
+    }
+  }
+
+  // Dictionary for Offline Translation
+  const i18n = {
+    "en": {
+      "header-title": "VaaniSetu",
+      "header-sub": "Learning Deck",
+      "header-desc": "Select a learning card to read the plain-English documentation.",
+      "card1-title": "Solution Overview",
+      "card1-desc": "Platform architecture and core metrics",
+      "card2-title": "Assumptions & Scope",
+      "card2-desc": "Project constraints and license overview",
+      "card3-title": "Architecture & Flow",
+      "card3-desc": "7-stage processing pipeline network",
+      "card4-title": "Setup & Installation",
+      "card4-desc": "Online & USB offline installation guide",
+      "card5-title": "Access & Dependencies",
+      "card5-desc": "Hardware requirements and secure ports",
+      "card6-title": "Operating Guide",
+      "card6-desc": "Daily routines and tactical processing",
+      "card7-title": "Limitations & Risks",
+      "card7-desc": "Known bottlenecks and disaster recovery",
+      "card8-title": "Training Plan",
+      "card8-desc": "90-day adoption roadmap and scenarios",
+      "card9-title": "Staff FAQ",
+      "card9-desc": "Common questions for field officers",
+      "doc1-content": document.getElementById('doc1-content') ? document.getElementById('doc1-content').innerHTML : ""
+    },
+    "hi": {
+      "header-title": "वाणीसेतु",
+      "header-sub": "लर्निंग डेक",
+      "header-desc": "सरल हिंदी दस्तावेज़ पढ़ने के लिए कार्ड चुनें।",
+      "card1-title": "समाधान अवलोकन",
+      "card1-desc": "प्लेटफ़ॉर्म आर्किटेक्चर और मुख्य मेट्रिक्स",
+      "card2-title": "मान्यताएं और दायरा",
+      "card2-desc": "परियोजना बाधाएं और लाइसेंस अवलोकन",
+      "card3-title": "आर्किटेक्चर और फ्लो",
+      "card3-desc": "7-चरण प्रसंस्करण पाइपलाइन",
+      "card4-title": "सेटअप और स्थापना",
+      "card4-desc": "ऑनलाइन और यूएसबी ऑफ़लाइन स्थापना गाइड",
+      "card5-title": "एक्सेस और निर्भरताएँ",
+      "card5-desc": "हार्डवेयर आवश्यकताएँ और सुरक्षित पोर्ट",
+      "card6-title": "ऑपरेटिंग गाइड",
+      "card6-desc": "दैनिक दिनचर्या और सामरिक प्रसंस्करण",
+      "card7-title": "सीमाएँ और जोखिम",
+      "card7-desc": "ज्ञात अड़चनें और आपदा रिकवरी",
+      "card8-title": "प्रशिक्षण योजना",
+      "card8-desc": "90-दिवसीय अपनाने का रोडमैप और परिदृश्य",
+      "card9-title": "कर्मचारी सामान्य प्रश्न",
+      "card9-desc": "फील्ड अधिकारियों के लिए सामान्य प्रश्न",
+      "doc1-content": `
+        <h1>🌱 समाधान अवलोकन</h1>
+        <p><strong>वाणीसेतु</strong> (अर्थात् "वॉइस ब्रिज") बाएफ के लिए निर्मित एक पूरी तरह से ऑफ़लाइन एआई अनुवाद प्लेटफ़ॉर्म है। यह बिना इंटरनेट के 22 भारतीय भाषाओं में कृषि प्रशिक्षण वीडियो, ऑडियो और पाठ का अनुवाद करता है।</p>
+      
+        <h2>यह क्यों बनाया गया?</h2>
+        <p>BAIF की सामग्री पूरे भारत में कृषक समुदायों तक पहुँचती है, लेकिन व्यावसायिक अनुवाद महंगा (₹850+/मिनट), धीमा और ऑफ़लाइन उपलब्ध नहीं है। वाणीसेतु कार्यालय में तुरंत, शून्य लागत और पूरी तरह से निजी डेटा सुरक्षा के साथ अनुवाद लाता है।</p>
+      
+        <h2>इसे कौन उपयोग करता है?</h2>
+        <table>
+          <tr><th>भूमिका</th><th>उपयोग</th></tr>
+          <tr><td>प्रशिक्षण अधिकारी</td><td>वीडियो अपलोड करें → मिनटों में अनुवाद प्राप्त करें</td></tr>
+          <tr><td>फील्ड समन्वयक</td><td>रिवर्स ब्रिज — किसान ऑडियो → मुख्यालय के लिए अंग्रेजी</td></tr>
+          <tr><td>सामग्री समीक्षक</td><td>एम्बर विश्वास अनुवादों को स्वीकृत करें</td></tr>
+          <tr><td>आईटी एडमिन</td><td>सर्वर प्रबंधन और बैकअप</td></tr>
+          <tr><td>प्रोग्राम मैनेजर</td><td>डोनर रिपोर्टिंग के लिए इम्पैक्ट लेजर पीडीएफ</td></tr>
+        </table>
+      
+        <h2>सात नवाचार</h2>
+        <table>
+          <tr><th>#</th><th>नवाचार</th><th>यह क्या करता है</th></tr>
+          <tr><td>1</td><td><strong>जॉब पाइपलाइन</strong></td><td>7-चरण स्वचालित प्रसंस्करण: मान्य करें→निकालें→ट्रांसक्राइब करें→अनुवाद करें→उत्पन्न करें→पैक करें</td></tr>
+          <tr><td>2</td><td><strong>अनुवाद मेमोरी</strong></td><td>पिछले अनुवादों को कैश करता है — एक ही वाक्य का दो बार अनुवाद नहीं होता। शब्दावली स्वचालित रूप से बनाता है।</td></tr>
+          <tr><td>3</td><td><strong>विश्वास गेट</strong></td><td>प्रति-वाक्य विश्वास स्कोर: 🟢 तैयार, 🟡 पहले समीक्षा, 🔴 मैन्युअल हस्तक्षेप</td></tr>
+          <tr><td>4</td><td><strong>रिवर्स ब्रिज</strong></td><td>किसान ऑडियो → मुख्यालय विशेषज्ञों के लिए अंग्रेजी में ट्रांसक्राइब और अनुवादित</td></tr>
+          <tr><td>5</td><td><strong>इम्पैक्ट लेजर</strong></td><td>अनुवाद किए गए घंटे, बचाए गए ₹, पहुंच योग्य किसान — डोनरों के लिए पीडीएफ निर्यात</td></tr>
+          <tr><td>6</td><td><strong>IVR / फ़ीचर फ़ोन निर्यात</strong></td><td>बेसिक फोन पर प्रसारण के लिए 8kHz मोनो ऑडियो ऑटो-जेनरेट करता है</td></tr>
+          <tr><td>7</td><td><strong>WhatsApp ऑटो-स्प्लिटर</strong></td><td>WhatsApp सीमा को बायपास करने के लिए अनुवादित वीडियो को &lt;15MB चंक्स में काटता है</td></tr>
+        </table>
+      `,
+      "doc2-content": `
+        <h1>📋 मान्यताएं और दायरा</h1>
+        <h2>दायरे में</h2>
+        <ul>
+          <li>22 भारतीय भाषाओं में वीडियो, ऑडियो और टेक्स्ट का अनुवाद</li>
+          <li>टाइमस्टैम्प्ड सेगमेंट के साथ व्हिस्पर (Whisper) स्पीच-टू-टेक्स्ट</li>
+          <li>विश्वास स्कोरिंग और समीक्षा कतार (Review Queue)</li>
+          <li>रिवर्स ब्रिज (क्षेत्रीय भाषा → अंग्रेजी)</li>
+          <li>अनुवाद मेमोरी (ऑटो-लर्निंग कैश)</li>
+          <li>पीडीएफ निर्यात के साथ इम्पैक्ट लेजर</li>
+          <li>DOCX निर्यात के साथ शब्दावली (Glossary)</li>
+          <li>ऑफ़लाइन-फर्स्ट, ब्राउज़र-आधारित, LAN-सुलभ</li>
+          <li>सभी कार्यों के लिए Windows 11 .bat स्क्रिप्ट</li>
+          <li>JWT-आधारित उपयोगकर्ता प्रमाणीकरण और भूमिका-आधारित पहुँच (Admin/User)</li>
+        </ul>
+        <h2>दायरे से बाहर</h2>
+        <ul>
+          <li>मोबाइल/टैबलेट देशी ऐप (वेब ब्राउज़र इसे कवर करता है)</li>
+          <li>क्लाउड सिंक या बैकअप</li>
+          <li>छवि/स्कैन किए गए पीडीएफ पाठ पहचान</li>
+          <li>रीयल-टाइम स्ट्रीमिंग अनुवाद</li>
+          <li>22 अनुसूचित भारतीय भाषाओं के बाहर की भाषाएँ</li>
+        </ul>
+        <h2>नौ मान्यताएं</h2>
+        <table>
+          <tr><th>#</th><th>मान्यता</th></tr>
+          <tr><td>1</td><td>सर्वर कंप्यूटर काम के घंटों के दौरान चालू रहता है</td></tr>
+          <tr><td>2</td><td>कार्यालय में काम करने वाला LAN (वायर्ड या WiFi) है</td></tr>
+          <tr><td>3</td><td>कम से कम एक प्रशिक्षित समीक्षक प्रतिदिन समीक्षा कतार की जांच करता है</td></tr>
+          <tr><td>4</td><td>FFmpeg स्थापित है और PATH पर उपलब्ध है</td></tr>
+          <tr><td>5</td><td>प्रारंभिक सेटअप इंटरनेट से जुड़े मशीन पर किया गया है</td></tr>
+          <tr><td>6</td><td>कृषि डोमेन के लिए एआई सटीकता पर्याप्त है जिसमें टीएम पूरक है</td></tr>
+          <tr><td>7</td><td>16 जीबी रैम न्यूनतम है — प्रसंस्करण के दौरान अन्य ऐप्स बंद होने चाहिए</td></tr>
+          <tr><td>8</td><td>आईटी व्यवस्थापक द्वारा कार्यस्थान को समय-समय पर साफ किया जाता है</td></tr>
+          <tr><td>9</td><td>आपदा रिकवरी के लिए साप्ताहिक बाहरी बैकअप पर्याप्त है</td></tr>
+        </table>
+        <h2>लाइसेंस सारांश</h2>
+        <table>
+          <tr><th>घटक</th><th>लाइसेंस</th><th>NGO उपयोग के लिए ठीक है?</th></tr>
+          <tr><td>Whisper</td><td>MIT</td><td>✅ हाँ</td></tr>
+          <tr><td>IndicTrans2</td><td>MIT</td><td>✅ हाँ</td></tr>
+          <tr><td>Coqui TTS</td><td>MPL-2.0</td><td>✅ हाँ (श्रेय आवश्यक)</td></tr>
+          <tr><td>FastAPI / React</td><td>MIT / BSD</td><td>✅ हाँ</td></tr>
+          <tr><td>FFmpeg</td><td>LGPL/GPL</td><td>✅ हाँ (आंतरिक उपयोग)</td></tr>
+        </table>
+      `,
+      "doc3-content": `
+        <h1>🏗️ आर्किटेक्चर और फ्लो (सरलीकृत)</h1>
+        <p>जटिल तकनीकी आरेखों के बजाय, वाणीसेतु को आपके कार्यालय के कंप्यूटर पर स्थानीय रूप से चलने वाली एक सहज, हाई-स्पीड <strong>असेंबली लाइन</strong> के रूप में सोचना आसान है।</p>
+        <h2>एक वीडियो की यात्रा</h2>
+        <ol>
+          <li><strong>इनटेक (फ़ाइल अपलोड):</strong> आप एक प्रशिक्षण वीडियो अपलोड करते हैं। सिस्टम ऑडियो ट्रैक पर पूरी तरह से ध्यान केंद्रित करने के लिए तुरंत वीडियो चित्र को हटा देता है।</li>
+          <li><strong>सुनने वाला (ट्रांसक्रिप्शन):</strong> हमारा एआई "श्रोता" (व्हिस्पर) ध्यान से ऑडियो सुनता है और सब कुछ वाक्यों में लिखता है, यह नोट करते हुए कि प्रत्येक वाक्य किस सेकंड पर बोला गया था।</li>
+          <li><strong>वॉल्ट की जांच (अनुवाद मेमोरी):</strong> यह सिस्टम का सबसे स्मार्ट हिस्सा है। अनुवाद करने से पहले, वाणीसेतु अपने आंतरिक तिजोरी की जांच करता है। यदि BAIF में किसी ने पहले इसी वाक्य का अनुवाद किया है, तो यह समय बचाने और गुणवत्ता की गारंटी देने के लिए मानव-अनुमोदित संस्करण निकालता है!</li>
+          <li><strong>अनुवादक (एआई अनुवाद):</strong> वॉल्ट में नहीं होने वाले किसी भी नए वाक्य के लिए, एआई आगे बढ़ता है। यह वाक्य का अनुवाद करता है और आपको एक <strong>विश्वास स्कोर</strong> प्रदान करता है।<ul><li>ताकि आप सुनिश्चित हों, यह <strong>हरा (Green)</strong> चिह्नित किया जाता है।</li><li>थोड़ी अनिश्चितता होने पर, यह आपके दोबारा जांच के लिए <strong>एम्बर (Amber)</strong> चिह्नित होता है।</li></ul></li>
+          <li><strong>असेंबली लाइन (आउटपुट):</strong> सिस्टम फिर पीडीएफ, वर्ड दस्तावेज़, उपशीर्षक फ़ाइलों में नए पाठ को पैकेज करता है, और यहां तक ​​कि एक सिंथेटिक वॉइस ट्रैक भी उत्पन्न करता है। यह डाउनलोड करने के लिए तैयार एक फ़ोल्डर में उन्हें ज़िप करता है!</li>
+        </ol>
+        <h2>समर्थित प्रारूप</h2>
+        <div class="callout callout-note"><strong>💡 टिप:</strong> आप लगभग किसी भी मीडिया प्रकार को अपलोड कर सकते हैं।</div>
+        <table>
+          <tr><th>आप क्या अपलोड करते हैं</th><th>सिस्टम क्या करता है</th></tr>
+          <tr><td><strong>वीडियो फ़ाइलें</strong> (.mp4, .mkv)</td><td>ऑडियो निकालता है, अनुवाद करता है, और नए उपशीर्षक वीडियो बनाता है।</td></tr>
+          <tr><td><strong>ऑडियो फ़ाइलें</strong> (.mp3, .wav)</td><td>अनुवाद करता है और क्षेत्रीय भाषा में नया ऑडियो उत्पन्न करता है।</td></tr>
+          <tr><td><strong>दस्तावेज़ फ़ाइलें</strong> (.txt, .pdf, .docx, .csv)</td><td>सीधे पाठ पढ़ता है और अनुवादित दस्तावेज़ प्रदान करता है।</td></tr>
+        </table>
+      `,
+      "doc4-content": `
+        <h1>⚙️ सेटअप और स्थापना</h1>
+        <h2>विधि ए — इंटरनेट सेटअप</h2>
+        <h3>चरण 1: पूर्वापेक्षाएँ जांचें</h3>
+        <p><code>scripts\\check_hardware.bat</code> चलाएं — सभी आइटम [PASS] दिखाने चाहिए</p>
+        <ul><li>विंडोज 11 64-बिट</li><li>16 जीबी रैम, 200 जीबी मुफ्त डिस्क</li><li>Python 3.11+, Node.js 18+, FFmpeg PATH में</li></ul>
+        <h3>चरण 2: सॉफ्टवेयर स्थापित करें</h3>
+        <p><code>scripts\\setup.bat</code> चलाएं — पायथन पैकेज स्थापित करता है + React UI बनाता है (~30 मिनट)</p>
+        <h3>चरण 3: मॉडल डाउनलोड करें</h3>
+        <p><code>scripts\\download_models.bat</code> चलाएं — एआई मॉडल के ~6-8 जीबी डाउनलोड करता है</p>
+        <h3>चरण 4: सर्वर प्रारंभ करें</h3>
+        <p><code>scripts\\start_vaanisetu.bat</code> चलाएं — तैयार होने पर ब्राउज़र स्वचालित रूप से खुलता है</p>
+        <h2>विधि बी — यूएसबी ऑफ़लाइन स्थापना</h2>
+        <p>पहले इंटरनेट वाले पीसी पर यूएसबी तैयार करें (विधि ए चलाएं, फिर यूएसबी में फ़ाइलें कॉपी करें)। ऑफ़लाइन पीसी पर, यूएसबी ड्राइव से <code>install_from_usb.bat</code> चलाएं।</p>
+        <h2>समस्या निवारण</h2>
+        <table>
+          <tr><th>समस्या</th><th>समाधान</th></tr>
+          <tr><td>खाली ब्राउज़र पृष्ठ</td><td>फ़्रंटएंड फ़ोल्डर में <code>npm run build</code> चलाएं</td></tr>
+          <tr><td>"मॉडल्स: लोडिंग…" &gt;10 मिनट रहता है</td><td>पीसी को रीस्टार्ट करें, जांचें मॉडल फोल्डर खाली नहीं हैं</td></tr>
+          <tr><td>FFmpeg त्रुटि</td><td>System PATH में <code>C:\\ffmpeg\\bin</code> जोड़ें</td></tr>
+          <tr><td>पोर्ट 8765 उपयोग में</td><td><code>netstat -ano | findstr 8765</code> चलाएं, पीआईडी को मारें</td></tr>
+          <tr><td>जॉब "Queued" में अटक गया</td><td>सर्वर पुनरारंभ करें: stop.bat फिर start.bat</td></tr>
+        </table>
+      `,
+      "doc5-content": `
+        <h1>🔌 एक्सेस और निर्भरताएँ</h1>
+        <h2>वाणीसेतु पहुँचना</h2>
+        <table><tr><th>कहाँ से</th><th>पता</th></tr><tr><td>सर्वर मशीन</td><td><code>http://localhost:8765</code></td></tr><tr><td>कोई भी लैन(LAN) डिवाइस</td><td><code>http://[SERVER-IP]:8765</code></td></tr></table>
+        <p><strong>सुरक्षा की जानकारी:</strong> वाणीसेतु JWT प्रमाणीकरण के साथ काम करता है। डिफ़ॉल्ट प्रशासनिक पहुँच (Username: <code>admin</code>, Password: <code>baif2026</code>) है।</p>
+        <h2>हार्डवेयर आवश्यकताएँ</h2>
+        <table>
+          <tr><th>घटक</th><th>न्यूनतम</th><th>अनुशंसित</th></tr>
+          <tr><td>CPU</td><td>i5 / Ryzen 5</td><td>i7 / Ryzen 7</td></tr>
+          <tr><td>रैम</td><td>16 जीबी</td><td>32 जीबी</td></tr>
+          <tr><td>स्टोरेज</td><td>250 जीबी फ्री</td><td>500 जीबी SSD</td></tr>
+          <tr><td>OS</td><td>विंडोज 11</td><td>विंडोज 11</td></tr>
+        </table>
+        <h2>पोर्ट कॉन्फ़िगरेशन</h2>
+        <table>
+          <tr><th>पोर्ट</th><th>सेवा</th><th>फ़ायरवॉल</th></tr>
+          <tr><td>8765</td><td>वाणीसेतु API + UI</td><td>LAN पर आने वाले TCP को अनुमति दें</td></tr>
+          <tr><td>5173</td><td>Vite (केवल देव)</td><td>उत्पादन पर ब्लॉक करें</td></tr>
+        </table>
+        <h2>मॉडल फ़ाइलें</h2>
+        <table>
+          <tr><th>निर्देशिका (Directory)</th><th>आकार</th><th>सामग्री</th></tr>
+          <tr><td>models\\whisper\\</td><td>~3 जीबी</td><td>व्हिस्पर large-v3-turbo</td></tr>
+          <tr><td>models\\indictrans2-en-indic\\</td><td>~1.5 जीबी</td><td>अंग्रेजी → भारतीय भाषाएँ</td></tr>
+          <tr><td>models\\indictrans2-indic-en\\</td><td>~1.5 जीबी</td><td>भारतीय भाषाएँ → अंग्रेजी</td></tr>
+          <tr><td>models\\coqui_xtts\\</td><td>~2 जीबी</td><td>टेक्स्ट-टू-स्पीच (वैकल्पिक)</td></tr>
+        </table>
+        <div class="callout callout-warn">⚠️ मॉडल फ़ाइलों को न हटाएं। बाहरी ड्राइव पर बैकअप प्रति रखें।</div>
+      `,
+      "doc6-content": `
+        <h1>📘 ऑपरेटिंग गाइड</h1>
+        <h2>दैनिक दिनचर्या</h2>
+        <table>
+          <tr><th>कार्य</th><th>कौन</th><th>समय</th></tr>
+          <tr><td>सर्वर स्टार्ट</td><td>आईटी व्यवस्थापक</td><td>सुबह</td></tr>
+          <tr><td>जॉब सबमिट</td><td>प्रशिक्षण अधिकारी</td><td>ज़रुरत पड़ने पर</td></tr>
+          <tr><td>समीक्षा (अंबर)</td><td>सामग्री समीक्षक</td><td>दैनिक</td></tr>
+          <tr><td>इम्पैक्ट रिपोर्ट</td><td>प्रोग्राम मैनेजर</td><td>मासिक</td></tr>
+          <tr><td>बैकअप</td><td>आईटी व्यवस्थापक</td><td>साप्ताहिक</td></tr>
+          <tr><td>सर्वर रोकें</td><td>आईटी व्यवस्थापक</td><td>दिन के अंत में</td></tr>
+        </table>
+        <h2>जॉब सबमिट करना</h2>
+        <ol>
+          <li><code>http://localhost:8765</code> खोलें और <strong>लॉगिन</strong> करें</li>
+          <li>साइडबार में <strong>अपलोड</strong> पर क्लिक करें</li>
+          <li>मोड चुनें: <em>Translate Content</em> या <em>Reverse Bridge</em></li>
+          <li>स्रोत और लक्ष्य भाषाएँ चुनें</li>
+          <li>(वैकल्पिक) यदि आपका पीसी धीमा है तो <strong>रिसोर्स सेवर मोड</strong> चालू करें</li>
+          <li>अपनी फ़ाइल अपलोड ज़ोन में खींचें</li>
+          <li><strong>Start Translation</strong> पर क्लिक करें — प्रगति पट्टी देखें</li>
+          <li>पूरा होने पर ZIP डाउनलोड करें</li>
+        </ol>
+        <h2>विश्वास बैज</h2>
+        <table>
+          <tr><th>बैज रंग</th><th>अर्थ</th><th>कार्रवाई</th></tr>
+          <tr><td>🟢 हरा (≥85%)</td><td>एआई पक्का है</td><td>वितरित करने के लिए तैयार</td></tr>
+          <tr><td>🟡 एम्बर (65-84%)</td><td>एआई अनिश्चित है</td><td>समीक्षा कतार → पहले जांचें</td></tr>
+          <tr><td>🔴 लाल (&lt;65%)</td><td>एआई पक्का नहीं है</td><td>मैन्युअल चेक आवश्यक</td></tr>
+        </table>
+        <div class="callout callout-warn">⚠️ अंबर खंडों को हल किए बिना कभी भी सामग्री वितरित न करें।</div>
+        <h2>आउटपुट ZIP सामग्री</h2>
+        <table>
+          <tr><th>फ़ाइल</th><th>इसका क्या अर्थ है</th></tr>
+          <tr><td>translation_Hindi.txt</td><td>सादा पाठ अनुवाद</td></tr>
+          <tr><td>bilingual_Hindi.docx</td><td>वर्ड डॉक्यूमेंट — साथ-साथ अनुवाद</td></tr>
+          <tr><td>subtitles_Hindi.srt</td><td>वीडियो प्लेयर के लिए उपशीर्षक</td></tr>
+          <tr><td>subtitles_Hindi.vtt</td><td>वेब उपशीर्षक फ़ाइल</td></tr>
+          <tr><td>audio_Hindi.mp3</td><td>लक्ष्य भाषा में एआई ऑडियो</td></tr>
+          <tr><td>ivr_audio_Hindi.wav</td><td>फ़ीचर फ़ोन और IVR के लिए 8kHz मोनो ऑडियो</td></tr>
+          <tr><td>captioned_Hindi.mp4</td><td>उपशीर्षक वाला वीडियो</td></tr>
+          <tr><td>whatsapp_part00_Hindi.mp4</td><td>WhatsApp के लिए वीडियो चंक (&lt;15MB)</td></tr>
+          <tr><td>manifest.json</td><td>जॉब का मेटाडेटा</td></tr>
+        </table>
+        <h2>त्वरित संदर्भ कार्ड (Quick Reference Card)</h2>
+        <pre>START:   scripts\\start_vaanisetu.bat
+STOP:    scripts\\stop_vaanisetu.bat
+BACKUP:  scripts\\backup.bat
+URL:     http://localhost:8765
+
+CONFIDENCE:  🟢 ≥85% ready  |  🟡 65-84% review  |  🔴 &lt;65% manual</pre>
+      `,
+      "doc7-content": `
+        <h1>⚠️ सीमाएँ और जोखिम</h1>
+        <h2>ज्ञात सीमाएँ (Limitations)</h2>
+        <table>
+          <tr><th>सीमा</th><th>विवरण</th><th>समाधान</th></tr>
+          <tr><td>लंबे वीडियो धीमे हो सकते हैं</td><td>60-मिनट का वीडियो ~25-40 मिनट लेता है</td><td>रात में जॉब चलाएं</td></tr>
+          <tr><td>एक समय में एक जॉब</td><td>कतार प्रणाली चालू है</td><td>अग्रिम योजना बनाएं</td></tr>
+          <tr><td>छवि/पीडीएफ अनुवाद नहीं</td><td>स्कैन किए गए पीडीएफ नहीं पढ़ सकता</td><td>पाठ निर्यात करें, फिर .txt के रूप में अपलोड करें</td></tr>
+          <tr><td>बोली (Dialect) का समर्थन</td><td>एआई मानक भाषा का उपयोग करता है</td><td>समीक्षक बोलियों को बदल सकते हैं</td></tr>
+          <tr><td>टीटीएस गुणवत्ता भिन्न होती है</td><td>कुछ भाषाएँ रोबोटिक लगती हैं</td><td>संदर्भ के लिए उपयोग करें</td></tr>
+          <tr><td>RAM छत (RAM Ceiling)</td><td>&lt;16 जीबी रैम पर नहीं चल सकता</td><td><strong>रिसोर्स सेवर मोड</strong> का उपयोग करें या ऐप बंद करें</td></tr>
+        </table>
+        <h2>जोखिम (Risks)</h2>
+        <table>
+          <tr><th>जोखिम</th><th>संभावना</th><th>प्रभाव</th><th>शमन (Mitigation)</th></tr>
+          <tr><td>डिस्क विफलता</td><td>मध्यम</td><td>उच्च</td><td>साप्ताहिक बाहरी बैकअप (Weekly Backup)</td></tr>
+          <tr><td>मॉडल फ़ाइलें दूषित होना</td><td>कम</td><td>उच्च</td><td>मॉडल की यूएसबी कॉपी सुरक्षित रखें</td></tr>
+          <tr><td>स्टाफ बदलाव</td><td>मध्यम</td><td>मध्यम</td><td>हर भूमिका के लिए 2 लोगों को प्रशिक्षित करें</td></tr>
+          <tr><td>अनुवाद की गुणवत्ता</td><td>कम</td><td>मध्यम</td><td>विश्वास स्कोर + समीक्षा कतार</td></tr>
+          <tr><td>बिजली गुल होना</td><td>मध्यम</td><td>मध्यम</td><td>यूपीएस अनुशंसित; जॉब पुनः सबमिट करें</td></tr>
+          <tr><td>अंबर समीक्षा को अनदेखा करना</td><td>मध्यम</td><td>उच्च</td><td>एसओपी में समीक्षा अनिवार्य करें</td></tr>
+        </table>
+        <h2>आपातकाल: सर्वर क्रैश हो गया</h2>
+        <ol>
+          <li><code>stop_vaanisetu.bat</code> चलाएं</li>
+          <li>कंप्यूटर रीस्टार्ट करें</li>
+          <li><code>start_vaanisetu.bat</code> चलाएं</li>
+          <li>इतिहास (History) पर जाएं — विफल जॉब पुनः सबमिट करें</li>
+        </ol>
+      `,
+      "doc8-content": `
+        <h1>🚀 प्रशिक्षण योजना</h1>
+        <h2>सत्र 1 - स्टाफ (2 घंटे)</h2>
+        <table>
+          <tr><th>समय</th><th>गतिविधि</th></tr>
+          <tr><td>0:00–0:15</td><td>स्वागत + वाणीसेतु क्यों</td></tr>
+          <tr><td>0:15–0:30</td><td>इंटरफ़ेस का दौरा</td></tr>
+          <tr><td>0:30–0:55</td><td>लाइव डेमो: 5-मिनट का वीडियो सबमिट करें</td></tr>
+          <tr><td>0:55–1:15</td><td>विश्वास बैज स्पष्टीकरण</td></tr>
+          <tr><td>1:15–1:40</td><td>समीक्षा कतार (Review Queue)</td></tr>
+          <tr><td>1:40–1:50</td><td>रिवर्स ब्रिज डेमो</td></tr>
+          <tr><td>1:50–2:00</td><td>प्रश्नोत्तर और संदर्भ कार्ड</td></tr>
+        </table>
+        <h2>सत्र 2 - आईटी व्यवस्थापक (1 घंटा)</h2>
+        <table>
+          <tr><th>समय</th><th>गतिविधि</th></tr>
+          <tr><td>0:00–0:10</td><td>सिस्टम अवलोकन</td></tr>
+          <tr><td>0:10–0:20</td><td>सर्वर स्क्रिप्ट्स (.bat)</td></tr>
+          <tr><td>0:20–0:35</td><td>साप्ताहिक बैकअप प्रक्रिया</td></tr>
+          <tr><td>0:35–0:45</td><td>डिस्क प्रबंधन</td></tr>
+          <tr><td>0:45–0:55</td><td>समस्या निवारण (Troubleshooting)</td></tr>
+          <tr><td>0:55–1:00</td><td>आपातकालीन प्रक्रिया</td></tr>
+        </table>
+        <h2>90-दिवसीय अपनाने का रोडमैप</h2>
+        <table>
+          <tr><th>सप्ताह</th><th>माइलस्टोन</th></tr>
+          <tr><td>सप्ताह 1</td><td>सेटअप + मॉडल डाउनलोड (आईटी)</td></tr>
+          <tr><td>सप्ताह 2</td><td>स्टाफ प्रशिक्षण + 2 पायलट जॉब</td></tr>
+          <tr><td>सप्ताह 3-4</td><td>5-10 वास्तविक जॉब; अंबर समीक्षा</td></tr>
+          <tr><td>सप्ताह 5-6</td><td>समीक्षा कतार को दैनिक दिनचर्या बनाएं</td></tr>
+          <tr><td>सप्ताह 7-8</td><td>शब्दावली का सत्यापन करें</td></tr>
+          <tr><td>सप्ताह 9-10</td><td>पहला इम्पैक्ट लेजर निर्यात</td></tr>
+          <tr><td>तीसरा महीना</td><td>पूर्ण रूप से स्वायत्त उपयोग</td></tr>
+        </table>
+      `,
+      "doc9-content": `
+        <h1>❓ कर्मचारी सामान्य प्रश्न (FAQ)</h1>
+        <p>क्षेत्रीय अधिकारियों, आईटी और प्रबंधकों के सामान्य प्रश्नों के सरल उत्तर।</p>
+        
+        <h2>ए — शुरुआत करना</h2>
+        <h3>मैं वाणीसेतु कैसे खोलूं? क्या इंस्टॉल करना होगा?</h3>
+        <p>कोई स्थापना आवश्यक नहीं है। किसी भी ब्राउज़र को खोलें और सर्वर का पता टाइप करें (जैसे <code>http://192.168.1.100:8765</code>)। यह स्मार्टफोन, टैबलेट और पीसी पर काम करता है।</p>
+        
+        <h3>क्या मुझे खाते या पासवर्ड की आवश्यकता है?</h3>
+        <p>नहीं। इसमें कोई व्यक्तिगत लॉगिन नहीं है। कोई भी वाईफाई पर पहुंच सकता है।</p>
+        
+        <h3>फ़ाइल के कौन से प्रकार मान्य हैं?</h3>
+        <table>
+          <tr><th>प्रकार</th><th>प्रारूप</th></tr>
+          <tr><td>वीडियो</td><td>.mp4, .mkv, .avi, .webm</td></tr>
+          <tr><td>ऑडियो</td><td>.mp3, .wav, .m4a</td></tr>
+          <tr><td>टेक्स्ट</td><td>.txt</td></tr>
+        </table>
+        
+        <h2>बी — जॉब सबमिट करना</h2>
+        <h3>Translate Content बनाम Reverse Bridge — क्या अंतर है?</h3>
+        <table>
+          <tr><th>मोड</th><th>उपयोग करें जब…</th></tr>
+          <tr><td><strong>Translate Content</strong></td><td>आप BAIF प्रशिक्षण को किसानों के लिए क्षेत्रीय भाषा में अनुदित करना चाहते हैं</td></tr>
+          <tr><td><strong>Reverse Bridge</strong></td><td>किसान के ऑडियो को मुख्यालय विशेषज्ञों के लिए अंग्रेजी में समझना चाहते हैं</td></tr>
+        </table>
+        
+        <h3>वीडियो में कितना समय लगता है?</h3>
+        <table>
+          <tr><th>सामग्री लंबाई</th><th>समय (3–4 भाषाएँ)</th></tr>
+          <tr><td>5 मिनट का वीडियो</td><td>8–12 मिनट</td></tr>
+          <tr><td>20 मिनट का वीडियो</td><td>30–45 मिनट</td></tr>
+          <tr><td>60 मिनट का वीडियो</td><td>90–120 मिनट</td></tr>
+        </table>
+        
+        <h3>क्या मैं ब्राउज़र को बंद कर सकता हूँ?</h3>
+        <p>हाँ, जॉब सर्वर पर पृष्ठभूमि में चलती है। बाद में आकर 'इतिहास' (History) से फ़ाइल डाउनलोड करें।</p>
+        
+        <h2>सी — समीक्षा कतार और गोपनीयता</h2>
+        <h3>कौन समीक्षा (Review) करेगा?</h3>
+        <p>द्विभाषी कर्मचारी जो स्रोत और लक्ष्य दोनों भाषाओं को समझते हैं। तकनीकी ज्ञान की आवश्यकता नहीं है।</p>
+        
+        <h3>क्या किसान डेटा Google को भेजा जाता है?</h3>
+        <p><strong>नहीं।</strong> सब कुछ सुरक्षित BAIF कार्यालय में रहता है, कोई इंटरनेट कनेक्शन नहीं है।</p>
+        
+        <h3>क्या रासायनिक दवाओं का अनुवाद सुरक्षित है?</h3>
+        <div class="callout callout-warn">⚠️ कीटनाशक, रसायनों और दवाओं के अनुवाद पर हमेशा एक मानव समीक्षक को जांच करनी चाहिए, भले ही एआई इसे 🟢 हरा माने।</div>
+      `
+    },
+    "mr": {
+      "header-title": "वाणीसेतू",
+      "header-sub": "लर्निंग डेक",
+      "header-desc": "सोपी मराठी कागदपत्रे वाचण्यासाठी कार्ड निवडा.",
+      "card1-title": "उपाय विहंगावलोकन",
+      "card1-desc": "प्लॅटफॉर्म रचना आणि मुख्य मेट्रिक्स",
+      "card2-title": "गृहीतके आणि व्याप्ती",
+      "card2-desc": "प्रकल्प मर्यादा आणि परवाना",
+      "card3-title": "आर्किटेक्चर आणि फ्लो",
+      "card3-desc": "7-टप्पे प्रक्रिया पाइपलाइन",
+      "card4-title": "सेटअप आणि इन्स्टॉलेशन",
+      "card4-desc": "ऑनलाइन आणि यूएसबी ऑफलाइन इन्स्टॉलेशन मार्गदर्शक",
+      "card5-title": "अॅक्सेस आणि अवलंबित्व",
+      "card5-desc": "हार्डवेअर आवश्यकता आणि सुरक्षित पोर्ट",
+      "card6-title": "ऑपरेटिंग मार्गदर्शक",
+      "card6-desc": "दैनंदिन दिनचर्या आणि प्रक्रिया",
+      "card7-title": "मर्यादा आणि धोके",
+      "card7-desc": "ज्ञात अडथळे आणि आपत्ती निवारण",
+      "card8-title": "प्रशिक्षण योजना",
+      "card8-desc": "90-दिवसीय दत्तक रोडमॅप आणि परिस्थिती",
+      "card9-title": "कर्मचारी वारंवार प्रश्न",
+      "card9-desc": "फील्ड अधिकाऱ्यांसाठी सामान्य प्रश्न",
+      "doc1-content": `
+        <h1>🌱 उपाय विहंगावलोकन</h1>
+        <p><strong>वाणीसेतू</strong> (म्हणजे "व्हॉइस ब्रिज") बायफसाठी तयार केलेले एक पूर्णपणे ऑफलाइन एआय अनुवाद प्लॅटफॉर्म आहे. हे कृषी प्रशिक्षण व्हिडिओ, ऑडिओ आणि मजकूर इंटरनेटशिवाय 22 भारतीय भाषांमध्ये अनुवादित करते.</p>
+      
+        <h2>हे का बनवले?</h2>
+        <p>BAIF ची सामग्री देशभरातील शेतकरी समुदायांपर्यंत पोहोचते, परंतु व्यावसायिक भाषांतर महाग (₹850+/मिनिट), संथ आणि ऑफलाइन उपलब्ध नाही. वाणीसेतू कार्यालयात विनामूल्य, जलद आणि खाजगी एआय भाषांतर आणते.</p>
+      
+        <h2>हे कोण वापरते?</h2>
+        <table>
+          <tr><th>भूमिका</th><th>वापर</th></tr>
+          <tr><td>प्रशिक्षण अधिकारी</td><td>व्हिडिओ अपलोड करा → मिनिटांत भाषांतर मिळवा</td></tr>
+          <tr><td>फील्ड समन्वयक</td><td>रिव्हर्स ब्रिज — शेतकरी ऑडिओ → मुख्यालयासाठी इंग्रजी</td></tr>
+          <tr><td>सामग्री समीक्षक</td><td>अंबर आत्मविश्वास अनुवादांना मान्यता द्या</td></tr>
+          <tr><td>आयटी प्रशासक</td><td>सर्व्हर व्यवस्थापन आणि बॅकअप</td></tr>
+          <tr><td>प्रोग्रॅम मॅनेजर</td><td>देणगीदारांसाठी इम्पॅक्ट लेजर पीडीएफ</td></tr>
+        </table>
+      
+        <h2>सात नवकल्पना</h2>
+        <table>
+          <tr><th>#</th><th>नवकल्पना</th><th>हे काय करते</th></tr>
+          <tr><td>1</td><td><strong>जॉब पाइपलाइन</strong></td><td>7-टप्पे स्वयंचलित प्रक्रिया: पडताळणी→काढणे→लिहिणे→भाषांतर→तयार करणे→पॅकेज करणे</td></tr>
+          <tr><td>2</td><td><strong>अनुवाद स्मृती</strong></td><td>मागील अनुवाद जतन करते — एका वाक्याचे दोनदा भाषांतर होत नाही. शब्दकोष आपोआप बनवते.</td></tr>
+          <tr><td>3</td><td><strong>आत्मविश्वास गेट</strong></td><td>वाक्य स्कोअर: 🟢 तयार, 🟡 आधी समीक्षा, 🔴 मॅन्युअल हस्तक्षेप</td></tr>
+          <tr><td>4</td><td><strong>रिव्हर्स ब्रिज</strong></td><td>शेतकरी ऑडिओ → मुख्यालयातील तज्ञांसाठी इंग्रजीत लिखित आणि अनुवादित</td></tr>
+          <tr><td>5</td><td><strong>इम्पॅक्ट लेजर</strong></td><td>अनुवादित तास, वाचवलेले ₹, पोहोचलेले शेतकरी — देणगीदारांसाठी पीडीएफ रिपोर्ट</td></tr>
+          <tr><td>6</td><td><strong>IVR / फीचर फोन निर्यात</strong></td><td>बेसिक फोनवर प्रसारणासाठी 8kHz मोनो ऑडिओ स्वयंचलितरित्या तयार करते</td></tr>
+          <tr><td>7</td><td><strong>WhatsApp ऑटो-स्प्लिटर</strong></td><td>WhatsApp ची मर्यादा टाळण्यासाठी अनुवादित व्हिडिओ &lt;15MB च्या तुकड्यांमध्ये कापतो</td></tr>
+        </table>
+      `,
+      "doc2-content": `
+        <h1>📋 गृहीतके आणि व्याप्ती</h1>
+        <h2>व्याप्ती मध्ये</h2>
+        <ul>
+          <li>22 भारतीय भाषांमध्ये व्हिडिओ, ऑडिओ आणि मजकूर अनुवाद</li>
+          <li>टाइमस्टॅम्पसह व्हिस्पर (Whisper) स्पीच-टू-टेक्स्ट</li>
+          <li>आत्मविश्वास स्कोअरिंग आणि समीक्षा रांग</li>
+          <li>रिव्हर्स ब्रिज (प्रादेशिक → इंग्रजी)</li>
+          <li>अनुवाद स्मृती (ऑटो-लर्निंग कॅशे)</li>
+          <li>पीडीएफ रिपोर्टसह इम्पॅक्ट लेजर</li>
+          <li>DOCX आउटपुटसह शब्दकोष (Glossary)</li>
+          <li>ऑफलाइन-फर्स्ट, ब्राउझर-आधारित, LAN-प्रवेशयोग्य</li>
+          <li>सर्व ऑपरेशनसाठी विंडोज 11 .bat स्क्रिप्ट्स</li>
+          <li>JWT-आधारित भूमिका प्रवेश (Admin/User)</li>
+        </ul>
+        <h2>व्याप्ती बाहेर</h2>
+        <ul>
+          <li>मोबाईल/टॅब्लेट अ‍ॅप (ब्राउझरने शक्य आहे)</li>
+          <li>क्लाउड सिंक किंवा बॅकअप</li>
+          <li>मजकूर ओळखण्यासाठी स्कॅन केलेले पीडीएफ</li>
+          <li>रिअल-टाइम स्ट्रीमिंग भाषांतर</li>
+          <li>22 भारतीय भाषांच्या बाहेरील भाषा</li>
+        </ul>
+        <h2>नऊ गृहीतके</h2>
+        <table>
+          <tr><th>#</th><th>गृहीतक</th></tr>
+          <tr><td>1</td><td>सर्व्हर कामाच्या वेळेत सुरू राहील</td></tr>
+          <tr><td>2</td><td>कार्यालयात वर्किंग लॅन (वायर्ड किंवा वायफाय) आहे</td></tr>
+          <tr><td>3</td><td>किमान एक प्रशिक्षित समीक्षक दररोज रांग तपासतो</td></tr>
+          <tr><td>4</td><td>FFmpeg स्थापित आणि PATH मध्ये उपलब्ध आहे</td></tr>
+          <tr><td>5</td><td>सुरवातीचा सेटअप इंटरनेट असलेल्या संगणकावर झाला आहे</td></tr>
+          <tr><td>6</td><td>शेती क्षेत्रासाठी एआय अचूकता पुरेशी आहे </td></tr>
+          <tr><td>7</td><td>16 जीबी रॅम किमान आहे — प्रक्रियेदरम्यान इतर अ‍ॅप्स बंद ठेवावे</td></tr>
+          <tr><td>8</td><td>आयटी प्रशासक वेळोवेळी वर्कस्पेस साफ करतो</td></tr>
+          <tr><td>9</td><td>साप्ताहिक बाह्य बॅकअप आपत्ती निवारणासाठी पुरेसे आहे</td></tr>
+        </table>
+        <h2>परवाना सारांश</h2>
+        <table>
+          <tr><th>घटक</th><th>परवाना</th><th>NGO वापरासाठी योग्य?</th></tr>
+          <tr><td>Whisper</td><td>MIT</td><td>✅ होय</td></tr>
+          <tr><td>IndicTrans2</td><td>MIT</td><td>✅ होय</td></tr>
+          <tr><td>Coqui TTS</td><td>MPL-2.0</td><td>✅ होय (श्रेय आवश्यक)</td></tr>
+          <tr><td>FastAPI / React</td><td>MIT / BSD</td><td>✅ होय</td></tr>
+          <tr><td>FFmpeg</td><td>LGPL/GPL</td><td>✅ होय (अंतर्गत वापर)</td></tr>
+        </table>
+      `,
+      "doc3-content": `
+        <h1>🏗️ आर्किटेक्चर आणि फ्लो (साधे रूप)</h1>
+        <p>वाणीसेतू तुमच्या कार्यालयात चालणाऱ्या साध्या आणि वेगवान <strong>असेंब्ली लाईन</strong> सारखे काम करते.</p>
+        <h2>व्हिडिओचा प्रवास</h2>
+        <ol>
+          <li><strong>अपलोड:</strong> तुम्ही प्रशिक्षण व्हिडिओ अपलोड करता. सिस्टम केवळ ऑडिओकडे लक्ष देते.</li>
+          <li><strong>ऐकणारा (ट्रान्सक्रिप्शन):</strong> आमचा एआय "ऐकणारा" (Whisper) ऑडिओ काळजीपूर्वक ऐकतो आणि कोणते वाक्य कोणत्या सेकंदाला बोलले गेले ते लिहून ठेवतो.</li>
+          <li><strong>अनुवाद स्मृती (चेकिंग):</strong> हा सर्वात हुशार भाग आहे. अनुवादापूर्वी वाणीसेतू तपासते की हे वाक्य आधी कुणी अनुवादित केले आहे का. असल्यास, ते मानवी-मंजूर केलेले वाक्य थेट वापरते!</li>
+          <li><strong>अनुवादक (एआय अनुवाद):</strong> नवीन वाक्यांसाठी, एआय भाषांतर करते आणि एक <strong>आत्मविश्वास स्कोअर</strong> देते.<ul><li>जर एआय खात्रीशीर असेल तर <strong>हिरवा (Green)</strong>.</li><li>थोडी शंका असल्यास समीक्षा रांगेसाठी <strong>अंबर (Amber)</strong>.</li></ul></li>
+          <li><strong>आउटपुट:</strong> सिस्टम नवीन मजकूर पीडीएफ, वर्ड, सबटायटल्स आणि ऑडिओ फायलींमध्ये पॅकेज करून झिप फोल्डरमध्ये डाउनलोडसाठी तयार करते!</li>
+        </ol>
+        <h2>समर्थित स्वरूप</h2>
+        <div class="callout callout-note"><strong>💡 टीप:</strong> तुम्ही बहुतांश मीडिया अपलोड करू शकता.</div>
+        <table>
+          <tr><th>काय अपलोड करू शकता</th><th>सिस्टम काय करते</th></tr>
+          <tr><td><strong>व्हिडिओ फाइल्स</strong> (.mp4, .mkv)</td><td>ऑडिओ काढतो, भाषांतर करतो आणि नवीन व्हिडीओ बनवतो.</td></tr>
+          <tr><td><strong>ऑडिओ फाइल्स</strong> (.mp3, .wav)</td><td>भाषांतर करतो आणि प्रादेशिक ऑडिओ तयार करतो.</td></tr>
+          <tr><td><strong>दस्तऐवज</strong> (.txt, .pdf, .docx, .csv)</td><td>मजकूर वाचतो आणि अनुवादित दस्तऐवज देतो.</td></tr>
+        </table>
+      `,
+      "doc4-content": `
+        <h1>⚙️ सेटअप आणि इन्स्टॉलेशन</h1>
+        <h2>पद्धत अ - इंटरनेट सेटअप</h2>
+        <h3>स्टेप 1: पूर्वतयारी तपासा</h3>
+        <p><code>scripts\\check_hardware.bat</code> चालवा — सर्व [PASS] असले पाहिजे</p>
+        <ul><li>विंडोज 11 64-बिट</li><li>16 जीबी रॅम, 200 जीबी रिकामा डिस्क</li><li>Python 3.11+, Node.js 18+, FFmpeg PATH मध्ये</li></ul>
+        <h3>स्टेप 2: सॉफ्टवेअर इन्स्टॉल करा</h3>
+        <p><code>scripts\\setup.bat</code> चालवा — (~30 मिनिटे)</p>
+        <h3>स्टेप 3: मॉडेल्स डाउनलोड करा</h3>
+        <p><code>scripts\\download_models.bat</code> चालवा — (~6-8 जीबी मॉडेल्स)</p>
+        <h3>स्टेप 4: सर्व्हर सुरू करा</h3>
+        <p><code>scripts\\start_vaanisetu.bat</code> चालवा — तयार झाल्यावर ब्राउझर उघडेल</p>
+        <h2>पद्धत ब - यूएसबी ऑफलाइन इन्स्टॉलेशन</h2>
+        <p>आधी इंटरनेट पीसीवर यूएसबी तयार करा. ऑफलाइन पीसीवर यूएसबी ड्रायव्हवरून <code>install_from_usb.bat</code> चालवा.</p>
+        <h2>समस्या निवारण</h2>
+        <table>
+          <tr><th>समस्या</th><th>उपाय</th></tr>
+          <tr><td>रिकामा ब्राउझर पृष्ठ</td><td>फ्रंटएंड फोल्डरमध्ये <code>npm run build</code> चालवा</td></tr>
+          <tr><td>"Models: Loading" &gt;10 मिनिटे</td><td>पीसी रिस्टार्ट करा किंवा मॉडेल्स तपासा</td></tr>
+          <tr><td>FFmpeg त्रुटी</td><td>System PATH मध्ये <code>C:\\ffmpeg\\bin</code> टाका</td></tr>
+          <tr><td>पोर्ट 8765 वापरात आहे</td><td>PID शोधा आणि बंद करा</td></tr>
+          <tr><td>जॉब "Queued" मध्ये अडकले</td><td>stop.bat आणि start.bat चालवा</td></tr>
+        </table>
+      `,
+      "doc5-content": `
+        <h1>🔌 ऍक्सेस आणि अवलंबित्व</h1>
+        <h2>वाणीसेतू ऍक्सेस करणे</h2>
+        <table><tr><th>कुठून</th><th>पत्ता</th></tr><tr><td>सर्व्हर मशीन</td><td><code>http://localhost:8765</code></td></tr><tr><td>लॅन (LAN) मधील कोणतेही डिव्हाइस</td><td><code>http://[SERVER-IP]:8765</code></td></tr></table>
+        <p><strong>सुरक्षा નોંધ:</strong> वाणीसेतू JWT प्रमाणीकरणावर चालते. (Username: <code>admin</code>, Password: <code>baif2026</code>).</p>
+        <h2>हार्डवेअर आवश्यकता</h2>
+        <table>
+          <tr><th>घटक</th><th>किमान</th><th>शिफारस केलेले</th></tr>
+          <tr><td>CPU</td><td>i5 / Ryzen 5</td><td>i7 / Ryzen 7</td></tr>
+          <tr><td>रॅम</td><td>16 जीबी</td><td>32 जीबी</td></tr>
+          <tr><td>स्टोरेज</td><td>250 जीबी रिकामी जागा</td><td>500 जीबी SSD</td></tr>
+          <tr><td>OS</td><td>विंडोज 11</td><td>विंडोज 11</td></tr>
+        </table>
+        <h2>पोर्ट कॉन्फिगरेशन</h2>
+        <table>
+          <tr><th>पोर्ट</th><th>सेवा</th><th>फायरवॉल</th></tr>
+          <tr><td>8765</td><td>वाणीसेतू API + UI</td><td>येणाऱ्या TCP ला अनुमती द्या</td></tr>
+          <tr><td>5173</td><td>Vite (Dev फक्त)</td><td>बंद करा</td></tr>
+        </table>
+        <h2>मॉडेल फाइल्स</h2>
+        <table>
+          <tr><th>डिरेक्टरी</th><th>आकार</th><th>सामग्री</th></tr>
+          <tr><td>models\\whisper\\</td><td>~3 जीबी</td><td>व्हिस्पर large-v3-turbo</td></tr>
+          <tr><td>models\\indictrans2-en-indic\\</td><td>~1.5 जीबी</td><td>इंग्रजी → भारतीय भाषा</td></tr>
+          <tr><td>models\\indictrans2-indic-en\\</td><td>~1.5 जीबी</td><td>भारतीय भाषा → इंग्रजी</td></tr>
+          <tr><td>models\\coqui_xtts\\</td><td>~2 जीबी</td><td>टेक्स्ट-टू-स्पीच (पर्यायी)</td></tr>
+        </table>
+        <div class="callout callout-warn">⚠️ मॉडेल फायली कधीही डिलीट करू नका. बाह्य ड्रायव्हवर बॅकअप ठेवा.</div>
+      `,
+      "doc6-content": `
+        <h1>📘 ऑपरेटिंग मार्गदर्शक</h1>
+        <h2>दैनंदिन दिनचर्या</h2>
+        <table>
+          <tr><th>कार्य</th><th>कोण</th><th>वेळ</th></tr>
+          <tr><td>सर्व्हर चालू करा</td><td>आयटी प्रशासक</td><td>सकाळ</td></tr>
+          <tr><td>जॉब सबमिट करा</td><td>प्रशिक्षण अधिकारी</td><td>गरज पडल्यास</td></tr>
+          <tr><td>समीक्षा (अंबर)</td><td>सामग्री समीक्षक</td><td>दररोज</td></tr>
+          <tr><td>इम्पॅक्ट रिपोर्ट</td><td>प्रोग्रॅम मॅनेजर</td><td>मासिक</td></tr>
+          <tr><td>बॅकअप</td><td>आयटी प्रशासक</td><td>साप्ताहिक</td></tr>
+          <tr><td>सर्व्हर बंद करा</td><td>आयटी प्रशासक</td><td>दिवसाच्या शेवटी</td></tr>
+        </table>
+        <h2>जॉब सबमिट करणे</h2>
+        <ol>
+          <li><code>http://localhost:8765</code> उघडा आणि <strong>लॉगिन</strong> करा</li>
+          <li>साइडबारमध्ये <strong>अपलोड</strong> वर क्लिक करा</li>
+          <li>मोड निवडा: <em>Translate Content</em> किंवा <em>Reverse Bridge</em></li>
+          <li>स्रोत आणि भाषा निवडा</li>
+          <li>(पर्यायी) तुमचा पीसी धीमा असल्यास <strong>रिसोर्स सेव्हर मोड</strong> चालू करा</li>
+          <li>फाइल अपलोड झोनमध्ये ओढा</li>
+          <li><strong>Start Translation</strong> वर क्लिक करा — प्रोग्रेस बार पहा</li>
+          <li>पूर्ण झाल्यावर झिप डाउनलोड करा</li>
+        </ol>
+        <h2>विश्वास बॅज</h2>
+        <table>
+          <tr><th>बॅज रंग</th><th>अर्थ</th><th>कृती</th></tr>
+          <tr><td>🟢 हिरवा (≥85%)</td><td>एआय खात्रीशीर आहे</td><td>वितरित करण्यास तयार</td></tr>
+          <tr><td>🟡 पिवळा (65-84%)</td><td>एआय अनिश्चित आहे</td><td>समीक्षा रांग → प्रथम तपासा</td></tr>
+          <tr><td>🔴 लाल (&lt;65%)</td><td>एआय खात्रीशीर नाही</td><td>मॅन्युअल तपासणी आवश्यक</td></tr>
+        </table>
+        <div class="callout callout-warn">⚠️ अंबर विभाग तपासल्याशिवाय कोणतीही सामग्री वितरित करू नका.</div>
+        <h2>आउटपुट ZIP मधील फायली</h2>
+        <table>
+          <tr><th>फाइल</th><th>याचा अर्थ काय</th></tr>
+          <tr><td>translation_Marathi.txt</td><td>साधा मजकूर</td></tr>
+          <tr><td>bilingual_Marathi.docx</td><td>वर्ड डॉक्युमेंट — सोबत अनुवाद</td></tr>
+          <tr><td>subtitles_Marathi.srt</td><td>व्हिडीओ प्लेयरसाठी सबटायटल्स</td></tr>
+          <tr><td>subtitles_Marathi.vtt</td><td>वेब सबटायटल्स</td></tr>
+          <tr><td>audio_Marathi.mp3</td><td>प्रादेशिक भाषेतील एआय ऑडिओ</td></tr>
+          <tr><td>ivr_audio_Hindi.wav</td><td>फिचर फोन आणि IVR साठी 8kHz मोनो ऑडिओ</td></tr>
+          <tr><td>captioned_Marathi.mp4</td><td>सबटायटल्ससह व्हिडीओ</td></tr>
+          <tr><td>whatsapp_part00_Hindi.mp4</td><td>WhatsApp साठी व्हिडिओ चंक (&lt;15MB)</td></tr>
+          <tr><td>manifest.json</td><td>जॉबचा मेटाडेटा</td></tr>
+        </table>
+        <h2>त्वरित संदर्भ कार्ड (Quick Reference Card)</h2>
+        <pre>START:   scripts\\start_vaanisetu.bat
+STOP:    scripts\\stop_vaanisetu.bat
+BACKUP:  scripts\\backup.bat
+URL:     http://localhost:8765
+
+CONFIDENCE:  🟢 ≥85% ready  |  🟡 65-84% review  |  🔴 &lt;65% manual</pre>
+      `,
+      "doc7-content": `
+        <h1>⚠️ मर्यादा आणि धोके</h1>
+        <h2>ज्ञात मर्यादा (Limitations)</h2>
+        <table>
+          <tr><th>मर्यादा</th><th>माहिती</th><th>उपाय</th></tr>
+          <tr><td>लांब व्हिडिओ धीमे</td><td>60-मिनिटांचा व्हिडिओ ~25-40 मिनिटे</td><td>नोकरी रात्री चालवा</td></tr>
+          <tr><td>एका वेळी एकच जॉब</td><td>रांग पद्धत सुरू आहे</td><td>पूर्व नियोजन करा</td></tr>
+          <tr><td>इमेज/स्कॅन्ड पीडीएफ नाही</td><td>स्कॅन केलेले पीडीएफ वाचू शकत नाही</td><td>मजकूर काढून .txt अपलोड करा</td></tr>
+          <tr><td>बोली (Dialect) समर्थन</td><td>एआय प्रमाण मानकांचा वापर करते</td><td>समीक्षक बोली बदलू शकतात</td></tr>
+          <tr><td>टीटीएस गुणवत्ता</td><td>काही भाषा रोबोटिक वाटू शकतात</td><td>संदर्भासाठी वापरा</td></tr>
+          <tr><td>RAM मर्यादा</td><td>&lt;16 जीबी वर चालत नाही</td><td><strong>रिसोर्स सेव्हर मोड</strong> वापरा किंवा ॲप्स बंद करा</td></tr>
+        </table>
+        <h2>धोके (Risks)</h2>
+        <table>
+          <tr><th>धोका</th><th>शक्यता</th><th>परिणाम</th><th>उपाय (Mitigation)</th></tr>
+          <tr><td>डिस्क बिघडणे</td><td>मध्यम</td><td>उच्च</td><td>साप्ताहिक बाह्य बॅकअप</td></tr>
+          <tr><td>मॉडेल्स खराब होणे</td><td>कमी</td><td>उच्च</td><td>मॉडेलची यूएसबी कॉपी सुरक्षित ठेवा</td></tr>
+          <tr><td>कर्मचारी बदल</td><td>मध्यम</td><td>मध्यम</td><td>प्रत्येक भूमिकेसाठी 2 लोकांना प्रशिक्षित करा</td></tr>
+          <tr><td>भाषांतर गुणवत्ता</td><td>कमी</td><td>मध्यम</td><td>विश्वास स्कोअर + समीक्षा रांग</td></tr>
+          <tr><td>वीज जाणे</td><td>मध्यम</td><td>मध्यम</td><td>युपीएस (UPS) आवश्यक; जॉब पुन्हा सबमिट करा</td></tr>
+          <tr><td>अंबर समीक्षा दुर्लक्षित</td><td>मध्यम</td><td>उच्च</td><td>समीक्षा अनिवार्य करा</td></tr>
+        </table>
+        <h2>आणीबाणी: सर्व्हर क्रॅश</h2>
+        <ol>
+          <li><code>stop_vaanisetu.bat</code> चालवा</li>
+          <li>संगणक रिस्टार्ट करा</li>
+          <li><code>start_vaanisetu.bat</code> चालवा</li>
+          <li>इतिहास (History) — अयशस्वी जॉब पुन्हा सबमिट करा</li>
+        </ol>
+      `,
+      "doc8-content": `
+        <h1>🚀 प्रशिक्षण योजना</h1>
+        <h2>सत्र 1 - कर्मचारी (2 तास)</h2>
+        <table>
+          <tr><th>वेळ</th><th>क्रियाकलाप</th></tr>
+          <tr><td>0:00–0:15</td><td>स्वागत + वाणीसेतू का?</td></tr>
+          <tr><td>0:15–0:30</td><td>प्लॅटफॉर्म दौरा</td></tr>
+          <tr><td>0:30–0:55</td><td>लाइव्ह प्रात्यक्षिक: 5-मिनिट व्हिडिओ</td></tr>
+          <tr><td>0:55–1:15</td><td>विश्वास बॅज स्पष्टीकरण</td></tr>
+          <tr><td>1:15–1:40</td><td>समीक्षा रांग (Review Queue)</td></tr>
+          <tr><td>1:40–1:50</td><td>रिव्हर्स ब्रिज डेमो</td></tr>
+          <tr><td>1:50–2:00</td><td>प्रश्नोत्तरे आणि संदर्भ कार्ड</td></tr>
+        </table>
+        <h2>सत्र 2 - आयटी प्रशासक (1 तास)</h2>
+        <table>
+          <tr><th>वेळ</th><th>क्रियाकलाप</th></tr>
+          <tr><td>0:00–0:10</td><td>सिस्टम विहंगावलोकन</td></tr>
+          <tr><td>0:10–0:20</td><td>सर्व्हर स्क्रिप्ट्स (.bat)</td></tr>
+          <tr><td>0:20–0:35</td><td>साप्ताहिक बॅकअप प्रक्रिया</td></tr>
+          <tr><td>0:35–0:45</td><td>डिस्क व्यवस्थापन</td></tr>
+          <tr><td>0:45–0:55</td><td>समस्या निवारण (Troubleshooting)</td></tr>
+          <tr><td>0:55–1:00</td><td>आणीबाणी प्रक्रिया</td></tr>
+        </table>
+        <h2>90-दिवसीय दत्तक रोडमॅप</h2>
+        <table>
+          <tr><th>आठवडा</th><th>माइलस्टोन</th></tr>
+          <tr><td>आठवडा 1</td><td>सेटअप + मॉडेल डाउनलोड (आयटी)</td></tr>
+          <tr><td>आठवडा 2</td><td>प्रशिक्षण + 2 प्रायोगिक जॉब</td></tr>
+          <tr><td>आठवडा 3-4</td><td>5-10 वास्तविक जॉब; अंबर समीक्षा</td></tr>
+          <tr><td>आठवडा 5-6</td><td>समीक्षा रांग दैनंदिन दिनचर्या</td></tr>
+          <tr><td>आठवडा 7-8</td><td>शब्दकोषाची पडताळणी</td></tr>
+          <tr><td>आठवडा 9-10</td><td>पहिली इम्पॅक्ट रिपोर्ट निर्यात</td></tr>
+          <tr><td>तिसरा महिना</td><td>पूर्णपणे स्वायत्त वापर</td></tr>
+        </table>
+      `,
+      "doc9-content": `
+        <h1>❓ कर्मचारी वारंवार विचारले जाणारे प्रश्न (FAQ)</h1>
+        <p>क्षेत्रीय अधिकारी, आयटी आणि व्यवस्थापकांच्या प्रश्नांची सोपी उत्तरे.</p>
+        
+        <h2>ए — सुरुवात करणे</h2>
+        <h3>मी वाणीसेतू कसे उघडू? स्थापित करणे आवश्यक आहे का?</h3>
+        <p>काहीही स्थापित करण्याची गरज नाही. कोणत्याही ब्राउझरमध्ये सर्व्हरचा पत्ता टाका (उदा. <code>http://192.168.1.100:8765</code>). हे मोबाइल, टॅबलेट आणि पीसीवर काम करते.</p>
+        
+        <h3>खाते किंवा पासवर्ड आवश्यक आहे का?</h3>
+        <p>नाही. वायफायवर असलेले कोणीही ते उघडू शकते.</p>
+        
+        <h3>कोणत्या फायली स्वीकारल्या जातात?</h3>
+        <table>
+          <tr><th>प्रकार</th><th>स्वरूप</th></tr>
+          <tr><td>व्हिडिओ</td><td>.mp4, .mkv, .avi, .webm</td></tr>
+          <tr><td>ऑडिओ</td><td>.mp3, .wav, .m4a</td></tr>
+          <tr><td>मजकूर</td><td>.txt</td></tr>
+        </table>
+        
+        <h2>बी — जॉब सबमिट करणे</h2>
+        <h3>Translate Content विरुद्ध Reverse Bridge — फरक काय आहे?</h3>
+        <table>
+          <tr><th>मोड</th><th>कधी वापरावे…</th></tr>
+          <tr><td><strong>Translate Content</strong></td><td>जेव्हा तुम्हाला BAIF चे प्रशिक्षण शेतकऱ्यांसाठी प्रादेशिक भाषेत अनुवादित करायचे असेल</td></tr>
+          <tr><td><strong>Reverse Bridge</strong></td><td>जेव्हा शेतकऱ्यांचे ऑडिओ मुख्यालयातील तज्ञांसाठी इंग्रजीत समजून घ्यायचे असेल</td></tr>
+        </table>
+        
+        <h3>व्हिडिओला किती वेळ लागतो?</h3>
+        <table>
+          <tr><th>सामग्रीची लांबी</th><th>वेळ (३-४ भाषा)</th></tr>
+          <tr><td>५ मिनिटांचा व्हिडिओ</td><td>८-१२ मिनिटे</td></tr>
+          <tr><td>२० मिनिटांचा व्हिडिओ</td><td>३०-४५ मिनिटे</td></tr>
+          <tr><td>६० मिनिटांचा व्हिडिओ</td><td>९०-१२० मिनिटे</td></tr>
+        </table>
+        
+        <h3>मी ब्राउझर बंद करू शकतो का?</h3>
+        <p>होय, जॉब सर्व्हरवर चालत राहतो. नंतर 'इतिहास' (History) मधून फाइल डाउनलोड करा.</p>
+        
+        <h2>सी — समीक्षा रांग आणि सुरक्षा</h2>
+        <h3>समीक्षा (Review) कोण करेल?</h3>
+        <p>व्दिभाषिक कर्मचारी जे स्त्रोत आणि लक्ष्य भाषा दोन्ही समजतात. तांत्रिक ज्ञानाची गरज नाही.</p>
+        
+        <h3>शेतकऱ्यांचा डेटा गुगलला जातो का?</h3>
+        <p><strong>नाही.</strong> सर्व काही तुमच्या सुरक्षित BAIF कार्यालयात राहते, कोणतेही इंटरनेट नाही.</p>
+        
+        <h3>रासायनिक औषधांचे अनुवाद सुरक्षित आहे का?</h3>
+        <div class="callout callout-warn">⚠️ कीटकनाशके आणि रसायनांचे भाषांतर नेहमी माणसाने तपासावे, जरी एआयने ते 🟢 हिरवे म्हटले तरीही.</div>
+      `
+    }
+  };
+
+  // Ensure EN stores the original doc innerHTML correctly on boot
+  window.onload = () => {
+    ['doc1-content', 'doc2', 'doc3-content', 'doc4', 'doc5', 'doc6-content', 'doc7', 'doc8', 'doc9'].forEach((id, index) => {
+      let contentDiv = document.getElementById(id);
+      if (contentDiv) {
+        // Map to docX-content for translation logic
+        let mapId = 'doc' + (index + 1) + '-content';
+        i18n.en[mapId] = contentDiv.innerHTML;
+      }
+    });
+  };
+
+  function setLanguage(lang) {
+    document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('btn-' + lang).classList.add('active');
+    
+    document.getElementById('header-title').innerHTML = i18n[lang]['header-title'];
+    document.getElementById('header-sub').innerHTML = i18n[lang]['header-sub'];
+    document.getElementById('header-desc').innerHTML = i18n[lang]['header-desc'];
+    
+    document.getElementById('card1-title').innerHTML = i18n[lang]['card1-title'];
+    document.getElementById('card1-desc').innerHTML = i18n[lang]['card1-desc'];
+    document.getElementById('card2-title').innerHTML = i18n[lang]['card2-title'];
+    document.getElementById('card2-desc').innerHTML = i18n[lang]['card2-desc'];
+    document.getElementById('card3-title').innerHTML = i18n[lang]['card3-title'];
+    document.getElementById('card3-desc').innerHTML = i18n[lang]['card3-desc'];
+    document.getElementById('card4-title').innerHTML = i18n[lang]['card4-title'];
+    document.getElementById('card4-desc').innerHTML = i18n[lang]['card4-desc'];
+    document.getElementById('card5-title').innerHTML = i18n[lang]['card5-title'];
+    document.getElementById('card5-desc').innerHTML = i18n[lang]['card5-desc'];
+    document.getElementById('card6-title').innerHTML = i18n[lang]['card6-title'];
+    document.getElementById('card6-desc').innerHTML = i18n[lang]['card6-desc'];
+    document.getElementById('card7-title').innerHTML = i18n[lang]['card7-title'];
+    document.getElementById('card7-desc').innerHTML = i18n[lang]['card7-desc'];
+    document.getElementById('card8-title').innerHTML = i18n[lang]['card8-title'];
+    document.getElementById('card8-desc').innerHTML = i18n[lang]['card8-desc'];
+    document.getElementById('card9-title').innerHTML = i18n[lang]['card9-title'];
+    document.getElementById('card9-desc').innerHTML = i18n[lang]['card9-desc'];
+
+    // Safely update all 9 document bodies
+    ['doc1-content', 'doc2', 'doc3-content', 'doc4', 'doc5', 'doc6-content', 'doc7', 'doc8', 'doc9'].forEach((id, index) => {
+      let contentDiv = document.getElementById(id);
+      let mapId = 'doc' + (index + 1) + '-content';
+      if (contentDiv && i18n[lang][mapId]) {
+        contentDiv.innerHTML = i18n[lang][mapId];
+      }
+    });
+  }
+</script>
+
+</body>
+</html>

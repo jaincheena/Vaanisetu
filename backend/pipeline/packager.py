@@ -1,0 +1,252 @@
+"""
+VaaniSetu — Output Packager
+Generates .txt, bilingual .docx, .srt, .vtt, TTS .mp3, captioned .mp4, and manifest ZIP.
+"""
+
+import json
+import logging
+import os
+import zipfile
+from datetime import datetime, timedelta
+from pathlib import Path
+from typing import Optional
+
+logger = logging.getLogger("vaanisetu.packager")
+
+
+# ---------------------------------------------------------------------------
+# Plain text
+# ---------------------------------------------------------------------------
+def write_txt(segments: list[dict], lang_name: str, out_dir: Path) -> str:
+    path = str(out_dir / f"translation_{lang_name}.txt")
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(f"# VaaniSetu Translation — {lang_name}\n")
+        f.write(f"# Generated: {datetime.now().strftime('%d %b %Y %H:%M')}\n\n")
+        for seg in segments:
+            f.write(seg.get("translated", "") + "\n")
+    return path
+
+
+# ---------------------------------------------------------------------------
+# Bilingual DOCX
+# ---------------------------------------------------------------------------
+def write_bilingual_docx(
+    segments: list[dict],
+    source_lang: str,
+    target_lang: str,
+    out_dir: Path,
+) -> str:
+    from docx import Document
+    from docx.shared import Pt, RGBColor
+    from docx.enum.text import WD_ALIGN_PARAGRAPH
+
+    doc = Document()
+    title = doc.add_heading(f"VaaniSetu — {source_lang} ↔ {target_lang}", level=1)
+    title.runs[0].font.color.rgb = RGBColor(27, 67, 50)
+    doc.add_paragraph(f"Generated: {datetime.now().strftime('%d %b %Y, %H:%M')}")
+    doc.add_paragraph("")
+
+    table = doc.add_table(rows=1, cols=2)
+    table.style = "Light Grid"
+    hdr = table.rows[0].cells
+    hdr[0].text = source_lang
+    hdr[1].text = target_lang
+    for cell in hdr:
+        cell.paragraphs[0].runs[0].font.bold = True
+        cell.paragraphs[0].runs[0].font.color.rgb = RGBColor(82, 183, 136)
+
+    for seg in segments:
+        row = table.add_row().cells
+        row[0].text = seg.get("text", "")
+        row[1].text = seg.get("translated", "")
+
+    path = str(out_dir / f"bilingual_{target_lang}.docx")
+    doc.save(path)
+    return path
+
+
+# ---------------------------------------------------------------------------
+# Translated CSV
+# ---------------------------------------------------------------------------
+def write_translated_csv(
+    segments: list[dict],
+    lang_name: str,
+    out_dir: Path,
+) -> str:
+    import csv
+    path = str(out_dir / f"translated_{lang_name}.csv")
+    with open(path, "w", encoding="utf-8", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["Original", f"Translation ({lang_name})"])
+        for seg in segments:
+            writer.writerow([seg.get("text", ""), seg.get("translated", "")])
+    return path
+
+
+# ---------------------------------------------------------------------------
+# SRT subtitles
+# ---------------------------------------------------------------------------
+def _fmt_srt_time(seconds: float) -> str:
+    td = timedelta(seconds=seconds)
+    total_ms = int(td.total_seconds() * 1000)
+    h, rem = divmod(total_ms, 3_600_000)
+    m, rem = divmod(rem, 60_000)
+    s, ms  = divmod(rem, 1_000)
+    return f"{h:02d}:{m:02d}:{s:02d},{ms:03d}"
+
+
+def write_srt(segments: list[dict], lang_name: str, out_dir: Path) -> str:
+    path = str(out_dir / f"subtitles_{lang_name}.srt")
+    with open(path, "w", encoding="utf-8") as f:
+        for idx, seg in enumerate(segments, start=1):
+            start = _fmt_srt_time(seg.get("start", 0))
+            end   = _fmt_srt_time(seg.get("end",   0))
+            text  = seg.get("translated", "")
+            f.write(f"{idx}\n{start} --> {end}\n{text}\n\n")
+    return path
+
+
+# ---------------------------------------------------------------------------
+# WebVTT subtitles
+# ---------------------------------------------------------------------------
+def _fmt_vtt_time(seconds: float) -> str:
+    return _fmt_srt_time(seconds).replace(",", ".")
+
+
+def write_vtt(segments: list[dict], lang_name: str, out_dir: Path) -> str:
+    path = str(out_dir / f"subtitles_{lang_name}.vtt")
+    with open(path, "w", encoding="utf-8") as f:
+        f.write("WEBVTT\n\n")
+        for idx, seg in enumerate(segments, start=1):
+            start = _fmt_vtt_time(seg.get("start", 0))
+            end   = _fmt_vtt_time(seg.get("end",   0))
+            text  = seg.get("translated", "")
+            f.write(f"{idx}\n{start} --> {end}\n{text}\n\n")
+    return path
+
+
+# ---------------------------------------------------------------------------
+# TTS MP3
+# ---------------------------------------------------------------------------
+def write_tts_mp3(
+    segments: list[dict],
+    lang_name: str,
+    out_dir: Path,
+) -> Optional[str]:
+    from backend.pipeline.tts import generate_tts_for_segments
+    mp3_path = str(out_dir / f"audio_{lang_name}.mp3")
+    result = generate_tts_for_segments(segments, lang_name, mp3_path)
+    return result
+
+
+# ---------------------------------------------------------------------------
+# Captioned MP4
+# ---------------------------------------------------------------------------
+def write_captioned_mp4(
+    original_video_path: Optional[str],
+    srt_path: str,
+    lang_name: str,
+    out_dir: Path,
+) -> Optional[str]:
+    if not original_video_path or not os.path.exists(original_video_path):
+        return None
+    from backend.pipeline.audio_extractor import burn_subtitles
+    out_path = str(out_dir / f"captioned_{lang_name}.mp4")
+    try:
+        return burn_subtitles(original_video_path, srt_path, out_path)
+    except Exception as e:
+        logger.warning(f"Captioned MP4 generation failed: {e}")
+        return None
+
+
+# ---------------------------------------------------------------------------
+# IVR / Feature Phone Export
+# ---------------------------------------------------------------------------
+def write_ivr_wav(
+    mp3_path: Optional[str],
+    lang_name: str,
+    out_dir: Path,
+) -> Optional[str]:
+    if not mp3_path or not os.path.exists(mp3_path):
+        return None
+    import subprocess
+    wav_path = str(out_dir / f"ivr_audio_{lang_name}.wav")
+    try:
+        # Downsample to 8kHz mono for IVR / feature phone compatibility
+        cmd = ["ffmpeg", "-y", "-i", mp3_path, "-ar", "8000", "-ac", "1", wav_path]
+        subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        return wav_path
+    except Exception as e:
+        logger.warning(f"IVR WAV generation failed: {e}")
+        return None
+
+
+# ---------------------------------------------------------------------------
+# WhatsApp Auto-Splitter
+# ---------------------------------------------------------------------------
+def write_whatsapp_chunks(
+    mp4_path: Optional[str],
+    lang_name: str,
+    out_dir: Path,
+) -> list[str]:
+    if not mp4_path or not os.path.exists(mp4_path):
+        return []
+    
+    # Check file size. If < 15MB, no splitting needed.
+    size_mb = os.path.getsize(mp4_path) / (1024 * 1024)
+    if size_mb <= 15:
+        return []
+
+    import subprocess
+    chunk_pattern = str(out_dir / f"whatsapp_part%02d_{lang_name}.mp4")
+    try:
+        # Split into 60-second segments (safest cross-platform way without re-encoding)
+        cmd = [
+            "ffmpeg", "-y", "-i", mp4_path, 
+            "-c", "copy", "-f", "segment", 
+            "-segment_time", "60", 
+            "-reset_timestamps", "1", 
+            chunk_pattern
+        ]
+        subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        
+        # Collect generated chunks
+        chunks = []
+        for f in os.listdir(out_dir):
+            if f.startswith("whatsapp_part") and f.endswith(f"_{lang_name}.mp4"):
+                chunks.append(str(out_dir / f))
+        return chunks
+    except Exception as e:
+        logger.warning(f"WhatsApp splitter failed: {e}")
+        return []
+
+
+# ---------------------------------------------------------------------------
+# ZIP + manifest
+# ---------------------------------------------------------------------------
+def create_zip(
+    job_id: str,
+    out_dir: Path,
+    file_paths: list[str],
+    job_meta: dict,
+    zip_path: str,
+) -> str:
+    manifest = {
+        "job_id":     job_id,
+        "generated":  datetime.utcnow().isoformat(),
+        "source_lang": job_meta.get("source_lang"),
+        "target_langs": job_meta.get("target_langs", []),
+        "files": [os.path.basename(p) for p in file_paths if p and os.path.exists(p)],
+    }
+    manifest_path = str(out_dir / "manifest.json")
+    with open(manifest_path, "w", encoding="utf-8") as f:
+        json.dump(manifest, f, indent=2, ensure_ascii=False)
+
+    with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
+        zf.write(manifest_path, "manifest.json")
+        for fp in file_paths:
+            if fp and os.path.exists(fp):
+                zf.write(fp, os.path.basename(fp))
+
+    logger.info(f"ZIP created: {zip_path}")
+    return zip_path

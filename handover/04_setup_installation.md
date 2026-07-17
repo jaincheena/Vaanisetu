@@ -1,0 +1,100 @@
+# VaaniSetu — Setup & Installation Guide
+
+---
+
+## Method A — Internet-Connected Setup (Recommended First Time)
+
+**Time required:** 2–4 hours (mostly download time)
+
+### Step 1 — Check Prerequisites
+Double-click `scripts\check_hardware.bat` and verify all items show `[PASS]`.
+
+**Requirements:**
+- Windows 11 (64-bit)
+- Intel i5 / Ryzen 5 or better
+- 16 GB RAM (minimum)
+- 200 GB free disk space
+- Python 3.11+ ([python.org](https://python.org))
+- Node.js 18+ ([nodejs.org](https://nodejs.org))
+- FFmpeg in PATH ([ffmpeg.org](https://ffmpeg.org))
+
+### Step 2 — Install Software & Build Frontend
+Double-click `scripts\setup.bat`
+
+This will:
+1. Create `C:\VaaniSetu\` directories
+2. Install all Python packages (`pip install -r requirements.txt`)
+3. Install JS packages and build the React interface
+
+*Expected time: 15–30 minutes (PyTorch download is large)*
+
+### Step 3 — Download AI Models
+Double-click `scripts\download_models.bat`
+
+This downloads approximately **6–8 GB**:
+- Whisper large-v3-turbo (~3 GB)
+- IndicTrans2 en-indic (~1.5 GB)
+- IndicTrans2 indic-en (~1.5 GB)
+
+*Keep internet connected until this completes. Do not close the window.*
+
+### Step 4 — First Launch
+Double-click `scripts\start_vaanisetu.bat`
+
+The server will take **2–5 minutes** on first launch while models load into RAM. When ready, your browser will open automatically to the VaaniSetu interface.
+
+**Verify:** The top banner shows "Models: Ready" in green.
+
+---
+
+## Method B — Offline USB Installation (No Internet)
+
+**Use when:** Installing on a remote field office PC with no internet.
+
+**Time required:** 1–2 hours
+
+### Prepare the USB (on an internet-connected PC first)
+1. Run Method A steps 1–3 on the connected PC
+2. Copy this entire folder to USB:
+   ```
+   USB:\
+     repo\          ← VaaniSetu application files
+     packages\      ← pip download: pip download -r requirements.txt -d packages/
+     models\        ← copy from C:\VaaniSetu\models\
+     frontend_dist.zip  ← zip the frontend\dist\ folder
+     installers\    ← Python installer, Node installer, FFmpeg zip
+   ```
+
+### Install on the Offline PC
+1. Insert USB drive
+2. Double-click `USB:\install_from_usb.bat`
+3. Follow on-screen prompts
+4. When done, double-click **VaaniSetu** shortcut on Desktop
+
+---
+
+## Troubleshooting Table
+
+| Problem | Likely Cause | Solution |
+|---------|-------------|----------|
+| Server doesn't start | Python not in PATH | Re-install Python with "Add to PATH" checked |
+| "Models: Loading…" stays for >10 min | Low RAM / model file corrupt | Restart PC, check `C:\VaaniSetu\models\` not empty |
+| Browser shows blank page | Frontend not built | Run `setup.bat` again or `cd frontend && npm run build` |
+| FFmpeg error during upload | FFmpeg not in PATH | Download FFmpeg, add `C:\ffmpeg\bin` to System PATH |
+| Job stays "queued" forever | Worker crashed | Restart the server with `stop_vaanisetu.bat` then `start_vaanisetu.bat` |
+| "Disk free" shows red in banner | Less than 20 GB free | Delete old outputs or move backup to external drive |
+| Port 8765 already in use | Another service using port | Run `netstat -ano \| findstr 8765` and kill that process |
+| Translation is very slow | Whisper processing long video | Normal — CPU mode. A 30-min video takes ~15 min. |
+| Low confidence on all outputs | Unusual domain vocabulary | Add corrections via Review Queue to build Translation Memory |
+
+---
+
+## Directory Reference
+
+| Path | Contents |
+|------|----------|
+| `C:\VaaniSetu\models\` | AI model weights |
+| `C:\VaaniSetu\workspace\{job_id}\` | Per-job intermediate files |
+| `C:\VaaniSetu\outputs\{job_id}.zip` | Final output ZIPs |
+| `C:\VaaniSetu\vaanisetu.db` | All database tables |
+| `C:\VaaniSetu\uploads\` | Uploaded files (can be cleaned periodically) |
