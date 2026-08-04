@@ -551,6 +551,8 @@ The pipeline is identical. Only the model direction flips (`en-indic` ↔ `indic
 - Python 3.11+
 - Node.js 18+
 - FFmpeg (add to PATH)
+- **Microsoft C++ Build Tools**: Required for compiling a dependency of the `TTS` package.
+  - **Recommended Fix**: To avoid a large download, you can often install a pre-compiled version first by running `pip install monotonic-align` before running `setup.bat`.
 - 16 GB RAM
 - 200 GB free disk (for models)
 
@@ -700,7 +702,7 @@ with open(upload_path, "wb") as f:
     f.write(content)
 
 # Better — stream in chunks:
-async with aiofiles.open(upload_path, "wb") as f:
+async with aiofiles.open(upload_path, "wb") as f: h
     while chunk := await file.read(65536):  # 64 KB chunks
         await f.write(chunk)
 file_hash = sha256_file(upload_path)  # hash after writing
