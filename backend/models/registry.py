@@ -95,30 +95,45 @@ class ModelRegistry:
 
     def _load_indic_model(self, name: str, local_path: str, hf_id: str):
         try:
-            from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
+            import os
             import torch
-
+            from pathlib import Path
+            from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
+ 
             path = Path(local_path)
             # Prefer local saved weights; fall back to HF hub during setup
             source = str(path) if (path / "config.json").exists() else hf_id
             logger.info(f"Loading IndicTrans2 {name} from {source} ...")
+ 
 
-            kwargs = {"trust_remote_code": True}
-            if source == str(path):
-                kwargs["local_files_only"] = True
+            is_local = source == str(path)
+            token = os.getenv("HF_TOKEN") if not is_local else None
 
-            tokenizer = AutoTokenizer.from_pretrained(source, **kwargs)
+            tokenizer = AutoTokenizer.from_pretrained(
+                source,
+                trust_remote_code=True,
+                use_fast=False,
+                local_files_only=is_local,
+                token=token,
+            )
+ 
             model = AutoModelForSeq2SeqLM.from_pretrained(
                 source,
+                trust_remote_code=True,
+                local_files_only=is_local,
                 torch_dtype=torch.float32,
-                **kwargs,
+                token=token,
             )
+ 
             model = model.to("cpu")
             model.eval()
+ 
             logger.info(f"IndicTrans2 {name} loaded ✓")
+ 
             return tokenizer, model
+ 
         except Exception as e:
-            logger.error(f"IndicTrans2 {name} load failed: {e}")
+            logger.exception(f"IndicTrans2 {name} load failed")
             return None, None
 
     # ------------------------------------------------------------------
@@ -127,21 +142,42 @@ class ModelRegistry:
     def _load_tts(self) -> None:
         from backend.config import COQUI_TTS_MODEL_DIR, COQUI_TTS_MODEL_NAME
         try:
+            # Workaround for PyTorch 2.x `weights_only` security change. The XTTS
+            # model checkpoint contains pickled Python objects, which torch.load now
+            # blocks by default. We need to explicitly allowlist the required classes.
+            try:
+                import torch
+ 
+                if hasattr(torch.serialization, "add_safe_globals"):
+                    from TTS.tts.models.xtts import (
+                        XttsAudioConfig,
+                        XttsArgs,
+                    )
+                    from TTS.tts.configs.xtts_config import XttsConfig
+ 
+                    torch.serialization.add_safe_globals([
+                        XttsConfig,
+                        XttsArgs,
+                        XttsAudioConfig,
+                    ])
+            except Exception as e:
+                logger.warning(f"Safe globals registration failed: {e}")
+
             from TTS.api import TTS
-            tts_dir = Path(COQUI_TTS_MODEL_DIR)
-            if not tts_dir.exists():
-                logger.warning("Coqui TTS model directory not found — TTS disabled")
-                return
-            logger.info("Loading Coqui TTS ...")
+ 
+            logger.info("Loading XTTS...")
+ 
             self.tts_model = TTS(
-                model_path=str(tts_dir),
-                config_path=str(tts_dir / "config.json"),
-                progress_bar=False,
+                model_name=COQUI_TTS_MODEL_NAME,
+                gpu=False,
             )
+ 
             self._tts_loaded = True
-            logger.info("Coqui TTS loaded ✓")
-        except Exception as e:
-            logger.warning(f"Coqui TTS load failed (TTS disabled): {e}")
+ 
+            logger.info("XTTS loaded ✓")
+ 
+        except Exception:
+            logger.exception("XTTS failed to load")
 
     # ------------------------------------------------------------------
     # Status helpers

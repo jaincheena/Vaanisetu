@@ -27,6 +27,10 @@ for _d in [MODEL_DIR, WORKSPACE_DIR, OUTPUTS_DIR, UPLOADS_DIR]:
 WHISPER_MODEL        = os.getenv("WHISPER_MODEL", "large-v3-turbo")
 WHISPER_MODEL_DIR    = MODEL_DIR / "whisper"
 
+# FFmpeg / ffprobe executable paths
+FFMPEG_PATH = os.getenv("VAANISETU_FFMPEG", "ffmpeg")
+FFPROBE_PATH = os.getenv("VAANISETU_FFPROBE", "ffprobe")
+
 INDIC_EN_INDIC_PATH  = str(MODEL_DIR / "indictrans2-en-indic")
 INDIC_INDIC_EN_PATH  = str(MODEL_DIR / "indictrans2-indic-en")
 
@@ -35,7 +39,7 @@ INDIC_EN_INDIC_HF    = "ai4bharat/indictrans2-en-indic-dist-200M"
 INDIC_INDIC_EN_HF    = "ai4bharat/indictrans2-indic-en-dist-200M"
 
 COQUI_TTS_MODEL_NAME = "tts_models/multilingual/multi-dataset/xtts_v2"
-COQUI_TTS_MODEL_DIR  = str(MODEL_DIR / "coqui_xtts")
+COQUI_TTS_MODEL_DIR  = str(MODEL_DIR / "tts_models/multilingual/multi-dataset/xtts_v2")
 
 # ---------------------------------------------------------------------------
 # Server
@@ -48,6 +52,7 @@ PORT = 8765
 # ---------------------------------------------------------------------------
 BATCH_SIZE = 8            # IndicTrans2 segments per batch
 AUDIO_SAMPLE_RATE = 16000 # Whisper expects 16 kHz mono WAV
+TRANSLATION_MAX_LENGTH = 256  # Maximum sequence length for IndicTrans2
 
 # ---------------------------------------------------------------------------
 # Confidence thresholds

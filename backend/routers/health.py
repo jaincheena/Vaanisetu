@@ -7,7 +7,7 @@ import psutil
 from fastapi import APIRouter
 
 from backend.models.registry import registry
-from backend.pipeline.queue import get_queue_depth, get_current_job
+from backend.pipeline.job_queue import get_queue_depth, get_current_job
 from backend.database import get_db
 from backend.config import BASE_DIR
 

@@ -14,7 +14,7 @@ from fastapi.responses import FileResponse, StreamingResponse
 
 from backend.config import UPLOADS_DIR, ALLOWED_EXTENSIONS, LANG_CODES
 from backend.database import get_db, rows_to_list
-from backend.pipeline.queue import enqueue
+from backend.pipeline.job_queue import enqueue
 from backend.utils.file_utils import sha256_file, new_job_id, job_zip_path, safe_filename
 from backend.utils.sse import sse_manager
 from backend.services.auth_service import get_current_user

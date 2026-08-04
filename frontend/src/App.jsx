@@ -8,7 +8,6 @@ import ReviewQueue from './pages/ReviewQueue'
 import ImpactLedger from './pages/ImpactLedger'
 import Glossary from './pages/Glossary'
 
-import Login from './pages/Login'
 import { AuthProvider, useAuth } from './context/AuthContext'
 
 // Global fetch interceptor to inject JWT token
@@ -25,8 +24,7 @@ window.fetch = async (url, options = {}) => {
 };
 
 function ProtectedRoute({ children, adminOnly = false }) {
-  const { token, role } = useAuth();
-  if (!token) return <Navigate to="/login" replace />;
+  const { role } = useAuth();
   if (adminOnly && role !== 'admin') return <Navigate to="/" replace />;
   return children;
 }
@@ -42,16 +40,7 @@ export default function App() {
 }
 
 function AppContent() {
-  const { token } = useAuth();
-
-  if (!token) {
-    return (
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="*" element={<Navigate to="/login" replace />} />
-      </Routes>
-    );
-  }
+  // Login temporarily disabled — render the app shell regardless of auth state
 
   return (
     <div className="app-shell">

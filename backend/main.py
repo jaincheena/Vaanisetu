@@ -13,10 +13,11 @@ from fastapi.staticfiles import StaticFiles
 
 from backend.database import init_db
 from backend.models.registry import registry
-from backend.pipeline.queue import worker as queue_worker
+from backend.pipeline.job_queue import worker as queue_worker
 from backend.routers import jobs, review, impact, glossary, health, auth
 from backend.services.auth_service import seed_admin_user
 from backend.config import HOST, PORT
+from backend.utils.ffmpeg import ensure_ffmpeg_on_path
 
 logging.basicConfig(
     level=logging.INFO,
@@ -34,6 +35,9 @@ async def lifespan(app: FastAPI):
     init_db()
     seed_admin_user()
     logger.info("Database and default admin initialised")
+
+    ensure_ffmpeg_on_path()
+    logger.info("FFmpeg PATH setup complete")
 
     # Load models in a thread-pool executor to avoid blocking event loop
     loop = asyncio.get_event_loop()

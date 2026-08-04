@@ -12,7 +12,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-from backend.config import LANG_CODES, ALLOWED_EXTENSIONS
+from backend.config import LANG_CODES, ALLOWED_EXTENSIONS, ENGLISH_CODE
 from backend.database import get_db
 from backend.utils.file_utils import sha256_file, job_workspace, job_zip_path
 from backend.utils.sse import sse_manager
@@ -53,7 +53,7 @@ def run_pipeline(job_id: str) -> None:
     try:
         _stage_validating(job_id)
         upload_path, source_lang, target_langs, mode, farmer_context = _load_job_params(job_id)
-        
+
         # Hardware Resource Saver logic
         resource_saver = False
         if farmer_context and "[RESOURCE_SAVER]" in farmer_context:
@@ -62,11 +62,16 @@ def run_pipeline(job_id: str) -> None:
             # Throttle Whisper/Torch threads
             os.environ["OMP_NUM_THREADS"] = "2"
             os.environ["MKL_NUM_THREADS"] = "2"
+            try:
+                import torch
+                logger.info("Resource Saver Mode enabled.")
+            except ImportError:
+                logger.warning("Resource Saver Mode: torch not found.")
 
-        _stage_extracting(job_id, upload_path)
-        wav_path = _get_wav_path(job_id)
-        segments = _stage_transcribing(job_id, wav_path, source_lang, upload_path)
-        translated_map = _stage_translating(job_id, segments, source_lang, target_langs)
+        _stage_extracting(job_id, upload_path) # This stage might modify upload_path if it's a document
+        wav_path = _get_wav_path(job_id) # This gets the WAV path if it's audio/video
+        segments, detected_whisper_lang_code = _stage_transcribing(job_id, wav_path, source_lang, upload_path)
+        translated_map = _stage_translating(job_id, segments, source_lang, target_langs, detected_whisper_lang_code)
         output_files = _stage_generating(
             job_id, segments, translated_map,
             source_lang, target_langs, upload_path,
@@ -178,7 +183,7 @@ def _get_wav_path(job_id: str) -> Optional[str]:
 # ---------------------------------------------------------------------------
 # Stage 3 — Transcribing
 # ---------------------------------------------------------------------------
-def _stage_transcribing(job_id: str, wav_path: Optional[str], source_lang: str, upload_path: str) -> list[dict]:
+def _stage_transcribing(job_id: str, wav_path: Optional[str], source_lang: str, upload_path: str) -> tuple[list[dict], str]:
     _publish(job_id, "transcribing", "Transcribing speech …")
     _update_job(job_id, status="transcribing")
 
@@ -189,20 +194,23 @@ def _stage_transcribing(job_id: str, wav_path: Optional[str], source_lang: str, 
         _publish(job_id, "extracting", f"Parsing {suffix.upper()}...", {"pct": 20})
         from backend.pipeline.document_parser import parse_document
         segments = parse_document(upload_path)
-        return segments
+        # For document parsing, we don't have Whisper's detected language.
+        # Return source_lang's Whisper code if known, else 'en' as a safe fallback.
+        from backend.pipeline.transcriber import _display_to_whisper
+        detected_lang_code = _display_to_whisper(source_lang) if source_lang != "Auto-Detect" else "en"
+        return segments, detected_lang_code
 
     if not wav_path:
         raise RuntimeError("No audio file found for transcription")
 
     from backend.pipeline.transcriber import transcribe
-    segments = transcribe(wav_path, source_lang)
-
+    segments, detected_whisper_lang_code = transcribe(wav_path, source_lang)
     # Save transcript
     with open(str(ws / "transcript.txt"), "w", encoding="utf-8") as f:
         for s in segments:
             f.write(s["text"] + "\n")
 
-    return segments
+    return segments, detected_whisper_lang_code
 
 
 # ---------------------------------------------------------------------------
@@ -213,34 +221,33 @@ def _stage_translating(
     segments: list[dict],
     source_lang: str,
     target_langs: list[str],
+    whisper_detected_lang_code: str,
 ) -> dict[str, list[dict]]:
     # Handle Auto-Detect
     if source_lang == "Auto-Detect":
         _publish(job_id, "translating", "Detecting source language…")
-        full_text = " ".join([s["text"] for s in segments[:10]])
-        if not full_text.strip():
-            source_lang = "English"  # Default fallback
+        from backend.pipeline.transcriber import _whisper_to_display
+        detected_display_name = _whisper_to_display(whisper_detected_lang_code)
+        if detected_display_name:
+            source_lang = detected_display_name
+            _update_job(job_id, source_lang=source_lang)
+            logger.info(f"Auto-detected source language: {source_lang} (from Whisper)")
         else:
-            try:
-                from langdetect import detect
-                detected_code = detect(full_text)
-                # Reverse mapping from langdetect codes (en, hi, mr, bn, etc.) to Display Name
-                ld_to_name = {
-                    "hi": "Hindi", "bn": "Bengali", "mr": "Marathi", "te": "Telugu",
-                    "ta": "Tamil", "gu": "Gujarati", "ur": "Urdu", "kn": "Kannada",
-                    "ml": "Malayalam", "pa": "Punjabi", "ne": "Nepali", "en": "English"
-                }
-                source_lang = ld_to_name.get(detected_code, "Hindi")  # default to Hindi if unknown indic
-                _update_job(job_id, source_lang=source_lang)
-            except Exception as e:
-                logger.warning(f"langdetect failed: {e}")
-                source_lang = "Hindi"
-                
+            logger.warning(f"Whisper detected unknown language code '{whisper_detected_lang_code}'. Falling back to Hindi.")
+            source_lang = "Hindi" # Fallback if Whisper detects something not in our map
+            _update_job(job_id, source_lang=source_lang)
+
     total = len(target_langs)
     translated_map: dict[str, list[dict]] = {}
 
     _publish(job_id, "translating", f"Translating from {source_lang} into {total} language(s) …")
     _update_job(job_id, status="translating")
+
+    # Rationale for not merging segments:
+    # Direct merging of segments before translation can break the 1:1 mapping
+    # required for accurate timestamping in downstream outputs (SRT, VTT, TTS).
+    # The IndicTrans2 model's internal batching mechanism already provides some context
+    # for translation quality.
 
     from backend.pipeline.translator import translate_segments
 
@@ -251,15 +258,54 @@ def _stage_translating(
             continue
 
         pct = 60 + int(20 * (idx / max(total, 1)))
-        _publish(job_id, "translating", f"Translating → {lang_name} …", {"pct": pct})
 
-        translated = translate_segments(
-            segments=segments,
-            source_lang=source_lang,
-            target_lang_name=lang_name,
-            target_lang_code=lang_code,
-            job_id=job_id,
-        )
+        # Case 1: English -> Indic (direct translation)
+        if source_lang == "English":
+            _publish(job_id, "translating", f"Translating → {lang_name} …", {"pct": pct})
+            translated = translate_segments(
+                segments=segments, # Use original segments
+                source_lang="English",
+                target_lang_name=lang_name,
+                target_lang_code=lang_code,
+                job_id=job_id,
+            )
+        # Case 2: Indic -> English (direct translation)
+        elif lang_name == "English":
+            _publish(job_id, "translating", f"Translating → {lang_name} …", {"pct": pct})
+            translated = translate_segments(
+                segments=segments, # Use original segments
+                source_lang=source_lang,
+                target_lang_name="English",
+                target_lang_code=ENGLISH_CODE,
+                job_id=job_id,
+            )
+        # Case 3: Indic -> Indic (pivot through English)
+        else:
+            # Step 1: Indic -> English
+            _publish(job_id, "translating", f"Translating → {lang_name} (Step 1/2: {source_lang}→English) …", {"pct": pct})
+            english_segments = translate_segments(
+                segments=segments, # Use original segments
+                source_lang=source_lang,
+                target_lang_name="English",
+                target_lang_code=ENGLISH_CODE,
+                job_id=job_id,
+            )
+
+            # Remap segments for step 2: the 'translated' text becomes the new 'text'
+            remapped_segments = [
+                {**seg, "text": seg["translated"]} for seg in english_segments
+            ]
+
+            # Step 2: English -> Target Indic
+            _publish(job_id, "translating", f"Translating → {lang_name} (Step 2/2: English→{lang_name}) …", {"pct": pct + 5})
+            translated = translate_segments(
+                segments=remapped_segments,
+                source_lang="English",
+                target_lang_name=lang_name,
+                target_lang_code=lang_code,
+                job_id=job_id,
+            )
+
         translated_map[lang_name] = translated
 
     return translated_map

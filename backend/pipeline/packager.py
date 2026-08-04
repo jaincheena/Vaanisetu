@@ -173,7 +173,9 @@ def write_ivr_wav(
     wav_path = str(out_dir / f"ivr_audio_{lang_name}.wav")
     try:
         # Downsample to 8kHz mono for IVR / feature phone compatibility
-        cmd = ["ffmpeg", "-y", "-i", mp3_path, "-ar", "8000", "-ac", "1", wav_path]
+        from backend.utils.ffmpeg import ffmpeg_executable
+
+        cmd = [ffmpeg_executable(), "-y", "-i", mp3_path, "-ar", "8000", "-ac", "1", wav_path]
         subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         return wav_path
     except Exception as e:
@@ -201,11 +203,13 @@ def write_whatsapp_chunks(
     chunk_pattern = str(out_dir / f"whatsapp_part%02d_{lang_name}.mp4")
     try:
         # Split into 60-second segments (safest cross-platform way without re-encoding)
+        from backend.utils.ffmpeg import ffmpeg_executable
+
         cmd = [
-            "ffmpeg", "-y", "-i", mp4_path, 
-            "-c", "copy", "-f", "segment", 
-            "-segment_time", "60", 
-            "-reset_timestamps", "1", 
+            ffmpeg_executable(), "-y", "-i", mp4_path,
+            "-c", "copy", "-f", "segment",
+            "-segment_time", "60",
+            "-reset_timestamps", "1",
             chunk_pattern
         ]
         subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
