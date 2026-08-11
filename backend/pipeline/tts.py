@@ -106,30 +106,93 @@ def _concat_wavs(wav_paths: list[str], output_path: str) -> bool:
             os.remove(list_path)
 
 
+_LANG_TO_GTTS: dict[str, str] = {
+    "Hindi":     "hi",
+    "Bengali":   "bn",
+    "Telugu":    "te",
+    "Marathi":   "mr",
+    "Tamil":     "ta",
+    "Gujarati":  "gu",
+    "Urdu":      "ur",
+    "Kannada":   "kn",
+    "Malayalam": "ml",
+    "Punjabi":   "pa",
+    "Assamese":  "bn",
+    "Nepali":    "ne",
+    "English":   "en",
+    "Odia":      "or",
+    "Sanskrit":  "sa",
+    "Sindhi":    "sd",
+    "Maithili":  "hi",
+    "Konkani":   "mr",
+    "Dogri":     "hi",
+    "Kashmiri":  "ur",
+}
+
+
+def _generate_gtts_for_segments(
+    segments: list[dict],
+    language_name: str,
+    output_path: str,
+) -> Optional[str]:
+    try:
+        from gtts import gTTS
+    except ImportError:
+        logger.warning("gTTS not installed — skipping audio generation")
+        return None
+
+    lang_code = _LANG_TO_GTTS.get(language_name, "hi")
+    texts = [seg.get("translated", "").strip() for seg in segments if seg.get("translated", "").strip()]
+    full_text = " ".join(texts)
+    if not full_text:
+        return None
+
+    try:
+        logger.info(f"Generating translated audio via gTTS for {language_name} (code={lang_code}) ...")
+        tts = gTTS(text=full_text, lang=lang_code)
+        tts.save(output_path)
+        logger.info(f"Translated MP3 audio generated: {output_path}")
+        return output_path
+    except Exception as e:
+        logger.warning(f"gTTS audio generation failed for {language_name}: {e}")
+        return None
+
+
 def generate_tts_for_segments(
     segments: list[dict],  # translated segments with 'translated' key
     language_name: str,
     output_path: str,
 ) -> Optional[str]:
     """
-    Generate TTS for all translated segments by creating and concatenating audio chunks.
-    This preserves natural pauses and avoids TTS model character limits.
+    Generate TTS for all translated segments into output_path MP3.
+    Uses Coqui XTTS if loaded, or falls back to gTTS.
     """
     from backend.models.registry import registry
 
-    if not registry._tts_loaded or registry.tts_model is None:
-        logger.warning("TTS not available — skipping audio generation")
-        return None
+    if registry._tts_loaded and registry.tts_model is not None:
+        coqui_res = _generate_coqui_tts_for_segments(segments, language_name, output_path)
+        if coqui_res:
+            return coqui_res
+
+    # Fallback to gTTS
+    return _generate_gtts_for_segments(segments, language_name, output_path)
+
+
+def _generate_coqui_tts_for_segments(
+    segments: list[dict],
+    language_name: str,
+    output_path: str,
+) -> Optional[str]:
+    from backend.models.registry import registry
 
     temp_dir = None
     try:
         temp_dir = tempfile.mkdtemp(prefix="vaanisetu_tts_")
-        logger.info(f"TTS chunking to temporary directory: {temp_dir}")
+        logger.info(f"Coqui TTS chunking to temporary directory: {temp_dir}")
 
         chunk_wav_paths = []
         failed_chunks = 0
         lang_code = _LANG_TO_COQUI.get(language_name, "hi")
-        # Use a resolved, absolute path to the speaker wav to avoid CWD issues.
         speaker_wav = (
             Path(__file__).resolve().parent.parent / "assets" / "default_speaker.wav"
         )
@@ -139,7 +202,6 @@ def generate_tts_for_segments(
             if not text:
                 continue
 
-            # Split long segments into smaller pieces to avoid TTS token limits.
             pieces = split_text(text)
             for j, piece in enumerate(pieces):
                 chunk_path = os.path.join(temp_dir, f"chunk_{i:04d}_{j:02d}.wav")
@@ -150,14 +212,10 @@ def generate_tts_for_segments(
                     )
                     chunk_wav_paths.append(chunk_path)
                 except Exception as e:
-                    logger.warning(f"TTS for piece {j} of segment {i} ('{piece[:20]}...') failed, skipping: {e}")
+                    logger.warning(f"Coqui TTS piece {j} of seg {i} failed: {e}")
                     failed_chunks += 1
 
-        successful_chunks = len(chunk_wav_paths)
-        logger.info(f"Generated {successful_chunks} TTS chunks ({failed_chunks} failed).")
-
         if not chunk_wav_paths:
-            logger.warning("No TTS chunks were successfully generated.")
             return None
 
         final_wav_path = os.path.join(temp_dir, "final_concat.wav")
@@ -168,9 +226,8 @@ def generate_tts_for_segments(
         return output_path
 
     except Exception as e:
-        logger.error(f"TTS generation for segments failed: {e}", exc_info=True)
+        logger.error(f"Coqui TTS generation failed: {e}")
         return None
     finally:
         if temp_dir and os.path.exists(temp_dir):
-            shutil.rmtree(temp_dir)
-            logger.info(f"Cleaned up temporary TTS directory: {temp_dir}")
+            shutil.rmtree(temp_dir, ignore_errors=True)

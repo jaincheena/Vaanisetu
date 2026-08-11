@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react'
 
-const ACCEPT = '.mp4,.mkv,.avi,.mov,.webm,.mp3,.wav,.ogg,.m4a,.flac,.txt,.pdf,.docx,.csv'
+const DEFAULT_ACCEPT = 'video/*,audio/*,video/mp4,video/x-matroska,video/quicktime,video/x-msvideo,video/webm,.mp4,.mkv,.avi,.mov,.webm,.mp3,.wav,.ogg,.m4a,.flac,.txt,.pdf,.docx,.csv'
 const ICONS   = { video: '🎬', audio: '🎵', text: '📄' }
 
 function detectType(name) {
@@ -10,10 +10,11 @@ function detectType(name) {
   return 'text'
 }
 
-export default function DragDropZone({ onFile }) {
+export default function DragDropZone({ onFile, accept }) {
   const inputRef = useRef()
   const [dragging, setDragging] = useState(false)
   const [selected, setSelected] = useState(null)
+  const acceptTypes = accept || DEFAULT_ACCEPT
 
   const handle = (file) => {
     setSelected(file)
@@ -44,7 +45,7 @@ export default function DragDropZone({ onFile }) {
       <input
         ref={inputRef}
         type="file"
-        accept={ACCEPT}
+        accept={acceptTypes}
         style={{ display: 'none' }}
         onChange={e => e.target.files[0] && handle(e.target.files[0])}
         id="file-input"

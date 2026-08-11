@@ -327,7 +327,7 @@ def _stage_generating(
 
     from backend.pipeline.packager import (
         write_txt, write_bilingual_docx, write_srt, write_vtt,
-        write_tts_mp3, write_captioned_mp4, write_translated_csv,
+        write_tts_mp3, write_dubbed_mp4, write_captioned_mp4, write_translated_csv,
         write_ivr_wav, write_whatsapp_chunks
     )
 
@@ -339,20 +339,23 @@ def _stage_generating(
     }
 
     for lang_name, trans_segs in translated_map.items():
-        txt_p   = write_txt(trans_segs, lang_name, ws)
-        docx_p  = write_bilingual_docx(trans_segs, source_lang, lang_name, ws)
-        srt_p   = write_srt(trans_segs, lang_name, ws)
-        vtt_p   = write_vtt(trans_segs, lang_name, ws)
-        mp3_p   = write_tts_mp3(trans_segs, lang_name, ws)
-        ivr_p   = write_ivr_wav(mp3_p, lang_name, ws)
-        mp4_p   = write_captioned_mp4(
-            original_path if is_video else None, srt_p, lang_name, ws
+        txt_p    = write_txt(trans_segs, lang_name, ws)
+        docx_p   = write_bilingual_docx(trans_segs, source_lang, lang_name, ws)
+        srt_p    = write_srt(trans_segs, lang_name, ws)
+        vtt_p    = write_vtt(trans_segs, lang_name, ws)
+        mp3_p    = write_tts_mp3(trans_segs, lang_name, ws)
+        ivr_p    = write_ivr_wav(mp3_p, lang_name, ws)
+        dubbed_p = write_dubbed_mp4(
+            original_path if is_video else None, mp3_p, lang_name, ws
         )
-        csv_p   = write_translated_csv(trans_segs, lang_name, ws) if original_path and Path(original_path).suffix.lower() == ".csv" else None
+        mp4_p    = write_captioned_mp4(
+            original_path if is_video else None, srt_p, lang_name, ws, audio_path=mp3_p
+        )
+        csv_p    = write_translated_csv(trans_segs, lang_name, ws) if original_path and Path(original_path).suffix.lower() == ".csv" else None
         
-        wa_chunks = write_whatsapp_chunks(mp4_p, lang_name, ws)
+        wa_chunks = write_whatsapp_chunks(dubbed_p or mp4_p, lang_name, ws)
 
-        for p in [txt_p, docx_p, srt_p, vtt_p, mp3_p, ivr_p, mp4_p, csv_p]:
+        for p in [txt_p, docx_p, srt_p, vtt_p, mp3_p, ivr_p, dubbed_p, mp4_p, csv_p]:
             if p:
                 file_paths.append(p)
         file_paths.extend(wa_chunks)

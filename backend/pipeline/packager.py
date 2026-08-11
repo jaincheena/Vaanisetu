@@ -140,20 +140,43 @@ def write_tts_mp3(
 
 
 # ---------------------------------------------------------------------------
-# Captioned MP4
+# Dubbed MP4 (Video with Translated Audio)
+# ---------------------------------------------------------------------------
+def write_dubbed_mp4(
+    original_video_path: Optional[str],
+    audio_path: Optional[str],
+    lang_name: str,
+    out_dir: Path,
+) -> Optional[str]:
+    if not original_video_path or not os.path.exists(original_video_path):
+        return None
+    if not audio_path or not os.path.exists(audio_path):
+        return None
+    from backend.pipeline.audio_extractor import replace_video_audio
+    out_path = str(out_dir / f"dubbed_{lang_name}.mp4")
+    try:
+        return replace_video_audio(original_video_path, audio_path, out_path)
+    except Exception as e:
+        logger.warning(f"Dubbed MP4 generation failed: {e}")
+        return None
+
+
+# ---------------------------------------------------------------------------
+# Captioned & Dubbed MP4
 # ---------------------------------------------------------------------------
 def write_captioned_mp4(
     original_video_path: Optional[str],
     srt_path: str,
     lang_name: str,
     out_dir: Path,
+    audio_path: Optional[str] = None,
 ) -> Optional[str]:
     if not original_video_path or not os.path.exists(original_video_path):
         return None
     from backend.pipeline.audio_extractor import burn_subtitles
     out_path = str(out_dir / f"captioned_{lang_name}.mp4")
     try:
-        return burn_subtitles(original_video_path, srt_path, out_path)
+        return burn_subtitles(original_video_path, srt_path, out_path, audio_path=audio_path)
     except Exception as e:
         logger.warning(f"Captioned MP4 generation failed: {e}")
         return None

@@ -20,7 +20,8 @@ sacremoses>=0.1.1
 accelerate>=0.30.0
 
 # --- TTS ---
-TTS>=0.22.0; python_version < "3.12"
+gTTS>=2.5.0
+coqui-tts>=0.27.0; python_version < "3.12"
 
 # --- Document Generation ---
 fpdf2>=2.7.9

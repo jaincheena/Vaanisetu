@@ -65,10 +65,13 @@ def test_pipeline_run(mock_subproc, mock_tts, mock_trans, mock_whisper, mock_ext
     mock_extract.side_effect = fake_extract
     
     # Mock whisper
-    mock_whisper.return_value = [
-        {"text": "Hello farmers, this is a test.", "start": 0.0, "end": 2.0},
-        {"text": "Irrigation is important.", "start": 2.0, "end": 4.0}
-    ]
+    mock_whisper.return_value = (
+        [
+            {"text": "Hello farmers, this is a test.", "start": 0.0, "end": 2.0},
+            {"text": "Irrigation is important.", "start": 2.0, "end": 4.0}
+        ],
+        "en"
+    )
     
     # Mock indictrans2
     def fake_trans(segments, source_lang, target_lang_name, target_lang_code, job_id):

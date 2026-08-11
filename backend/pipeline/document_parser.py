@@ -9,7 +9,7 @@ def parse_document(file_path: Path) -> list[dict]:
     Extracts text from PDF, DOCX, TXT, or CSV.
     Returns a list of Segment Dicts: [{"text": "...", "start": 0, "end": 0}].
     """
-    ext = file_path.suffix.lower()
+    ext = Path(file_path).suffix.lower()
     segments = []
     
     if ext == ".txt":

@@ -88,6 +88,7 @@ async def submit_job(
                         cached_langs = json.loads(row["target_langs"] or "[]")
                         if set(langs).issubset(set(cached_langs)):
                             logger.info(f"Dedup hit: {file_hash} → job {row['id']}")
+                            await sse_manager.publish(row["id"], "completed", "Done! ✅ Cached result ready!")
                             return {"job_id": row["id"], "message": "Duplicate — returning cached result"}
                     except Exception:
                         pass
@@ -118,9 +119,17 @@ async def submit_job(
 async def stream_job(job_id: str, current_user: dict = Depends(get_current_user)):
     """Server-Sent Events — streams pipeline progress."""
     with get_db() as conn:
-        row = conn.execute("SELECT id FROM jobs WHERE id=?", (job_id,)).fetchone()
+        row = conn.execute("SELECT id, status FROM jobs WHERE id=?", (job_id,)).fetchone()
     if not row:
         raise HTTPException(404, "Job not found")
+
+    # If job is already completed or failed in DB, seed last event if missing
+    if row["status"] in ("completed", "failed") and job_id not in sse_manager._last_event:
+        await sse_manager.publish(
+            job_id,
+            row["status"],
+            "Done! ✅" if row["status"] == "completed" else "Job failed"
+        )
 
     return StreamingResponse(
         sse_manager.event_stream(job_id),

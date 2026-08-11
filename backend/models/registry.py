@@ -4,12 +4,148 @@ Loads Whisper + both IndicTrans2 models at startup.
 Never reloads mid-operation. Thread-safe via asyncio.Lock.
 """
 
+import sys
+import types
 import logging
 import threading
 from pathlib import Path
 from typing import Optional
 
 logger = logging.getLogger("vaanisetu.registry")
+
+# Compatibility patch for IndicTrans2 custom config (references removed transformers.onnx)
+try:
+    import transformers.onnx
+except ModuleNotFoundError:
+    dummy_onnx = types.ModuleType("transformers.onnx")
+    dummy_onnx.OnnxConfig = object
+    dummy_onnx.OnnxSeq2SeqConfigWithPast = object
+    dummy_onnx.__path__ = []  # Make transformers.onnx a package
+
+    dummy_onnx_utils = types.ModuleType("transformers.onnx.utils")
+    dummy_onnx_utils.compute_effective_axis_dimension = lambda *args, **kwargs: None
+
+    sys.modules["transformers.onnx"] = dummy_onnx
+    sys.modules["transformers.onnx.utils"] = dummy_onnx_utils
+
+# Compatibility patch for IndicTransTokenizer in newer transformers (_special_tokens_map)
+try:
+    from transformers.tokenization_utils_base import PreTrainedTokenizerBase
+    _orig_setattr = PreTrainedTokenizerBase.__setattr__
+    def _patched_setattr(self, key, value):
+        if key in ("unk_token", "bos_token", "eos_token", "pad_token") and not hasattr(self, "_special_tokens_map"):
+            object.__setattr__(self, "_special_tokens_map", {})
+        _orig_setattr(self, key, value)
+    PreTrainedTokenizerBase.__setattr__ = _patched_setattr
+except Exception:
+    pass
+
+# Compatibility patch for dynamic HuggingFace modules (IndicTrans2 tie_weights)
+try:
+    import transformers.dynamic_module_utils
+    _orig_get_class = transformers.dynamic_module_utils.get_class_from_dynamic_module
+    def _patched_get_class(*args, **kwargs):
+        cls = _orig_get_class(*args, **kwargs)
+        if isinstance(cls, type) and hasattr(cls, "tie_weights"):
+            orig_tie = getattr(cls, "tie_weights")
+            def safe_tie(self, *a, **k):
+                try:
+                    return orig_tie(self)
+                except Exception:
+                    pass
+            cls.tie_weights = safe_tie
+        return cls
+
+    transformers.dynamic_module_utils.get_class_from_dynamic_module = _patched_get_class
+    import transformers.models.auto.auto_factory
+    transformers.models.auto.auto_factory.get_class_from_dynamic_module = _patched_get_class
+except Exception:
+    pass
+try:
+    import transformers.cache_utils as cu
+    if hasattr(cu, "EncoderDecoderCache") and not hasattr(cu.EncoderDecoderCache, "__getitem__"):
+        def _edc_getitem(self, idx):
+            try:
+                return (self.self_attention_cache.key_cache[idx], self.self_attention_cache.value_cache[idx])
+            except Exception:
+                return (None, None)
+        cu.EncoderDecoderCache.__getitem__ = _edc_getitem
+    if hasattr(cu, "DynamicCache") and not hasattr(cu.DynamicCache, "__getitem__"):
+        def _dc_getitem(self, idx):
+            try:
+                return (self.key_cache[idx], self.value_cache[idx])
+            except Exception:
+                return (None, None)
+        cu.DynamicCache.__getitem__ = _dc_getitem
+except Exception:
+    pass
+
+
+
+
+
+# Compatibility patch for Coqui TTS / torchaudio (torchcodec missing in PyTorch 2.4+)
+try:
+    import torchcodec
+except ModuleNotFoundError:
+    import importlib.machinery
+    dummy_tc = types.ModuleType("torchcodec")
+    dummy_tc.__spec__ = importlib.machinery.ModuleSpec("torchcodec", None)
+    dummy_tc_dec = types.ModuleType("torchcodec.decoders")
+    dummy_tc_dec.__spec__ = importlib.machinery.ModuleSpec("torchcodec.decoders", None)
+    sys.modules["torchcodec"] = dummy_tc
+    sys.modules["torchcodec.decoders"] = dummy_tc_dec
+
+
+
+# Compatibility patch for Coqui TTS (references missing is_torch_greater_or_equal and is_torchcodec_available)
+try:
+    import transformers.utils.import_utils
+    if not hasattr(transformers.utils.import_utils, "is_torch_greater_or_equal"):
+        def is_torch_greater_or_equal(version_str):
+            if version_str == "2.9":
+                return False
+            import torch
+            from packaging import version
+            try:
+                return version.parse(torch.__version__.split("+")[0]) >= version.parse(version_str)
+            except Exception:
+                return False
+        transformers.utils.import_utils.is_torch_greater_or_equal = is_torch_greater_or_equal
+
+    if not hasattr(transformers.utils.import_utils, "is_torchcodec_available"):
+        transformers.utils.import_utils.is_torchcodec_available = lambda: False
+except Exception:
+    pass
+
+
+
+# Compatibility patch for torchaudio.load when torchcodec is not installed
+try:
+    import torchaudio
+    _orig_ta_load = torchaudio.load
+    def _patched_ta_load(uri, *args, **kwargs):
+        kwargs.pop("backend", None)
+        try:
+            return _orig_ta_load(uri, *args, **kwargs)
+        except Exception:
+            import soundfile as sf
+            import torch
+            data, samplerate = sf.read(uri)
+            tensor = torch.from_numpy(data).float()
+            if tensor.dim() == 1:
+                tensor = tensor.unsqueeze(0)
+            elif tensor.dim() == 2:
+                tensor = tensor.t()
+            return tensor, samplerate
+    torchaudio.load = _patched_ta_load
+except Exception:
+    pass
+
+
+
+
+
 
 
 class ModelRegistry:
@@ -137,47 +273,62 @@ class ModelRegistry:
             return None, None
 
     # ------------------------------------------------------------------
-    # Coqui TTS (optional — graceful degrade if model absent)
+    # Coqui TTS
     # ------------------------------------------------------------------
     def _load_tts(self) -> None:
         from backend.config import COQUI_TTS_MODEL_DIR, COQUI_TTS_MODEL_NAME
         try:
-            # Workaround for PyTorch 2.x `weights_only` security change. The XTTS
-            # model checkpoint contains pickled Python objects, which torch.load now
-            # blocks by default. We need to explicitly allowlist the required classes.
-            try:
-                import torch
- 
-                if hasattr(torch.serialization, "add_safe_globals"):
+            # Compatibility monkey-patch for newer transformers/torch with coqui-tts
+            import transformers.utils.import_utils as iu
+            import transformers.pytorch_utils as pu
+            import torch
+            from packaging import version
+
+            def is_torch_greater_or_equal(target_version, *args, **kwargs):
+                if target_version == "2.9":
+                    return False
+                v = torch.__version__.split('+')[0]
+                return version.parse(v) >= version.parse(target_version)
+
+            iu.is_torch_greater_or_equal = is_torch_greater_or_equal
+
+            if not hasattr(iu, 'is_torchcodec_available'):
+                iu.is_torchcodec_available = lambda: True
+
+            pu.isin_mps_friendly = lambda elements, test_elements: torch.isin(elements, test_elements)
+
+            # Workaround for PyTorch 2.x `weights_only` security change.
+            if hasattr(torch.serialization, "add_safe_globals"):
+                try:
                     from TTS.tts.models.xtts import (
                         XttsAudioConfig,
                         XttsArgs,
                     )
                     from TTS.tts.configs.xtts_config import XttsConfig
- 
+
                     torch.serialization.add_safe_globals([
                         XttsConfig,
                         XttsArgs,
                         XttsAudioConfig,
                     ])
-            except Exception as e:
-                logger.warning(f"Safe globals registration failed: {e}")
+                except Exception:
+                    pass
 
             from TTS.api import TTS
- 
+
             logger.info("Loading XTTS...")
- 
+
             self.tts_model = TTS(
                 model_name=COQUI_TTS_MODEL_NAME,
                 gpu=False,
             )
- 
+
             self._tts_loaded = True
- 
+
             logger.info("XTTS loaded ✓")
- 
-        except Exception:
-            logger.exception("XTTS failed to load")
+
+        except Exception as e:
+            logger.warning(f"XTTS failed to load (will fallback to gTTS if needed): {e}")
 
     # ------------------------------------------------------------------
     # Status helpers

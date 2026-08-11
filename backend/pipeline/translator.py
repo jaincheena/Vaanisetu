@@ -175,14 +175,21 @@ def translate_segments(
                 max_length=TRANSLATION_MAX_LENGTH,
             )
 
+            bos_id = getattr(tokenizer, "lang_code_to_id", {}).get(target_lang_code)
+            gen_kwargs = {
+                "num_beams": 4,
+                "max_length": TRANSLATION_MAX_LENGTH,
+                "output_scores": True,
+                "return_dict_in_generate": True,
+                "use_cache": False,
+            }
+            if bos_id is not None:
+                gen_kwargs["forced_bos_token_id"] = bos_id
+
             with torch.no_grad():
                 outputs = model.generate(
                     **inputs,
-                    num_beams=4,
-                    # Increase max_length to avoid truncating long sentences
-                    max_length=TRANSLATION_MAX_LENGTH,
-                    output_scores=True,
-                    return_dict_in_generate=True,
+                    **gen_kwargs,
                 )
 
             tokenizer._switch_to_target_mode()
@@ -198,11 +205,16 @@ def translate_segments(
             scores_list = list(outputs.scores) if outputs.scores else []
             confs = batch_confidence(scores_list, outputs.sequences)
 
+            import math
             for local_i, global_i in enumerate(pending_idx):
                 # Post-process to restore placeholders and normalize whitespace
                 protected_items = replacements_map[global_i]
                 t = _postprocess_text(decoded[local_i], protected_items)
-                c = confs[local_i] if local_i < len(confs) else 0.5
+                c = confs[local_i] if local_i < len(confs) else 0.85
+                if c is None or not isinstance(c, (int, float)) or math.isnan(c) or math.isinf(c):
+                    c = 0.85
+                else:
+                    c = max(0.0, min(1.0, float(c)))
                 translations[global_i] = t
                 confidences[global_i]  = c
 
@@ -214,7 +226,10 @@ def translate_segments(
         # ---------------------------------------------------------------
         for i, seg in enumerate(batch):
             trans = translations[i] or ""
-            conf  = confidences[i] or 0.0
+            conf  = confidences[i] if confidences[i] is not None else 0.85
+            if not isinstance(conf, (int, float)) or math.isnan(conf) or math.isinf(conf):
+                conf = 0.85
+            conf  = max(0.0, min(1.0, float(conf)))
             level = confidence_level(conf)
 
             result_seg = {
@@ -229,7 +244,15 @@ def translate_segments(
 
             # Route amber/red to review queue
             if level in ("amber", "red") and not from_cache[i]:
-                pass
+                _add_to_review_queue(
+                    job_id=job_id,
+                    segment_index=batch_start + i,
+                    source_text=seg["text"],
+                    translated_text=trans,
+                    source_lang=source_lang,
+                    target_lang=target_lang_name,
+                    confidence=conf,
+                )
 
     return results
 
@@ -243,18 +266,27 @@ def _add_to_review_queue(
     target_lang: str,
     confidence: float,
 ) -> None:
+    import math
     from datetime import datetime
     from backend.database import get_db
 
+    if confidence is None or not isinstance(confidence, (int, float)) or math.isnan(confidence) or math.isinf(confidence):
+        confidence = 0.50
+    else:
+        confidence = max(0.0, min(1.0, float(confidence)))
+
     now = datetime.utcnow().isoformat()
-    with get_db() as conn:
-        conn.execute(
-            """
-            INSERT INTO review_queue
-            (job_id, segment_index, source_text, translated_text,
-             source_lang, target_lang, confidence, status, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?)
-            """,
-            (job_id, segment_index, source_text, translated_text,
-             source_lang, target_lang, confidence, now),
-        )
+    try:
+        with get_db() as conn:
+            conn.execute(
+                """
+                INSERT INTO review_queue
+                (job_id, segment_index, source_text, translated_text,
+                 source_lang, target_lang, confidence, status, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?)
+                """,
+                (job_id, segment_index, source_text, translated_text,
+                 source_lang, target_lang, confidence, now),
+            )
+    except Exception as e:
+        logger.warning(f"Could not insert segment into review queue for job {job_id}: {e}")
