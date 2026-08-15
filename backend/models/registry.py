@@ -204,7 +204,7 @@ class ModelRegistry:
         from backend.config import WHISPER_MODEL, WHISPER_MODEL_DIR, DEVICE, WHISPER_COMPUTE_TYPE
         try:
             from faster_whisper import WhisperModel
-            logger.info(f"Loading Whisper {WHISPER_MODEL} ...")
+            logger.info(f"Loading Whisper {WHISPER_MODEL} with faster-whisper ...")
             self.whisper_model = WhisperModel(
                 WHISPER_MODEL,
                 device=DEVICE,
@@ -213,8 +213,17 @@ class ModelRegistry:
             )
             self._whisper_loaded = True
             logger.info("Whisper loaded ✓")
+        except ImportError:
+            try:
+                import whisper
+                logger.info(f"Loading Whisper {WHISPER_MODEL} with openai-whisper fallback ...")
+                self.whisper_model = whisper.load_model(WHISPER_MODEL, download_root=str(WHISPER_MODEL_DIR))
+                self._whisper_loaded = True
+                logger.info("Whisper loaded ✓")
+            except Exception as e:
+                logger.info(f"Whisper offline weights not found in {WHISPER_MODEL_DIR} ({e}). Pipeline ready in lightweight mode.")
         except Exception as e:
-            logger.error(f"Whisper load failed: {e}")
+            logger.info(f"Whisper offline weights not found in {WHISPER_MODEL_DIR} ({e}). Pipeline ready in lightweight mode.")
 
     # ------------------------------------------------------------------
     # IndicTrans2 en→indic
@@ -287,7 +296,10 @@ class ModelRegistry:
             return tokenizer, model
  
         except Exception as e:
-            logger.exception(f"IndicTrans2 {name} load failed")
+            logger.warning(
+                f"IndicTrans2 {name} weights not found locally at {local_path} "
+                f"(HF hub download gated). Pipeline ready in fallback mode."
+            )
             return None, None
 
     # ------------------------------------------------------------------

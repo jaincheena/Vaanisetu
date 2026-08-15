@@ -91,10 +91,24 @@ app.include_router(impact.router)
 app.include_router(glossary.router)
 app.include_router(health.router)
 
+from fastapi.responses import FileResponse
+
 # Serve React build — must be after API routes
 if FRONTEND_DIST.exists():
-    app.mount("/", StaticFiles(directory=str(FRONTEND_DIST), html=True), name="frontend")
-    logger.info(f"Serving frontend from {FRONTEND_DIST}")
+    # 1. Mount assets folder for bundled JS/CSS
+    assets_dir = FRONTEND_DIST / "assets"
+    if assets_dir.exists():
+        app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
+
+    # 2. SPA catch-all route handler for client-side paths (/upload, /history, /review, /training, etc.)
+    @app.get("/{full_path:path}")
+    async def serve_spa(full_path: str):
+        target = FRONTEND_DIST / full_path
+        if full_path and target.exists() and target.is_file():
+            return FileResponse(target)
+        return FileResponse(FRONTEND_DIST / "index.html")
+
+    logger.info(f"Serving frontend SPA from {FRONTEND_DIST}")
 else:
     logger.warning(f"Frontend dist not found at {FRONTEND_DIST} — run: npm run build")
 
