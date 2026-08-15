@@ -268,6 +268,61 @@ def write_captioned_mp4(
         return None
 
 
+def write_advisory_video(
+    segments: list[dict],
+    lang_name: str,
+    audio_path: Optional[str],
+    out_dir: Path,
+) -> Optional[str]:
+    """Generate high-definition MP4 video card with translated audio for WhatsApp & video preview."""
+    if not audio_path or not os.path.exists(audio_path):
+        return None
+    import subprocess
+    from PIL import Image, ImageDraw
+    from backend.utils.ffmpeg import ffmpeg_executable
+
+    out_video = str(out_dir / f"video_advisory_{lang_name}.mp4")
+    card_img = str(out_dir / f"card_{lang_name}.png")
+
+    try:
+        # Create 1280x720 graphic advisory card
+        img = Image.new('RGB', (1280, 720), color=(18, 28, 24))
+        draw = ImageDraw.Draw(img)
+
+        # Header banner (BAIF Green)
+        draw.rectangle([(0, 0), (1280, 120)], fill=(27, 67, 50))
+        draw.rectangle([(0, 115), (1280, 120)], fill=(232, 146, 74))
+
+        # Bottom footer
+        draw.rectangle([(0, 640), (1280, 720)], fill=(12, 20, 16))
+
+        # Save card image
+        img.save(card_img)
+
+        # Render video with audio
+        cmd = [
+            ffmpeg_executable(), "-y",
+            "-loop", "1", "-i", card_img,
+            "-i", audio_path,
+            "-c:v", "libx264", "-tune", "stillimage",
+            "-c:a", "aac", "-b:a", "128k",
+            "-pix_fmt", "yuv420p", "-shortest",
+            out_video
+        ]
+        subprocess.run(cmd, capture_output=True, check=False)
+        if os.path.exists(out_video) and os.path.getsize(out_video) > 1000:
+            return out_video
+    except Exception as e:
+        logger.warning(f"Advisory video generation failed: {e}")
+    finally:
+        if os.path.exists(card_img):
+            try:
+                os.remove(card_img)
+            except Exception:
+                pass
+    return None
+
+
 # ---------------------------------------------------------------------------
 # IVR / Feature Phone Export
 # ---------------------------------------------------------------------------

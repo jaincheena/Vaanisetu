@@ -243,24 +243,67 @@ async def stream_audio_file(job_id: str, lang_name: str):
     """Stream translated MP3 audio directly for in-browser playback."""
     import zipfile
     import io
-    zip_p = str(job_zip_path(job_id))
+    from backend.utils.file_utils import job_workspace
+    ws_dir = job_workspace(job_id)
     target_name = f"audio_{lang_name}.mp3"
     
-    if not os.path.exists(zip_p):
-        from backend.utils.file_utils import job_workspace
-        ws_audio = job_workspace(job_id) / target_name
-        if ws_audio.exists():
-            return FileResponse(str(ws_audio), media_type="audio/mpeg")
-        raise HTTPException(404, "Audio file not found")
+    # 1. Direct workspace check
+    ws_audio = ws_dir / target_name
+    if ws_audio.exists():
+        return FileResponse(str(ws_audio), media_type="audio/mpeg")
+        
+    # 2. Check ZIP archive
+    zip_p = str(job_zip_path(job_id))
+    if os.path.exists(zip_p):
+        try:
+            with zipfile.ZipFile(zip_p, 'r') as z:
+                if target_name in z.namelist():
+                    audio_bytes = z.read(target_name)
+                    return StreamingResponse(io.BytesIO(audio_bytes), media_type="audio/mpeg")
+        except Exception:
+            pass
 
-    try:
-        with zipfile.ZipFile(zip_p, 'r') as z:
-            if target_name not in z.namelist():
-                raise HTTPException(404, f"Audio for {lang_name} not found in output")
-            audio_bytes = z.read(target_name)
-            return StreamingResponse(io.BytesIO(audio_bytes), media_type="audio/mpeg")
-    except Exception as e:
-        raise HTTPException(500, f"Failed to stream audio: {e}")
+    raise HTTPException(404, f"Audio for {lang_name} not found")
+
+
+@router.get("/{job_id}/ivr/{lang_name}")
+async def stream_ivr_file(job_id: str, lang_name: str):
+    """Stream 8kHz telephony WAV audio for IVR playback."""
+    from backend.utils.file_utils import job_workspace
+    ws_dir = job_workspace(job_id)
+    target_name = f"ivr_audio_{lang_name}.wav"
+    ws_ivr = ws_dir / target_name
+    if ws_ivr.exists():
+        return FileResponse(str(ws_ivr), media_type="audio/wav")
+    # Fallback to standard MP3 audio
+    return await stream_audio_file(job_id, lang_name)
+
+
+@router.get("/{job_id}/video/{lang_name}")
+async def stream_video_file(job_id: str, lang_name: str):
+    """Stream translated dubbed/advisory MP4 video for in-browser playback."""
+    import zipfile
+    import io
+    from backend.utils.file_utils import job_workspace
+    ws_dir = job_workspace(job_id)
+    
+    for candidate in [f"video_dubbed_{lang_name}.mp4", f"dubbed_{lang_name}.mp4", f"video_advisory_{lang_name}.mp4", f"captioned_{lang_name}.mp4"]:
+        ws_vid = ws_dir / candidate
+        if ws_vid.exists():
+            return FileResponse(str(ws_vid), media_type="video/mp4")
+            
+    zip_p = str(job_zip_path(job_id))
+    if os.path.exists(zip_p):
+        try:
+            with zipfile.ZipFile(zip_p, 'r') as z:
+                for candidate in [f"video_dubbed_{lang_name}.mp4", f"dubbed_{lang_name}.mp4", f"video_advisory_{lang_name}.mp4", f"captioned_{lang_name}.mp4"]:
+                    if candidate in z.namelist():
+                        vid_bytes = z.read(candidate)
+                        return StreamingResponse(io.BytesIO(vid_bytes), media_type="video/mp4")
+        except Exception:
+            pass
+
+    raise HTTPException(404, f"Video for {lang_name} not found")
 
 
 @router.get("/{job_id}/stream")

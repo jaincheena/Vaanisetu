@@ -493,7 +493,9 @@ def _generate_for_language(
     srt_p  = write_srt(trans_segs, lang_name, ws)                    if "srt"  in output_formats else None
     vtt_p  = write_vtt(trans_segs, lang_name, ws)                    if "vtt"  in output_formats else None
 
-    # TTS — required for audio, dubbed video, captioned video
+    from backend.pipeline.packager import write_advisory_video
+
+    # TTS — required for audio, dubbed video, captioned video, IVR, WhatsApp
     needs_audio = any(f in output_formats for f in ["mp3", "dubbed_mp4", "captioned_mp4", "ivr_wav", "whatsapp"])
     mp3_p  = write_tts_mp3(
         trans_segs, lang_name, ws,
@@ -502,21 +504,22 @@ def _generate_for_language(
         speaker_wav=speaker_wav,
     ) if needs_audio else None
 
-    if quality_mode == "draft":
-        dubbed_p  = None
-        mp4_p     = None
-        ivr_p     = None
-        wa_chunks = []
+    # IVR 8kHz telecom audio
+    ivr_p = write_ivr_wav(mp3_p, lang_name, ws) if "ivr_wav" in output_formats and mp3_p else None
+
+    # Video output: dubbed from source video OR high-res visual advisory MP4 card
+    if is_video and original_path:
+        dubbed_p = write_dubbed_mp4(original_path, mp3_p, lang_name, ws) if "dubbed_mp4" in output_formats and mp3_p else None
+        mp4_p    = write_captioned_mp4(original_path, srt_p, lang_name, ws, audio_path=mp3_p) if "captioned_mp4" in output_formats and srt_p else None
+    elif mp3_p:
+        dubbed_p = write_advisory_video(trans_segs, lang_name, mp3_p, ws)
+        mp4_p    = None
     else:
-        ivr_p     = write_ivr_wav(mp3_p, lang_name, ws)              if "ivr_wav"      in output_formats and mp3_p else None
-        dubbed_p  = write_dubbed_mp4(
-            original_path if is_video else None, mp3_p, lang_name, ws
-        )                                                              if "dubbed_mp4"   in output_formats and mp3_p else None
-        mp4_p     = write_captioned_mp4(
-            original_path if is_video else None, srt_p, lang_name, ws, audio_path=mp3_p
-        )                                                              if "captioned_mp4" in output_formats and srt_p else None
-        wa_chunks = write_whatsapp_chunks(dubbed_p or mp4_p, lang_name, ws) \
-                                                                       if "whatsapp" in output_formats and (dubbed_p or mp4_p) else []
+        dubbed_p = None
+        mp4_p    = None
+
+    # WhatsApp auto-split chunks
+    wa_chunks = write_whatsapp_chunks(dubbed_p or mp4_p, lang_name, ws) if "whatsapp" in output_formats and (dubbed_p or mp4_p) else []
 
     csv_p    = (
         write_translated_csv(trans_segs, lang_name, ws)

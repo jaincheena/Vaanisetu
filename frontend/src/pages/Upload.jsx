@@ -712,7 +712,8 @@ export default function Upload() {
           }}>
             {[
               ['bilingual', '📄 Bilingual Transcript'],
-              ['audio', '🎧 In-Browser Audio Player'],
+              ['audio', '🎧 Audio Player'],
+              ['video', '🎬 Video Player'],
               ['whatsapp', '💬 WhatsApp Simulator'],
               ['ivr', '📞 Feature Phone IVR'],
               ['files', '📦 Download Outputs']
@@ -806,39 +807,82 @@ export default function Upload() {
                 AI Synthetic Voice Track ({previewLang})
               </h4>
               <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16 }}>
-                Synthesized via {qualityMode === 'full' ? 'Coqui XTTS Voice Clone' : 'Piper ONNX Engine'} with Pitch Matching
+                Synthesized via {qualityMode === 'full' ? 'Coqui XTTS Voice Clone' : 'Piper Indic ONNX Voice Engine'} with Pitch Matching
               </p>
               <audio
                 controls
                 src={`/api/jobs/${jobId}/audio/${previewLang}`}
-                style={{ width: '100%', maxWidth: 440, height: 40 }}
+                style={{ width: '100%', maxWidth: 460, height: 44 }}
               />
             </div>
           )}
 
-          {/* 3. WhatsApp Simulator Tab */}
+          {/* 3. Video Dub Player Tab */}
+          {activePreviewTab === 'video' && (
+            <div style={{
+              background: 'var(--bg-input)',
+              padding: 20,
+              borderRadius: 'var(--radius-sm)',
+              border: '1px solid var(--border)',
+              textAlign: 'center'
+            }}>
+              <div style={{ fontSize: 32, marginBottom: 6 }}>🎬</div>
+              <h4 style={{ margin: '0 0 6px 0', fontSize: 16 }}>
+                Dubbed Video Output ({previewLang})
+              </h4>
+              <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16 }}>
+                High-definition localized video with translated audio track & synchronized subtitles
+              </p>
+              <div style={{ maxWidth: 640, margin: '0 auto' }}>
+                <video
+                  controls
+                  src={`/api/jobs/${jobId}/video/${previewLang}`}
+                  style={{ width: '100%', borderRadius: 8, background: '#000', maxHeight: 380 }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* 4. WhatsApp Simulator Tab */}
           {activePreviewTab === 'whatsapp' && (
-            <WhatsAppSimulator
-              text={previewData?.translations?.[previewLang] || textContent}
-              langName={previewLang}
-              audioSrc={`/api/jobs/${jobId}/audio/${previewLang}`}
-            />
+            <div>
+              <p style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', marginBottom: 12 }}>
+                💬 Simulating how rural smartphone farmers receive this multi-lingual audio note & text advisory on WhatsApp.
+              </p>
+              <WhatsAppSimulator
+                text={previewData?.translations?.[previewLang] || textContent}
+                langName={previewLang}
+                audioSrc={`/api/jobs/${jobId}/audio/${previewLang}`}
+              />
+            </div>
           )}
 
-          {/* 4. IVR Feature Phone Simulator Tab */}
+          {/* 5. IVR Feature Phone Simulator Tab */}
           {activePreviewTab === 'ivr' && (
-            <IVRSimulator
-              audioSrc={`/api/jobs/${jobId}/audio/${previewLang}`}
-              langName={previewLang}
-            />
+            <div>
+              <p style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', marginBottom: 12 }}>
+                📞 Simulating automated voice broadcast calls to ₹1,000 basic keypad phones over 8kHz GSM telecom.
+              </p>
+              <IVRSimulator
+                audioSrc={`/api/jobs/${jobId}/ivr/${previewLang}`}
+                langName={previewLang}
+              />
+            </div>
           )}
 
-          {/* 5. Output Files Tab */}
+          {/* 6. Output Files Tab */}
           {activePreviewTab === 'files' && (
             <div>
               <div className="section-label" style={{ marginBottom: 12 }}>Generated Packages & Artifacts</div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 10 }}>
-                {(previewData?.files || ['manifest.json', `audio_${previewLang}.mp3`, `translation_${previewLang}.txt`, `subtitles_${previewLang}.srt`]).map(f => (
+                {(previewData?.files || [
+                  `audio_${previewLang}.mp3`,
+                  `ivr_audio_${previewLang}.wav`,
+                  `translation_${previewLang}.txt`,
+                  `bilingual_doc_${previewLang}.docx`,
+                  `subtitles_${previewLang}.srt`,
+                  `video_advisory_${previewLang}.mp4`
+                ]).map(f => (
                   <div
                     key={f}
                     style={{
