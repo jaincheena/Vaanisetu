@@ -2,12 +2,14 @@ import React, { Component } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import Sidebar from './components/Sidebar'
 import TopBanner from './components/TopBanner'
+import Overview from './pages/Overview'
 import Upload from './pages/Upload'
 import History from './pages/History'
 import ReviewQueue from './pages/ReviewQueue'
 import ImpactLedger from './pages/ImpactLedger'
 import Glossary from './pages/Glossary'
 import TrainingHub from './pages/TrainingHub'
+import Documentation from './pages/Documentation'
 import { AuthProvider, useAuth } from './context/AuthContext'
 
 // Safe fetch interceptor with proper window binding
@@ -86,14 +88,15 @@ function AppContent() {
         <TopBanner />
         <main className="page-content">
           <Routes>
-            <Route path="/" element={<Navigate to="/upload" replace />} />
+            <Route path="/" element={<Overview />} />
             <Route path="/upload" element={<ProtectedRoute><Upload /></ProtectedRoute>} />
             <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
             <Route path="/review" element={<ProtectedRoute><ReviewQueue /></ProtectedRoute>} />
             <Route path="/impact" element={<ProtectedRoute><ImpactLedger /></ProtectedRoute>} />
             <Route path="/glossary" element={<ProtectedRoute><Glossary /></ProtectedRoute>} />
             <Route path="/training" element={<ProtectedRoute><TrainingHub /></ProtectedRoute>} />
-            <Route path="*" element={<Navigate to="/upload" replace />} />
+            <Route path="/docs" element={<Documentation />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
       </div>

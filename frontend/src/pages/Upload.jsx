@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import DragDropZone from '../components/DragDropZone'
 import LangChipGrid from '../components/LangChipGrid'
 import ProgressBar from '../components/ProgressBar'
@@ -102,14 +102,20 @@ export default function Upload() {
   const [error, setError] = useState(null)
   const [showVisualTour, setShowVisualTour] = useState(false)
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false)
-  const esRef = useRef(null)
+  const location = useLocation()
 
   useEffect(() => {
     fetch('/api/jobs/scenarios')
       .then(r => r.json())
-      .then(setScenarios)
+      .then(data => {
+        setScenarios(data)
+        if (location.state?.autoLoadScenarioId) {
+          const match = data.find(s => s.id === location.state.autoLoadScenarioId)
+          if (match) loadScenario(match)
+        }
+      })
       .catch(() => {})
-  }, [])
+  }, [location.state])
 
   const applyBundle = (bundle) => {
     setActiveBundle(bundle.id)

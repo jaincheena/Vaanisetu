@@ -97,6 +97,15 @@ app.include_router(glossary.router)
 app.include_router(health.router)
 
 from fastapi.responses import FileResponse
+from fastapi import HTTPException
+
+@app.get("/api/docs/html")
+async def get_documentation_html():
+    """Serve the complete offline interactive platform documentation manual."""
+    doc_path = Path(__file__).parent.parent / "handover" / "vaanisetu_documentation.html"
+    if doc_path.exists():
+        return FileResponse(str(doc_path), media_type="text/html")
+    raise HTTPException(404, "Documentation file not found")
 
 # Serve React build — must be after API routes
 if FRONTEND_DIST.exists():
