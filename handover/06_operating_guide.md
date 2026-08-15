@@ -27,9 +27,10 @@
 4. **Select source language** (what language the file is in)
 5. **Click language chips** to select target languages (you can pick multiple)
 6. **(Optional) Toggle Resource Saver Mode** if your PC is slow
+6b. **(New) Choose Quality Mode:** Select ⚡ Draft for fast preview (text+SRT+audio in minutes) or 🎬 Full Quality for complete outputs including dubbed video (default)
 7. **Drag your file** into the upload zone (or click to browse)
 8. Click **Start Translation**
-8. Watch the **progress bar** — 7 stages take 2–60 minutes depending on file length
+8. Watch the **progress bar** — 7 stages take 2–60 minutes (Draft mode: 2–10 min; Full mode: 10–60 min) depending on file length
 9. When done, **download the ZIP** which contains all output files
 
 ---
@@ -69,13 +70,15 @@ Each ZIP download contains:
 | `bilingual_Hindi.docx` | Word document with source + translation side by side |
 | `subtitles_Hindi.srt` | Subtitle file (for video players) |
 | `subtitles_Hindi.vtt` | Web subtitle file (for online players) |
-| `audio_Hindi.mp3` | AI-spoken version in the target language (Coqui XTTS v2) |
+| `audio_Hindi.mp3` | AI-spoken version (Piper TTS in Draft mode; Coqui XTTS v2 in Full Quality mode) |
 | `ivr_audio_Hindi.wav` | 8kHz mono audio for feature phones & IVR broadcasts |
 | `dubbed_Hindi.mp4` | Video with translated audio replacing the original audio track |
 | `captioned_Hindi.mp4` | Video with burned-in subtitles and synchronized translated audio |
 | `translated_Hindi.csv` | Translated CSV document (for structured data uploads) |
 | `whatsapp_part00_Hindi.mp4` | Video chunked for WhatsApp (<15MB each) |
 | `manifest.json` | Job metadata, timestamp (IST), confidence, and file list |
+
+> **Draft vs Full Quality:** In Draft mode, only .txt, .srt, .vtt, .mp3, and .docx files are generated — dubbed/captioned MP4s and WhatsApp chunks are skipped for speed. Use Full Quality mode for all distribution-ready outputs.
 
 ---
 

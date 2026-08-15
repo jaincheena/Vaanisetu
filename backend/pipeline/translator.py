@@ -66,7 +66,7 @@ def _postprocess_text(text: str, protected_items: list[str]) -> str:
     return " ".join(processed_text.split()).strip()
 
 
-def _run_inference(tokenizer, model, pending_texts: list[str], src_code: str, target_lang_code: str, max_length: int = 256):
+def _run_inference(tokenizer, model, pending_texts: list[str], src_code: str, target_lang_code: str, max_length: int = 256, num_beams: int = 4):
     """
     Tokenise → generate → decode on ONE model instance.
     Caller owns exclusivity: holds replica from pool or holds TRANSLATE_LOCK.
@@ -88,7 +88,7 @@ def _run_inference(tokenizer, model, pending_texts: list[str], src_code: str, ta
 
     bos_id = getattr(tokenizer, "lang_code_to_id", {}).get(target_lang_code)
     gen_kwargs = {
-        "num_beams": 4,
+        "num_beams": num_beams,
         "max_length": max_length,
         "output_scores": True,
         "return_dict_in_generate": True,
@@ -139,6 +139,7 @@ def translate_segments(
     target_lang_name: str,
     target_lang_code: str,
     job_id: str,
+    num_beams: int = 4,
 ) -> list[dict]:
     """
     Translate a list of segments for ONE target language.
@@ -219,13 +220,13 @@ def translate_segments(
             if pool is not None:
                 with pool.acquire() as (tok, mdl):
                     decoded, outputs = _run_inference(
-                        tok, mdl, pending_texts, src_code, target_lang_code, TRANSLATION_MAX_LENGTH
+                        tok, mdl, pending_texts, src_code, target_lang_code, TRANSLATION_MAX_LENGTH, num_beams=num_beams
                     )
             else:
                 from backend.pipeline.locks import TRANSLATE_LOCK
                 with TRANSLATE_LOCK:
                     decoded, outputs = _run_inference(
-                        tokenizer, model, pending_texts, src_code, target_lang_code, TRANSLATION_MAX_LENGTH
+                        tokenizer, model, pending_texts, src_code, target_lang_code, TRANSLATION_MAX_LENGTH, num_beams=num_beams
                     )
 
             scores_list = list(outputs.scores) if outputs.scores else []

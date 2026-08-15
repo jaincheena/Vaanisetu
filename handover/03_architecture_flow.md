@@ -21,7 +21,7 @@
 │  RAM-Aware Job Queue · Concurrency Planner          │
 │  Model Replica Pools · Shared Locks (Whisper/TTS/IT2)│
 │  Pipelined Processor (Translate ↔ Generate Overlap) │
-│  FFmpeg 8.1.2 · Whisper · IndicTrans2 · Coqui XTTS  │
+│  FFmpeg 8.1.2 · faster-Whisper (INT8 CTranslate2) · IndicTrans2 · Piper TTS · Coqui XTTS  │
 │  Translation Memory · Confidence Scorer             │
 └────────────────────┬────────────────────────────────┘
                      │ SQLite WAL (30s timeout) · File I/O
@@ -55,10 +55,11 @@ User uploads file
 [2] EXTRACTING ──── FFmpeg: audio normalization → 16 kHz mono WAV
        │            (OR DocumentParser: PDF / DOCX / CSV / TXT)
        ▼
-[3] TRANSCRIBING ── Whisper (with TRANSCRIBE_LOCK) → text segments
+[3] TRANSCRIBING ── faster-Whisper INT8 + Silero VAD (with TRANSCRIBE_LOCK) → text segments
        │            with timestamps + language detection code
        ▼
 [4 & 5] PIPELINED TRANSLATION & GENERATION (Overlapped)
+       │            Languages translate concurrently; English pivot cached once for all Indic→Indic targets
        │
        ├─► Language 1 Translation (IndicTrans2 / TM / Pivot)
        │     └─► [ThreadPool] Language 1 Generation (TTS, Dubbed MP4,
@@ -87,6 +88,23 @@ COMPLETE — distribution_clearance = cleared | pending_review
 | `.mp4`, `.mkv` (video) | ✅ FFmpeg | ✅ Whisper | ✅ IndicTrans2 | TXT, DOCX, SRT, VTT, MP3, captioned MP4, ZIP |
 | `.mp3`, `.wav` (audio) | ✅ FFmpeg (normalize) | ✅ Whisper | ✅ IndicTrans2 | TXT, DOCX, SRT, VTT, MP3, ZIP |
 | `.pdf`, `.docx`, `.csv`, `.txt` | ❌ N/A | ❌ (direct read) | ✅ IndicTrans2 | TXT, DOCX, CSV, ZIP |
+
+---
+
+## Draft vs Full Quality Mode
+
+| Output | ⚡ Draft Mode | 🎬 Full Quality Mode |
+|--------|-------------|--------------------|
+| Text (.txt) | ✅ | ✅ |
+| Subtitles (.srt, .vtt) | ✅ | ✅ |
+| TTS Audio (.mp3) | ✅ Piper (fast) | ✅ XTTS (high quality) |
+| Bilingual DOCX | ✅ | ✅ |
+| Dubbed MP4 | ❌ skipped | ✅ |
+| Captioned MP4 | ❌ skipped | ✅ |
+| IVR .wav | ❌ skipped | ✅ |
+| WhatsApp chunks | ❌ skipped | ✅ |
+| Translation beams | 2 (fast) | 4 (accurate) |
+| Typical speed (15-min video) | ~3-5 min | ~15-25 min |
 
 ---
 

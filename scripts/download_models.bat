@@ -8,6 +8,7 @@ echo ========================================
 echo   VaaniSetu - Download AI Models
 echo ========================================
 echo   This will download approximately 6-8 GB.
+echo   Including XTTS and Piper TTS voices.
 echo ========================================
 echo.
 

@@ -3,6 +3,8 @@
 > **100% Offline AI Translation Platform for BAIF Agricultural NGO**  
 > Translates video / audio / text into **22 Indian languages** — zero internet at runtime.
 
+> **v2.0 — August 2026** · faster-whisper INT8 · Piper TTS · Parallel translation · Draft/Full mode · GPU auto-detect
+
 ---
 
 ## Table of Contents
@@ -31,11 +33,16 @@
 
 **VaaniSetu** solves this by:
 - Accepting uploaded **videos / audio recordings / text** from BAIF staff
-- **Transcribing** them using OpenAI Whisper (speech-to-text)
-- **Translating** them into up to **22 Indian languages** using AI4Bharat's IndicTrans2
-- Generating **multiple output formats**: subtitles (.srt, .vtt), bilingual Word docs (.docx), plain text, AI-spoken audio (.mp3), legacy IVR audio (.wav), captioned video (.mp4), and auto-split WhatsApp video chunks
+- **Transcribing** them using **faster-Whisper** (CTranslate2 INT8, 4-8× faster than openai-whisper, with real Silero VAD)
+- **Translating** them into up to **22 Indian languages** using AI4Bharat's IndicTrans2 (INT8 quantized)
+- Running all target-language translations **concurrently** in a dedicated thread pool, with a cached English pivot for Indic→Indic pairs
+- Generating **multiple output formats**: subtitles (.srt, .vtt), bilingual Word docs (.docx), plain text, AI-spoken audio (.mp3 via Piper TTS or Coqui XTTS), legacy IVR audio (.wav), captioned video (.mp4), and auto-split WhatsApp video chunks
+- Offering a **⚡ Draft / 🎬 Full Quality mode** toggle: Draft delivers text+SRT+audio in minutes; Full renders all outputs including dubbed video
+- **Voice Gender Detection & Cloning**: Automatically detects speaker gender and uses FFmpeg to extract reference audio, creating high-fidelity voice clones in Full Quality mode using Coqui XTTS.
+- **Upload-Time Format Selector**: Users select exactly which formats they want (e.g. only text and MP3), drastically saving processing time and ZIP size by skipping large video rendering.
 - Throttling hardware via **Resource Saver Mode** so low-end NGO computers don't freeze during heavy AI workloads
 - Providing a **Review Queue** so staff can check low-confidence translations before distributing
+- **Auto-detecting CUDA GPUs** at startup for 10-30× speedup on machines that have them, with graceful CPU INT8 fallback
 
 Everything runs **100% offline** — after a one-time internet-connected setup, the PC never needs internet again.
 
@@ -77,9 +84,12 @@ Staff downloads ZIP ◄──── Output: .txt .docx .srt .vtt .mp3 .mp4 .csv
 | **FastAPI** | Backend API framework | Async-native, auto-generates docs at `/docs`, high throughput |
 | **Uvicorn** | ASGI web server | Production-grade, handles async perfectly, simple to start |
 | **SQLite (WAL Mode)** | Database | Zero-config, thread-safe with 30s busy timeout, WAL mode for concurrent writes |
-| **OpenAI Whisper** | Speech-to-text | Best open-source STT in existence, auto-detects source language, CPU-optimized |
-| **AI4Bharat IndicTrans2** | Translation | State-of-the-art for 22 Indian languages, distilled 200M architecture |
-| **Coqui XTTS v2 / gTTS** | Text-to-speech | Multilingual neural voice synthesis with sentence chunking & speaker reference cloning |
+| **faster-Whisper** | Speech-to-text | CTranslate2 INT8 backend — 4-8× faster than openai-whisper on CPU; real Silero VAD; auto-detects source language |
+| **AI4Bharat IndicTrans2** | Translation | State-of-the-art for 22 Indian languages, distilled 200M architecture, INT8 quantized at load |
+| **Piper TTS** | Text-to-speech (default, draft) | ONNX-based, near-real-time on CPU (~0.1s/sentence); 9 Indic language voices |
+| **Coqui XTTS v2** | Text-to-speech (full quality) | High-quality voice cloning for Full Quality mode; used when Piper voice unavailable |
+| **gTTS** | Text-to-speech (online fallback) | Final fallback when both local engines unavailable |
+| **CTranslate2** | INT8 inference engine | Powers faster-Whisper; provides INT8 quantization for Whisper |
 | **FFmpeg 8.1.2** | Audio/video processing | Bundled locally for zero-dependency video dubbing, subtitle burning, IVR 8kHz WAV, and WhatsApp auto-splitting |
 | **React 18** | Frontend framework | Component-based UI, real-time SSE updates, responsive design |
 | **Vite** | Build tool | Lightning-fast dev server + optimised production builds |
@@ -154,7 +164,8 @@ Vaanisetu/
 ├── scripts/                    ← Windows batch & python automation scripts
 │   ├── check_hardware.bat      ← Verify system prerequisites
 │   ├── setup.bat               ← Install deps + build frontend
-│   ├── download_models.bat     ← Download AI models (~6-8 GB)
+│   ├── download_models.bat     ← Download AI models (~5-6 GB)
+│   ├── download_piper_voices.py ← Download Piper TTS ONNX voices for 9 Indic languages
 │   ├── download_helper.py      ← Hugging Face gated repo download assistant
 │   ├── start_vaanisetu.bat     ← Launch server + open browser
 │   ├── stop_vaanisetu.bat      ← Graceful shutdown
@@ -179,7 +190,12 @@ Everything persists here — the SQLite database, uploaded files, generated outp
 ```
 C:\VaaniSetu\
 ├── vaanisetu.db          ← SQLite (4 tables)
-├── models/               ← Whisper, IndicTrans2, Coqui TTS (~8 GB total)
+├── models/               ← AI model weights (~5-6 GB total)
+│   ├── whisper/          ← faster-Whisper large-v3-turbo (CTranslate2 INT8, ~1.5 GB)
+│   ├── indictrans2-en-indic/  ← IndicTrans2 (~0.8 GB, INT8 quantized at load)
+│   ├── indictrans2-indic-en/  ← IndicTrans2 reverse (~0.8 GB)
+│   ├── tts_models/       ← Coqui XTTS v2 (~2.5 GB, Full Quality mode only)
+│   └── piper/            ← Piper ONNX voices (~15-50 MB each, 9 languages)
 ├── uploads/              ← Incoming files (named {job_id}_{original_name})
 ├── workspace/{job_id}/   ← Intermediate files per job (WAV, transcript, etc.)
 └── outputs/{job_id}.zip  ← Final packaged ZIP
@@ -234,28 +250,32 @@ Re-confirms the file exists on disk, extension is valid. Updates DB: `status='va
 # processor.py: _stage_transcribing()
 # Calls: transcriber.py: transcribe()
 ```
-- Whisper processes the WAV with `with TRANSCRIBE_LOCK:` (ensuring thread safety across concurrent jobs) and returns timestamped segments:
+- **faster-Whisper** (CTranslate2 INT8) processes the WAV with `with TRANSCRIBE_LOCK:` (ensuring thread safety across concurrent jobs). Silero VAD filters silence/noise segments before they reach the model — preventing hallucinations on quiet audio.
+- Returns timestamped segments:
 ```python
 [
   {"text": "Hello farmers", "start": 0.0, "end": 2.5},
   {"text": "Today we discuss irrigation", "start": 2.5, "end": 5.8},
 ]
 ```
-- **Language Detection**: Transcriber detects the spoken language (e.g. `mr`, `hi`, `te`) and returns `(segments, detected_code)`.
+- **Language Detection**: `info.language` from faster-Whisper returns the detected language code (e.g. `mr`, `hi`, `te`) mapped back to display name via `_whisper_to_display()`.
 
 ### Stage 4 & 5: Pipelined Translation & Parallel Generation
 ```python
 # processor.py: _stage_translating() & _generate_for_language()
 # Calls: translator.py, packager.py, tts.py
 ```
-Instead of waiting for all 22 languages to finish translating, **Stage 4 and Stage 5 are pipelined**:
-1. **Dynamic Sizing**: Generation worker count is planned dynamically: `workers = plan("generate", share=current_jobs)`.
-2. **Translation per Language**:
-   - **Auto-Detect Resolution**: Resolves source language via Whisper detected code or `langdetect`.
-   - **Pivot Routing**: Direct translation for English $\rightarrow$ Indic or Indic $\rightarrow$ English; 2-step pivot (`Indic -> English -> Target Indic`) for Indic $\rightarrow$ Indic pairs (e.g. Marathi $\rightarrow$ Telugu).
+Instead of waiting for all 22 languages to finish translating, **Stage 4 and Stage 5 are pipelined** *and* parallelised:
+1. **Dynamic Sizing**: Both translation and generation worker counts are planned dynamically: `workers = plan("translate"|"generate", share=current_jobs)`.
+2. **Parallel Translation**: All target languages are submitted concurrently to a dedicated `ThreadPoolExecutor`. No more serial `for lang in target_langs` loop.
+3. **English Pivot Caching**: For Indic→Indic jobs, `source→English` is computed **once** before the parallel translation begins, then reused by all Indic targets. Eliminates N redundant translation passes.
+4. **Translation per Language**:
+   - **Auto-Detect Resolution**: Resolves source language via faster-Whisper detected code or `langdetect`.
+   - **Pivot Routing**: Direct translation for English→Indic or Indic→English; cached-pivot 2-step (`source→En pivot → target Indic`) for Indic→Indic pairs.
+   - **Draft/Full Quality Mode**: `num_beams=2` in Draft mode (faster), `num_beams=4` in Full Quality mode (more accurate).
    - **Entity Protection**: Placeholders (`<VSP0>`) protect technical terms, agricultural acronyms (SRI), URLs, and brand names.
-   - **TM Cache & Confidence**: Cached segments resolve instantly ($conf=1.0$). Uncached segments run IndicTrans2 inference with `TRANSLATE_LOCK` or model replica pool checkout.
-3. **Immediate Asynchronous Generation**: As soon as Language $i$ finishes translation, its full generation set is immediately submitted to the `ThreadPoolExecutor`:
+   - **TM Cache & Confidence**: Cached segments resolve instantly ($conf=1.0$). Uncached segments run IndicTrans2 inference (INT8 quantized) with `TRANSLATE_LOCK` or model replica pool checkout.
+5. **Immediate Asynchronous Generation**: As soon as Language $i$ finishes translation, its full generation set is immediately submitted to the `ThreadPoolExecutor`:
 
 | File | Function | Details |
 |------|----------|---------|
@@ -263,12 +283,12 @@ Instead of waiting for all 22 languages to finish translating, **Stage 4 and Sta
 | `bilingual_Hindi.docx` | `write_bilingual_docx()` | Formatted bilingual table for print/review |
 | `subtitles_Hindi.srt` | `write_srt()` | SubRip subtitle format |
 | `subtitles_Hindi.vtt` | `write_vtt()` | WebVTT subtitle format |
-| `audio_Hindi.mp3` | `write_tts_mp3()` | Coqui XTTS v2 neural audio with chunking & speaker reference |
-| `ivr_audio_Hindi.wav` | `write_ivr_wav()` | 8 kHz mono downsampled for IVR & basic phones |
-| `dubbed_Hindi.mp4` | `write_dubbed_mp4()` | Video with translated audio replacing the original track |
-| `captioned_Hindi.mp4` | `write_captioned_mp4()` | Subtitle-burned video with synced translated audio |
+| `audio_Hindi.mp3` | `write_tts_mp3()` | Piper TTS (Draft mode) or Coqui XTTS v2 (Full Quality mode) |
+| `ivr_audio_Hindi.wav` | `write_ivr_wav()` | 8 kHz mono downsampled for IVR & basic phones *(Full Quality only)* |
+| `dubbed_Hindi.mp4` | `write_dubbed_mp4()` | Video with translated audio replacing the original track *(Full Quality only)* |
+| `captioned_Hindi.mp4` | `write_captioned_mp4()` | Subtitle-burned video with synced translated audio *(Full Quality only)* |
 | `translated_Hindi.csv` | `write_translated_csv()` | Bilingual CSV (for CSV document uploads) |
-| `whatsapp_part00_Hindi.mp4` | `write_whatsapp_chunks()` | Auto-split <15MB segments for low-bandwidth WhatsApp |
+| `whatsapp_part00_Hindi.mp4` | `write_whatsapp_chunks()` | Auto-split <15MB segments for low-bandwidth WhatsApp *(Full Quality only)* |
 
 ### Stage 6: Packaging & Disk Recovery
 ```python
@@ -302,6 +322,7 @@ The DB lives at `C:\VaaniSetu\vaanisetu.db`. There are 4 tables:
 | `confidence_level` | TEXT | `green`, `amber`, or `red` |
 | `avg_confidence` | REAL | Average confidence across all translated segments |
 | `distribution_clearance` | TEXT | `cleared` or `pending_review` |
+| `quality_mode` | TEXT | `'full'` (default) or `'draft'` — controls output set and beam width |
 
 ### `translation_memory` — Cached translations (the learning layer)
 | Column | Type | Purpose |
@@ -348,6 +369,15 @@ CONFIDENCE_AMBER = 0.65   # ≥ this → amber badge (else red)
 TM_CACHE_HIT_MIN = 0.85   # min confidence to serve from TM cache
 TM_STORE_MIN     = 0.70   # min confidence to store in TM
 BATCH_SIZE       = 8      # segments per IndicTrans2 call
+
+# v2.0 additions:
+DEVICE = detect_device()                  # 'cuda' or 'cpu' — auto-detected at import
+WHISPER_COMPUTE_TYPE = 'float16'|'int8'   # float16 on GPU, int8 on CPU
+DEFAULT_TTS_ENGINE = 'piper'              # piper | xtts | gtts
+TRANSLATION_NUM_BEAMS = 4                 # Full Quality mode
+TRANSLATION_DRAFT_BEAMS = 2              # Draft mode
+PIPER_VOICES_DIR = MODEL_DIR / 'piper'    # ONNX voice files
+PIPER_VOICE_MAP = {...}                   # language → voice stem
 ```
 
 ---
@@ -536,10 +566,16 @@ npm install
 npm run build
 ```
 
-### Step 3: Download AI models (needs internet, ~6-8 GB)
+### Step 3: Download AI models (needs internet, ~5-6 GB)
 ```
 scripts\download_models.bat
 ```
+
+### Step 3.5: Download Piper TTS voices (recommended)
+```bash
+python scripts/download_piper_voices.py
+```
+Downloads ONNX voice models (~50–150 MB total) for 9 Indic languages into `C:\VaaniSetu\models\piper\`. Enables near-real-time Draft mode TTS. If skipped, system falls back to Coqui XTTS (slower) or gTTS (requires internet).
 
 ### Step 4: Start the server
 ```bash
@@ -595,7 +631,7 @@ Because VaaniSetu is designed for remote, offline NGO field offices, "Deployment
 | `GET` | `/api/impact/export/pdf` | Download PDF report | PDF file |
 | `GET` | `/api/glossary` | List glossary terms | Array of terms |
 | `GET` | `/api/glossary/export/docx` | Download glossary | DOCX file |
-| `GET` | `/api/health` | System health | `{ram_gb, disk_gb, models_loaded, ...}` |
+| `GET` | `/api/health` | System health | `{ram_gb, disk_gb, models_loaded, device, ...}` |
 
 ### Submit Job — Form Fields
 ```
@@ -607,6 +643,9 @@ source_lang   : "English"        — source language display name
 mode          : "translate"      — or "reverse_bridge"
 farmer_context: ""               — optional context for Reverse Bridge
 resource_saver: "true"           — optional flag to throttle CPU threads
+quality_mode  : "full"           — "draft" (fast, text+SRT+audio only) or "full" (all outputs)
+output_formats: '["txt","mp3"]'  — JSON array of desired formats
+voice_gender  : "male"           — optional manual override for TTS (detected automatically if omitted)
 ```
 
 ### SSE Event Format
@@ -624,10 +663,25 @@ data: {"stage":"failed","pct":100,"message":"FFmpeg not found in PATH"}
 
 ## 13. Known Bugs Fixed & Code Improvements
 
-Two bugs were identified during code review and have been fixed:
+All bugs below are fixed in v2.0:
 
-### Bug 1: Path concatenation crash (processor.py line ~131)
-**Problem:** `str(ws / "audio_raw" + suffix)` — In Python, `Path / str` returns a Path, but `Path + str` is not defined and raises `TypeError` on Windows.
+### Bug 1: `WHISPER_TO_NAME` NameError (processor.py `_stage_translating`)
+**Problem:** `WHISPER_TO_NAME` was referenced but never imported or defined. Every job with `source_lang = Auto-Detect` would crash with `NameError` during language resolution.
+
+```python
+# ❌ Before (crashes):
+if whisper_detected_lang_code in WHISPER_TO_NAME:
+    source_lang = WHISPER_TO_NAME[whisper_detected_lang_code]
+
+# ✅ After (fixed):
+from backend.pipeline.transcriber import _whisper_to_display
+_resolved = _whisper_to_display(whisper_detected_lang_code)
+if _resolved:
+    source_lang = _resolved
+```
+
+### Bug 2: Path concatenation crash (processor.py)
+**Problem:** `str(ws / "audio_raw" + suffix)` — `Path + str` is not defined in Python, raises `TypeError`.
 
 ```python
 # ❌ Before (broken):
@@ -637,8 +691,8 @@ target = str(ws / "audio_raw" + suffix)
 target = str(ws / f"audio_raw{suffix}")
 ```
 
-### Bug 2: Event loop anti-pattern (processor.py `_publish()`)
-**Problem:** `asyncio.new_event_loop()` / `loop.run_until_complete()` / `loop.close()` created a new event loop for every SSE publish call. This is heavyweight and can cause `RuntimeError: This event loop is already running` warnings on some OSes.
+### Bug 3: Event loop anti-pattern (processor.py `_publish()`)
+**Problem:** `asyncio.new_event_loop()` / `loop.run_until_complete()` / `loop.close()` created a new event loop for every SSE publish call, causing `RuntimeError` on some OSes.
 
 ```python
 # ❌ Before:
@@ -650,7 +704,6 @@ finally:
 
 # ✅ After:
 asyncio.run(sse_manager.publish(...))
-# asyncio.run() handles loop lifecycle cleanly
 ```
 
 ---

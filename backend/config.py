@@ -4,7 +4,40 @@ All paths and constants live here. Change once, applies everywhere.
 """
 
 import os
+import logging
 from pathlib import Path
+
+logger = logging.getLogger("vaanisetu.config")
+
+
+# ---------------------------------------------------------------------------
+# Device auto-detection
+# ---------------------------------------------------------------------------
+def detect_device() -> str:
+    """Return 'cuda' if a usable GPU is present, else 'cpu'.
+
+    Most BAIF field laptops have no GPU — the entire pipeline is optimised
+    for CPU-first operation.  When a GPU *is* available this gives a 10-30×
+    boost across Whisper, IndicTrans2 and XTTS with zero user configuration.
+    """
+    try:
+        import torch
+        if torch.cuda.is_available():
+            name = torch.cuda.get_device_name(0)
+            logger.info(f"GPU detected: {name} — using CUDA")
+            return "cuda"
+    except Exception:
+        pass
+    logger.info("No GPU detected — running on CPU")
+    return "cpu"
+
+
+def detect_gpu_available() -> bool:
+    return detect_device() == "cuda"
+
+
+# Cached at import time so every loader reads the same value.
+DEVICE = os.getenv("VAANISETU_DEVICE", "") or detect_device()
 
 # ---------------------------------------------------------------------------
 # Base directories (stored on C:\VaaniSetu\ to keep models off repo drive)
@@ -26,6 +59,8 @@ for _d in [MODEL_DIR, WORKSPACE_DIR, OUTPUTS_DIR, UPLOADS_DIR]:
 # ---------------------------------------------------------------------------
 WHISPER_MODEL        = os.getenv("WHISPER_MODEL", "large-v3-turbo")
 WHISPER_MODEL_DIR    = MODEL_DIR / "whisper"
+WHISPER_COMPUTE_TYPE = os.getenv("WHISPER_COMPUTE_TYPE",
+                                  "float16" if DEVICE == "cuda" else "int8")
 
 # FFmpeg / ffprobe executable paths
 FFMPEG_PATH = os.getenv("VAANISETU_FFMPEG", "ffmpeg")
@@ -40,6 +75,38 @@ INDIC_INDIC_EN_HF    = "ai4bharat/indictrans2-indic-en-dist-200M"
 
 COQUI_TTS_MODEL_NAME = "tts_models/multilingual/multi-dataset/xtts_v2"
 COQUI_TTS_MODEL_DIR  = str(MODEL_DIR / "tts_models/multilingual/multi-dataset/xtts_v2")
+
+# Piper TTS (ONNX-based, lightweight CPU engine)
+PIPER_VOICES_DIR     = MODEL_DIR / "piper"
+PIPER_VOICES_DIR.mkdir(parents=True, exist_ok=True)
+DEFAULT_TTS_ENGINE   = os.getenv("VAANISETU_TTS_ENGINE", "piper")  # piper | xtts | gtts
+
+# Map display language name → Piper voice model stem (without .onnx)
+# Only languages with available Piper voices are listed; others fall back.
+PIPER_VOICE_MAP: dict[str, str] = {
+    "Hindi":     "hi_IN-swara-medium",
+    "Bengali":   "bn_BD-sishir-medium",
+    "Gujarati":  "gu_IN-bagicha-medium",
+    "Kannada":   "kn_IN-lili-medium",
+    "Marathi":   "mr_IN-vani-medium",
+    "Tamil":     "ta_IN-anbu-medium",
+    "Telugu":    "te_IN-anu-medium",
+    "Nepali":    "ne_NP-google-medium",
+    "English":   "en_US-amy-medium",
+}
+
+# Gender-specific Piper voice overrides for male voices.
+# Most Indic Piper voices are female; only list languages where a
+# distinct male voice model is available. For unlisted languages,
+# voice_detector falls back to PIPER_VOICE_MAP (female) or XTTS cloning.
+PIPER_VOICE_MAP_MALE: dict[str, str] = {
+    "English":   "en_US-ryan-medium",      # en_US-ryan is a male voice
+    "Hindi":     "hi_IN-swara-medium",     # Only one Piper Hindi voice currently
+    "Bengali":   "bn_BD-sishir-medium",    # sishir is male
+    "Gujarati":  "gu_IN-bagicha-medium",   # Fallback: single voice
+    "Kannada":   "kn_IN-lili-medium",      # Fallback: single voice
+    "Marathi":   "mr_IN-vani-medium",      # Fallback: single voice
+}
 
 # ---------------------------------------------------------------------------
 # Server
@@ -57,8 +124,9 @@ CONCURRENCY_HEADROOM_GB = float(os.getenv("VAANISETU_RAM_HEADROOM_GB", "2.0"))
 # (Whisper activations + ffmpeg + buffers); "generate" is one language's
 # output set, dominated by the ffmpeg subtitle burn.
 CONCURRENCY_TASK_COST_GB = {
-    "job":      float(os.getenv("VAANISETU_JOB_COST_GB", "1.5")),
-    "generate": float(os.getenv("VAANISETU_GEN_COST_GB", "0.6")),
+    "job":       float(os.getenv("VAANISETU_JOB_COST_GB", "1.5")),
+    "generate":  float(os.getenv("VAANISETU_GEN_COST_GB", "0.6")),
+    "translate": float(os.getenv("VAANISETU_TRANSLATE_COST_GB", "0.3")),
 }
 
 def _optional_int(name: str):
@@ -95,9 +163,9 @@ MODEL_POOL_MAX = {
 # Resident size of each model once loaded. Used by the startup preflight to
 # tell a user their machine is too small BEFORE it spends ten minutes swapping.
 MODEL_FOOTPRINT_GB = {
-    "whisper":  float(os.getenv("VAANISETU_WHISPER_GB", "5.0")),
-    "en_indic": float(os.getenv("VAANISETU_EN_INDIC_GB", "1.2")),
-    "indic_en": float(os.getenv("VAANISETU_INDIC_EN_GB", "1.2")),
+    "whisper":  float(os.getenv("VAANISETU_WHISPER_GB", "1.5")),   # INT8 via faster-whisper
+    "en_indic": float(os.getenv("VAANISETU_EN_INDIC_GB", "0.8")),  # INT8 dynamic quantized
+    "indic_en": float(os.getenv("VAANISETU_INDIC_EN_GB", "0.8")),  # INT8 dynamic quantized
     "tts":      float(os.getenv("VAANISETU_TTS_GB", "2.5")),
 }
 
@@ -115,6 +183,8 @@ EAGER_LOAD_REVERSE_BRIDGE = os.getenv("VAANISETU_EAGER_REVERSE_BRIDGE", "0") == 
 BATCH_SIZE = 8            # IndicTrans2 segments per batch
 AUDIO_SAMPLE_RATE = 16000 # Whisper expects 16 kHz mono WAV
 TRANSLATION_MAX_LENGTH = 256  # Maximum sequence length for IndicTrans2
+TRANSLATION_NUM_BEAMS  = int(os.getenv("VAANISETU_BEAMS", "4"))
+TRANSLATION_DRAFT_BEAMS = 2   # Fewer beams for draft mode speed
 
 # ---------------------------------------------------------------------------
 # Confidence thresholds

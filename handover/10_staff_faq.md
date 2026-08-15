@@ -65,9 +65,12 @@ Check the following, in order:
 2. Choose your mode (see below)
 3. Select the **source language** (what language your file is in)
 4. Click the **language chips** to choose which languages to translate into
-5. Drag your file into the upload box (or click to browse)
-6. Click **Start Translation**
-7. Watch the progress bar — it completes automatically
+5. **(New) Choose Quality Mode:**
+   - ⚡ **Draft** — generates text + subtitles + MP3 audio only, in minutes. Perfect for quick previews and internal review.
+   - 🎬 **Full Quality** (default) — generates all outputs including dubbed video, captioned video, WhatsApp chunks, and IVR audio. Takes longer but is distribution-ready.
+6. Drag your file into the upload box (or click to browse)
+7. Click **Start Translation**
+8. Watch the progress bar — it completes automatically
 
 ---
 
@@ -88,13 +91,13 @@ Yes — click the **All** button above the language chips. Be aware: translating
 
 **Q: How long does translation take?**
 
-| Content Length | Approx. Time (3–4 languages) |
-|---------------|------------------------------|
-| Short clip (5 min) | 8–12 minutes |
-| Training video (20 min) | 30–45 minutes |
-| Long session (60 min) | 90–120 minutes |
+| Content Length | ⚡ Draft Mode (3–4 languages) | 🎬 Full Quality Mode (3–4 languages) |
+|---------------|-------------------------------|-----------------------------------|
+| Short clip (5 min) | 1–3 minutes | 8–12 minutes |
+| Training video (20 min) | 5–8 minutes | 30–45 minutes |
+| Long session (60 min) | 15–25 minutes | 90–120 minutes |
 
-> **Tip:** Submit long videos at the end of the day or during lunch — they process in the background and you can download the result when you return.
+> **Tip:** Use ⚡ **Draft mode** to get a quick preview in minutes. Switch to 🎬 **Full Quality** when you need dubbed video, WhatsApp-ready clips, and IVR audio. Submit Full Quality jobs at the end of the day or during lunch — they process in the background.
 
 ---
 
@@ -157,12 +160,13 @@ When you download the ZIP for a job, it contains a comprehensive set of files fo
 | `bilingual_Hindi.docx` | Word document with original + Hindi side-by-side | Print as handout for field officers & local trainers |
 | `subtitles_Hindi.srt` | Subtitle file | Add to video in VLC, YouTube, or editing software |
 | `subtitles_Hindi.vtt` | Web subtitle file | Upload with video to BAIF website or web portal |
-| `audio_Hindi.mp3` | AI-spoken Hindi audio (Coqui XTTS v2) | Community radio, WhatsApp voice broadcast |
-| `ivr_audio_Hindi.wav` | 8kHz mono telephone audio | Interactive Voice Response (IVR) phone calls to farmers |
-| `dubbed_Hindi.mp4` | Video with translated audio voice-over | Gram panchayat video screenings, farmer workshops |
-| `captioned_Hindi.mp4` | Video with burned-in subtitles | Social media, WhatsApp groups, TV displays |
+| `audio_Hindi.mp3` | AI-spoken Hindi audio | Community radio, WhatsApp voice broadcast |
+|  | (⚡ Draft: Piper TTS, near-realtime; 🎬 Full: Coqui XTTS v2 high-quality) | |
+| `ivr_audio_Hindi.wav` | 8kHz mono telephone audio (🎬 Full Quality only) | Interactive Voice Response (IVR) phone calls to farmers |
+| `dubbed_Hindi.mp4` | Video with translated audio voice-over (🎬 Full Quality only) | Gram panchayat video screenings, farmer workshops |
+| `captioned_Hindi.mp4` | Video with burned-in subtitles (🎬 Full Quality only) | Social media, WhatsApp groups, TV displays |
 | `translated_Hindi.csv` | Translated spreadsheet table | Tabular survey data & field reporting |
-| `whatsapp_part00_Hindi.mp4` | Video auto-split into <15MB parts | Direct delivery to rural farmers on low-bandwidth WhatsApp |
+| `whatsapp_part00_Hindi.mp4` | Video auto-split into <15MB parts (🎬 Full Quality only) | Direct delivery to rural farmers on low-bandwidth WhatsApp |
 | `manifest.json` | Job details and IST timestamp | System and audit record |
 
 ---

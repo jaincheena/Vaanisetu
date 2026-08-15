@@ -27,7 +27,7 @@ VaaniSetu is a web application that runs in your browser. No installation needed
 | RAM | 16 GB | 32 GB |
 | Storage | 250 GB free | 500 GB SSD |
 | OS | Windows 11 64-bit | Windows 11 64-bit |
-| GPU | Not required | Not required (CPU-only) |
+| GPU | Not required (CPU-optimised INT8) | NVIDIA GPU (any CUDA-capable) — 10-30x speedup if present |
 | Network | 100 Mbps LAN | Gigabit LAN |
 | Internet at runtime | ❌ Not needed | ❌ Not needed |
 
@@ -40,9 +40,11 @@ VaaniSetu is a web application that runs in your browser. No installation needed
 | Python | 3.11+ | Backend runtime | PSF |
 | FastAPI | 0.111+ | REST API framework | MIT |
 | Uvicorn | 0.30+ | ASGI web server | BSD |
-| OpenAI Whisper | latest | Speech-to-text | MIT |
+| faster-Whisper | 1.1+ | Speech-to-text (CTranslate2 INT8, 4-8x faster) | MIT |
 | IndicTrans2 (AI4Bharat) | dist-200M | Translation | MIT |
-| Coqui TTS | 0.22+ | Text-to-speech | MPL-2.0 |
+| Piper TTS | 2023.11+ | Text-to-speech (ONNX, default, near-realtime) | MIT |
+| Coqui XTTS | 0.27+ | High-quality voice cloning (Full Quality mode) | MPL-2.0 |
+| CTranslate2 | 4.5+ | INT8 inference engine for Whisper & IndicTrans2 | MIT |
 | PyTorch | 2.3+ | ML framework | BSD |
 | Transformers (HuggingFace) | 4.40+ | Model loading | Apache 2.0 |
 | FFmpeg | 6+ | Audio/video extraction | LGPL/GPL |
@@ -71,9 +73,10 @@ netsh advfirewall firewall add rule name="VaaniSetu" dir=in action=allow protoco
 
 | Directory | Size | Contents |
 |-----------|------|---------|
-| `C:\VaaniSetu\models\whisper\` | ~3 GB | Whisper large-v3-turbo |
-| `C:\VaaniSetu\models\indictrans2-en-indic\` | ~1.5 GB | Translation English→Indian |
-| `C:\VaaniSetu\models\indictrans2-indic-en\` | ~1.5 GB | Translation Indian→English |
+| `C:\VaaniSetu\models\whisper\` | ~1.5 GB | Whisper large-v3-turbo |
+| `C:\VaaniSetu\models\indictrans2-en-indic\` | ~0.8 GB | Translation English→Indian |
+| `C:\VaaniSetu\models\indictrans2-indic-en\` | ~0.8 GB | Translation Indian→English |
 | `C:\VaaniSetu\models\coqui_xtts\` | ~2 GB | Text-to-speech (optional) |
+| `C:\VaaniSetu\models\piper\` | ~50–150 MB | Piper TTS ONNX voice models (9 Indic languages) |
 
 > ⚠️ Deleting model files will require re-downloading them. Always have a backup copy on an external drive.

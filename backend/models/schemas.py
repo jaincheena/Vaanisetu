@@ -27,6 +27,7 @@ class JobStatus(BaseModel):
     output_path: Optional[str]
     error_log: Optional[str]
     distribution_clearance: Optional[str]
+    quality_mode: Optional[str]
 
 
 class JobSubmitResponse(BaseModel):

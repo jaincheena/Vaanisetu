@@ -54,7 +54,7 @@ VaaniSetu has four layers:
 
 1. **User Interface** — React 18 web app with live SSE streaming and IST timestamps. No app installation needed; any device on the office WiFi opens it in a browser.
 2. **API Layer** — FastAPI (Python) on port 8765. Handles chunked file streaming, thread-safe SSE event broadcasting, and REST endpoints.
-3. **Pipeline Engine** — The core AI chain: FFmpeg / Document parser → Whisper → IndicTrans2 → Coqui XTTS → Output packager. Uses a RAM-aware dynamic worker pool with pipelined translation and generation overlap, model replica checkout pools, and mutex locking for thread safety.
+3. **Pipeline Engine** — The core AI chain: FFmpeg / Document parser → **faster-Whisper (CTranslate2 INT8 + Silero VAD)** → **IndicTrans2 (INT8 quantized)** → **Piper TTS / Coqui XTTS** → Output packager. Uses a RAM-aware dynamic worker pool with **parallel translation across target languages** and pipelined generation overlap, model replica checkout pools, and mutex locking for thread safety. A **cached English pivot** avoids redundant passes for Indic→Indic translation.
 4. **Data Layer** — SQLite database with WAL mode and 30s timeout + local file storage under `C:\VaaniSetu\`. Everything stays on one machine.
 
 A file uploaded by a BAIF trainer triggers a 7-stage pipelined workflow: validate → extract/parse → transcribe → translate (with immediate background generation per language) → package ZIP → notify browser via real-time progress events.
@@ -156,15 +156,17 @@ IndicTrans2 wins because:
 |-------|------------------------|-----------------|----------|-----------------|
 | Kaldi | Needs per-language training | Fast | Poor for Indian languages without custom training | Very high |
 | wav2vec 2.0 | Hindi only (with fine-tuning) | Moderate | Moderate | High |
-| **Whisper large-v3-turbo** | **~95 languages including major Indian langs** | **Acceptable** | **Excellent** | **pip install + .load_model()** |
+| **faster-Whisper large-v3-turbo (CTranslate2 INT8)** | **~95 languages including major Indian langs** | **Excellent (4-8× faster than openai-whisper with INT8)** | **Excellent** | **pip install + .load_model()** |
 
 Whisper has a key property: it was trained on 680,000 hours of multilingual audio including substantial Hindi, Tamil, Telugu, Bengali, Marathi, Gujarati, Urdu, and more. It works immediately with no training data. For BAIF's use case — field officers recording in Hindi or Marathi — accuracy is 85–92% word accuracy without any fine-tuning.
 
-**Why large-v3-turbo over large-v3?** It's 8× faster on CPU with minimal quality drop — essential since BAIF has no GPU.
+**Why faster-Whisper with large-v3-turbo?** CTranslate2 INT8 quantization gives 4-8× speedup over openai-whisper on CPU, reduces memory from ~5 GB to ~1.5 GB, and adds real Silero VAD to filter silence before it reaches the model.
 
 ---
 
 **Q14. Why Coqui TTS for the audio output?**
+
+**VaaniSetu now uses a tiered TTS approach:** Piper TTS (ONNX-based, MIT licence) is the default engine for Draft mode — it runs at near-real-time (~0.1s/sentence) on CPU and supports 9 Indic languages without any GPU. Coqui XTTS v2 is used for Full Quality mode, offering higher naturalness and voice cloning capability. gTTS is the final online fallback.
 
 Coqui TTS's XTTS v2 is the only fully open-source, locally-runnable text-to-speech model that supports multiple Indian languages. Alternatives:
 - **Google Cloud TTS** — requires internet, per-character billing
@@ -214,7 +216,7 @@ We've deliberately made this a single-command install. The full process:
 **Day 1 (with internet, done once):**
 1. Run `check_hardware.bat` — verifies RAM, disk, Python, Node, FFmpeg. Produces clear PASS/FAIL with fix instructions.
 2. Run `setup.bat` — creates all directories, installs all Python and JavaScript packages.
-3. Run `download_models.bat` — downloads all AI models (~6-8 GB). Completely automated — no decisions required.
+3. Run `download_models.bat` — downloads all AI models (~5-6 GB). Then run python scripts/download_piper_voices.py for lightweight Piper TTS voices (~50-150 MB). Completely automated — no decisions required.
 
 **Every day after:**
 - Double-click `start_vaanisetu.bat` → browser opens automatically
@@ -534,13 +536,13 @@ We want to be completely transparent:
 
 | Limitation | Impact | Mitigation |
 |----------|--------|-----------|
-| Speed on long video files | 60-min video takes ~20-35 min on CPU | Stages 4 & 5 overlap to accelerate output; schedule batch jobs |
+| Speed on long video files | 60-min video takes ~5-15 min in Draft mode or ~20-35 min in Full Quality on CPU | Use ⚡ Draft mode for quick turnaround; Full mode for overnight batch runs. Target languages now translate in parallel. |
 | Low-resource language accuracy (Bodo, Santhali) | More Amber/Red segments | Review Queue + TM building over time |
 | No dialect support | Can't distinguish Awadhi from standard Hindi | Reviewers adjust in Review Queue |
-| TTS sounds less natural for rare languages | Audio output less expressive | Use as rapid reference; human voice-over for final broadcast |
+| TTS engine varies by language | Piper TTS (near-realtime, 9 Indic languages) → Coqui XTTS (Full Quality) → gTTS fallback | Near-realtime Piper for Draft; XTTS for highest quality; human voice-over for broadcast critical content |
 | Scanned image OCR | Only text PDFs/DOCX/CSV/TXT parsed directly | OCR scanned images prior to upload |
 | Proper nouns & rare acronyms | Domain terms might transcribe with minor phonetic variation | Entity shield placeholders + Review Queue corrections |
-| Concurrency memory bounds | Low-memory PCs (4GB) run serially | Hardware-aware worker planning scales to available RAM (up to multi-worker on 16GB+) |
+| Concurrency memory bounds | Models now ~40% smaller via INT8 quantization; 8 GB is practical minimum | Hardware-aware INT8 planning; serial on 8 GB, multi-worker on 16 GB+; CUDA GPU gives 10-30× speedup if available |
 
 ---
 

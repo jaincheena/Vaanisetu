@@ -60,6 +60,7 @@ export default function ReviewQueue() {
           <div style={{ minWidth: 200 }}>
             <label>Reviewer Name</label>
             <input
+              className="text-input"
               id="reviewer-name"
               type="text"
               value={reviewer}
@@ -98,7 +99,7 @@ export default function ReviewQueue() {
             const isEditing = editStates[item.id] !== undefined
 
             return (
-              <div className="review-card" key={item.id}>
+              <div className="card mb-4" key={item.id}>
                 {/* Header */}
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
@@ -113,15 +114,16 @@ export default function ReviewQueue() {
                 </div>
 
                 {/* Bilingual panes */}
-                <div className="review-bilingual">
-                  <div className="review-pane">
-                    <div className="review-pane-label">Source ({item.source_lang})</div>
-                    <p>{item.source_text}</p>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', background: 'var(--bg-input)', padding: '16px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
+                  <div>
+                    <div className="section-label" style={{ marginBottom: 8 }}>Source ({item.source_lang})</div>
+                    <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>{item.source_text}</p>
                   </div>
-                  <div className="review-pane">
-                    <div className="review-pane-label">Translation ({item.target_lang})</div>
+                  <div>
+                    <div className="section-label" style={{ marginBottom: 8 }}>Translation ({item.target_lang})</div>
                     {item.status === 'pending' ? (
                       <textarea
+                        className="text-input"
                         id={`edit-${item.id}`}
                         value={editVal}
                         onChange={e => setEdit(item.id, e.target.value)}
@@ -129,7 +131,7 @@ export default function ReviewQueue() {
                         style={{ marginBottom: 0 }}
                       />
                     ) : (
-                      <p>{item.edited_translation || item.translated_text}</p>
+                      <p style={{ fontSize: 13, color: 'var(--text)' }}>{item.edited_translation || item.translated_text}</p>
                     )}
                   </div>
                 </div>

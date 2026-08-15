@@ -19,6 +19,9 @@ from backend.utils.file_utils import sha256_file, new_job_id, job_zip_path, safe
 from backend.utils.sse import sse_manager
 from backend.services.auth_service import get_current_user
 
+# Languages currently supported end-to-end (Piper + IndicTrans2 verified)
+ACTIVE_LANGS = {"Hindi", "Marathi", "English", "Gujarati", "Bengali", "Kannada"}
+
 router = APIRouter(prefix="/api/jobs", tags=["jobs"])
 logger = logging.getLogger("vaanisetu.router.jobs")
 
@@ -32,6 +35,8 @@ async def submit_job(
     farmer_context: str = Form(""),
     resource_saver: bool = Form(False),
     bypass_cache: bool = Form(False),
+    quality_mode: str = Form("full"),  # 'draft' | 'full'
+    output_formats: str = Form(default=None),  # JSON array e.g. '["txt","srt","mp3"]'
     current_user: dict = Depends(get_current_user),
 ):
     job_id = new_job_id()
@@ -51,6 +56,22 @@ async def submit_job(
         assert isinstance(langs, list) and len(langs) > 0
     except Exception:
         raise HTTPException(400, "target_langs must be a non-empty JSON array")
+
+    # Validate all requested target languages are in the active set
+    invalid = [l for l in langs if l not in ACTIVE_LANGS]
+    if invalid:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Languages not yet supported: {', '.join(invalid)}. Active languages: {', '.join(sorted(ACTIVE_LANGS))}"
+        )
+
+    parsed_output_formats = None
+    if output_formats:
+        try:
+            import json as _json
+            parsed_output_formats = _json.loads(output_formats)
+        except Exception:
+            pass
 
     # --- Save upload (Chunked to prevent RAM spikes) ---
     filename = f"{job_id}_{safe_filename(file.filename or 'upload')}"
@@ -111,11 +132,11 @@ async def submit_job(
             """
             INSERT INTO jobs
             (id, mode, submitter_id, filename, file_hash, file_size, input_type,
-             source_lang, target_langs, status, queued_at, farmer_context)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'queued', ?, ?)
+             source_lang, target_langs, status, queued_at, farmer_context, quality_mode)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'queued', ?, ?, ?)
             """,
             (job_id, mode, current_user["username"], file.filename, file_hash, file_size, input_type,
-             source_lang, json.dumps(langs), now, farmer_context),
+             source_lang, json.dumps(langs), now, farmer_context, quality_mode),
         )
 
     await enqueue(job_id)

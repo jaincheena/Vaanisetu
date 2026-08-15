@@ -23,7 +23,7 @@ Double-click `scripts\setup.bat`
 
 This will:
 1. Create `C:\VaaniSetu\` base directories (`models`, `workspace`, `outputs`, `uploads`)
-2. Install all Python packages (`pip install -r requirements.txt`) including `bcrypt<4.1` pin
+2. Install all Python packages (`pip install -r requirements.txt`) including librosa/soundfile for voice detection and `bcrypt<4.1` pin
 3. Install JS packages and build the optimized React interface (`frontend\dist`)
 
 *Expected time: 15–30 minutes (PyTorch download is large)*
@@ -31,10 +31,10 @@ This will:
 ### Step 3 — Download AI Models
 Double-click `scripts\download_models.bat` (or use `python scripts/download_helper.py` with your HF Token if using gated checkpoints).
 
-This downloads approximately **6–8 GB**:
-- Whisper large-v3-turbo (~3 GB)
-- IndicTrans2 en-indic (~1.5 GB)
-- IndicTrans2 indic-en (~1.5 GB, loaded on-demand during Reverse Bridge)
+This downloads approximately **5–6 GB**:
+- faster-Whisper large-v3-turbo (~1.5 GB, CTranslate2 INT8 format)
+- IndicTrans2 en-indic (~0.8 GB, INT8 quantized at load)
+- IndicTrans2 indic-en (~0.8 GB, loaded on-demand during Reverse Bridge)
 - Coqui XTTS v2 (~2.5 GB)
 
 *Keep internet connected until this completes. Do not close the window.*
@@ -46,6 +46,11 @@ python tests_concurrency.py
 python tests_mock.py
 ```
 Both should report `RESULT: PASS`.
+
+### Step 3.5 — Download Piper TTS Voices (Recommended)
+Run: `python scripts/download_piper_voices.py`
+Downloads lightweight ONNX voice models (~50–150 MB total) for 9 Indic languages into `C:\VaaniSetu\models\piper\`.
+This enables near-real-time Draft Mode TTS. If skipped, the system falls back to Coqui XTTS (slower) or gTTS (requires internet).
 
 ### Step 4 — First Launch
 Double-click `scripts\start_vaanisetu.bat`
@@ -93,7 +98,7 @@ The server will take **1–3 minutes** on first launch while models load and rep
 | Job stays "queued" forever | Worker crashed | Restart the server with `stop_vaanisetu.bat` then `start_vaanisetu.bat` |
 | "Disk free" shows red in banner | Less than 20 GB free | Delete old outputs or move backup to external drive |
 | Port 8765 already in use | Another service using port | Run `netstat -ano \| findstr 8765` and kill that process |
-| Translation is very slow | Whisper processing long video | Normal — CPU mode. A 30-min video takes ~15 min. |
+| Translation is very slow | Whisper processing long video | Normal — CPU mode. A 30-min video takes ~5–8 min in Draft mode, ~15–25 min in Full Quality mode. Use Draft for quick previews. |
 | Low confidence on all outputs | Unusual domain vocabulary | Add corrections via Review Queue to build Translation Memory |
 
 ---
@@ -103,6 +108,7 @@ The server will take **1–3 minutes** on first launch while models load and rep
 | Path | Contents |
 |------|----------|
 | `C:\VaaniSetu\models\` | AI model weights |
+| `C:\VaaniSetu\models\piper\` | Piper TTS ONNX voice models (15–50 MB each) |
 | `C:\VaaniSetu\workspace\{job_id}\` | Per-job intermediate files |
 | `C:\VaaniSetu\outputs\{job_id}.zip` | Final output ZIPs |
 | `C:\VaaniSetu\vaanisetu.db` | All database tables |

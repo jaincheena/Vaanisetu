@@ -15,7 +15,8 @@ passlib[bcrypt]>=1.7.4
 bcrypt<4.1
 
 # --- AI Models ---
-openai-whisper>=20240930
+faster-whisper>=1.1.0          # CTranslate2 backend, 4-8x faster on CPU + real VAD
+# Note: ctranslate2 is installed automatically as a faster-whisper dependency
 transformers>=4.40.0
 torch>=2.3.0
 torchaudio>=2.3.0
@@ -25,7 +26,8 @@ accelerate>=0.30.0
 
 # --- TTS ---
 gTTS>=2.5.0
-coqui-tts>=0.27.0; python_version < "3.12"
+piper-tts>=2023.11.14         # ONNX-based, near-real-time on CPU for Indic languages
+coqui-tts>=0.27.0; python_version < "3.12"   # XTTS for high-quality voice-clone mode
 
 # --- Document Generation ---
 fpdf2>=2.7.9
@@ -37,6 +39,8 @@ webvtt-py>=0.4.6
 # --- Utilities ---
 psutil>=5.9.8
 httpx>=0.27.0
+librosa>=0.10.0
+soundfile>=0.12.0
 
 # --- NLP helpers (for IndicTrans2 preprocessing) ---
 indic-nlp-library>=0.92

@@ -36,9 +36,10 @@
 | 4 | FFmpeg is installed and available on the system PATH |
 | 5 | The initial internet-connected setup is completed before going to a remote site |
 | 6 | Model accuracy is sufficient for agricultural terminology with the Translation Memory supplement |
-| 7 | 16 GB RAM is the minimum — performance will degrade on lower-spec machines |
+| 7 | 8 GB RAM is the practical minimum (INT8-quantized models run in ~3.5 GB); 16 GB enables parallel workers |
 | 8 | Job outputs are downloaded and stored by users; the workspace is periodically cleaned manually |
 | 9 | A weekly backup to external drive is sufficient for disaster recovery |
+| 10 | Piper TTS voices are downloaded via `scripts/download_piper_voices.py` before first use for best Draft-mode performance |
 
 ---
 
@@ -46,9 +47,10 @@
 
 | Component | Licence | Commercial Use |
 |-----------|---------|----------------|
-| OpenAI Whisper | MIT | ✅ Free |
+| faster-Whisper / CTranslate2 | MIT | ✅ Free |
 | IndicTrans2 (AI4Bharat) | MIT | ✅ Free |
-| Coqui TTS | MPL-2.0 | ✅ Free (attribution required) |
+| Piper TTS | MIT | ✅ Free |
+| Coqui XTTS v2 | MPL-2.0 | ✅ Free (attribution required) |
 | FastAPI / Uvicorn | MIT | ✅ Free |
 | React | MIT | ✅ Free |
 | PyTorch | BSD-3-Clause | ✅ Free |

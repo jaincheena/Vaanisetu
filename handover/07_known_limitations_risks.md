@@ -6,14 +6,15 @@
 
 | Limitation | Detail | Workaround |
 |-----------|--------|-----------|
-| **Speed on long video files** | A 60-minute video takes ~20–35 min on CPU | Stages 4 & 5 overlap to accelerate completion; schedule batch runs overnight |
+| **Speed on long video files** | A 60-minute video takes ~5–15 min in Draft mode or ~20–35 min in Full Quality mode on CPU | Use Draft mode for quick turnaround; Full Quality mode for overnight batch runs. Translation now runs in parallel across target languages. |
 | **Concurrency bounded by RAM** | Low-memory PCs (4GB–8GB) run jobs serially | System dynamically allocates workers; on 16GB+ multiple jobs/stages run in parallel |
 | **Scanned/Image OCR** | Text-based PDFs, DOCX, CSV, TXT are supported; scanned image PDFs are not | For scanned documents, OCR into text/DOCX before uploading |
 | **Dialect support** | AI translates standard forms rather than local sub-dialects | Use standard regional language; reviewers adjust dialect nuances in Review Queue |
-| **TTS voice naturalness** | Rare languages without XTTS fall back to gTTS or standard vocoders | Use TTS output as rapid reference; produce human voice-over for broadcast if needed |
-| **Hardware ceiling on low RAM** | Needs at least 4GB RAM to run serially, 16GB for full replica pools | Use **Resource Saver Mode** or run on 16GB+ office desktops |
+| **TTS voice naturalness** | Piper TTS (ONNX, near-realtime) is the default for 9 supported Indic languages; others use XTTS or gTTS. XTTS reserved for Full Quality mode for highest naturalness. | Use TTS output as rapid reference; produce human voice-over for broadcast if needed |
+| **Hardware ceiling on low RAM** | With INT8 quantization, models are ~40% smaller. 8 GB RAM is now sufficient for serial operation; 16 GB for parallel jobs. | Use **Resource Saver Mode** or run on 16GB+ office desktops |
 | **Offline model updates** | Models cannot update automatically without internet | Re-run `scripts\download_models.bat` during internet maintenance windows |
 | **Database concurrency** | SQLite WAL mode with 30s timeout handles multi-worker traffic | Built-in WAL and 30s lock timeout prevents database lock issues |
+| **GPU auto-detection** | CUDA GPUs (NVIDIA) auto-used when present for 10-30x speedup; CPU INT8 is the well-optimised fallback | Use any CUDA-capable NVIDIA GPU to dramatically accelerate all three model stages |
 
 ---
 

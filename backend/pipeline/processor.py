@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Optional
 
 from backend.config import LANG_CODES, ALLOWED_EXTENSIONS, ENGLISH_CODE
+from backend.pipeline.transcriber import _whisper_to_display
 from backend.database import get_db
 from backend.utils.file_utils import sha256_file, job_workspace, job_zip_path
 from backend.utils.sse import sse_manager, publish_threadsafe
@@ -48,7 +49,7 @@ def run_pipeline(job_id: str) -> None:
     upload_path = None
     try:
         _stage_validating(job_id)
-        upload_path, source_lang, target_langs, mode, farmer_context = _load_job_params(job_id)
+        upload_path, source_lang, target_langs, mode, farmer_context, quality_mode = _load_job_params(job_id)
 
         # Hardware Resource Saver logic
         resource_saver = False
@@ -66,6 +67,17 @@ def run_pipeline(job_id: str) -> None:
 
         _stage_extracting(job_id, upload_path)  # This stage might modify upload_path if it's a document
         wav_path = _get_wav_path(job_id)  # This gets the WAV path if it's audio/video
+
+        # Detect speaker gender and extract reference clip for voice cloning
+        voice_gender = "female"
+        speaker_wav = None
+        if wav_path:
+            logger.info("Detecting voice gender for TTS matching…")
+            from backend.pipeline.voice_detector import detect_voice
+            ws = job_workspace(job_id)
+            voice_gender, speaker_wav = detect_voice(wav_path, str(ws))
+            logger.info(f"Voice profile: gender={voice_gender}, clip={'yes' if speaker_wav else 'no'}")
+
         segments, detected_whisper_lang_code = _stage_transcribing(job_id, wav_path, source_lang, upload_path)
         
         # Pipelined Translation & Generation
@@ -79,6 +91,9 @@ def run_pipeline(job_id: str) -> None:
             resource_saver=resource_saver,
             farmer_context=farmer_context,
             mode=mode,
+            quality_mode=quality_mode,
+            voice_gender=voice_gender,
+            speaker_wav=speaker_wav,
         )
         
         _stage_packaging(job_id, output_files, source_lang, target_langs)
@@ -145,6 +160,7 @@ def _load_job_params(job_id: str):
         target_langs,
         row["mode"],
         row["farmer_context"],
+        row["quality_mode"] or "full",
     )
 
 
@@ -231,11 +247,16 @@ def _stage_translating(
     resource_saver: bool = False,
     farmer_context: Optional[str] = None,
     mode: str = "translate",
+    quality_mode: str = "full",
+    voice_gender: str = "female",
+    speaker_wav: Optional[str] = None,
 ) -> tuple[dict[str, list[dict]], list[str]]:
     # Resolve source language if auto-detect requested
     if source_lang == "Auto-Detect":
-        if whisper_detected_lang_code and whisper_detected_lang_code in WHISPER_TO_NAME:
-            source_lang = WHISPER_TO_NAME[whisper_detected_lang_code]
+        from backend.pipeline.transcriber import _whisper_to_display
+        _resolved = _whisper_to_display(whisper_detected_lang_code)
+        if _resolved:
+            source_lang = _resolved
             _update_job(job_id, source_lang=source_lang)
             logger.info(f"Auto-detected source language: {source_lang} (from Whisper)")
         else:
@@ -267,11 +288,17 @@ def _stage_translating(
     from backend.pipeline.translator import translate_segments
     from backend.pipeline.job_queue import get_current_jobs
     from backend.utils.resources import plan
+    from backend.config import TRANSLATION_NUM_BEAMS, TRANSLATION_DRAFT_BEAMS
 
-    # Divide the machine by how many jobs are ACTUALLY running right now, not
-    # by the pool width — a single queued video gets the whole machine.
-    workers = plan(
+    num_beams = TRANSLATION_DRAFT_BEAMS if quality_mode == "draft" else TRANSLATION_NUM_BEAMS
+
+    gen_workers = plan(
         "generate",
+        resource_saver=resource_saver,
+        share=max(1, len(get_current_jobs())),
+    )
+    translate_workers = plan(
+        "translate",
         resource_saver=resource_saver,
         share=max(1, len(get_current_jobs())),
     )
@@ -281,96 +308,133 @@ def _stage_translating(
     }
 
     logger.info(
-        f"Job {job_id}: {total} language(s), generation concurrency {workers}"
+        f"Job {job_id}: {total} language(s), "
+        f"translate_workers={translate_workers}, gen_workers={gen_workers}"
     )
+
+    # Pre-compute Indic→English pivot ONCE for all Indic→Indic targets.
+    _cached_english_segments: Optional[list[dict]] = None
+    _needs_pivot = (
+        source_lang != "English"
+        and any(ln != "English" for ln in target_langs if LANG_CODES.get(ln))
+    )
+    if _needs_pivot:
+        _publish(job_id, "translating", f"Pre-translating {source_lang}→English pivot …")
+        _cached_english_segments = translate_segments(
+            segments=segments,
+            source_lang=source_lang,
+            target_lang_name="English",
+            target_lang_code=ENGLISH_CODE,
+            job_id=job_id,
+            num_beams=num_beams,
+        )
+
+    def _translate_one_language(lang_name: str) -> tuple[str, list[dict]]:
+        """Translate segments for one target language. Runs in the translate pool."""
+        lang_code = LANG_CODES.get(lang_name)
+        if not lang_code:
+            logger.warning(f"Unknown language: {lang_name}, skipping")
+            return lang_name, []
+
+        if source_lang == "English":
+            # Case 1: English → Indic (direct)
+            translated = translate_segments(
+                segments=segments,
+                source_lang="English",
+                target_lang_name=lang_name,
+                target_lang_code=lang_code,
+                job_id=job_id,
+                num_beams=num_beams,
+            )
+        elif lang_name == "English":
+            # Case 2: Indic → English (direct)
+            translated = translate_segments(
+                segments=segments,
+                source_lang=source_lang,
+                target_lang_name="English",
+                target_lang_code=ENGLISH_CODE,
+                job_id=job_id,
+                num_beams=num_beams,
+            )
+        else:
+            # Case 3: Indic → Indic via cached English pivot
+            if _cached_english_segments is not None:
+                english_segs = _cached_english_segments
+            else:
+                english_segs = translate_segments(
+                    segments=segments,
+                    source_lang=source_lang,
+                    target_lang_name="English",
+                    target_lang_code=ENGLISH_CODE,
+                    job_id=job_id,
+                    num_beams=num_beams,
+                )
+            remapped = [{**seg, "text": seg["translated"]} for seg in english_segs]
+            translated = translate_segments(
+                segments=remapped,
+                source_lang="English",
+                target_lang_name=lang_name,
+                target_lang_code=lang_code,
+                job_id=job_id,
+                num_beams=num_beams,
+            )
+
+        return lang_name, translated
 
     done = 0
     with ThreadPoolExecutor(
-        max_workers=workers, thread_name_prefix="vaani-gen"
-    ) as pool:
-        futures: dict = {}
+        max_workers=gen_workers, thread_name_prefix="vaani-gen"
+    ) as gen_pool, ThreadPoolExecutor(
+        max_workers=translate_workers, thread_name_prefix="vaani-translate"
+    ) as translate_pool:
 
-        for idx, lang_name in enumerate(target_langs):
-            lang_code = LANG_CODES.get(lang_name)
-            if not lang_code:
-                logger.warning(f"Unknown language: {lang_name}, skipping")
+        gen_futures: dict = {}
+        valid_langs = [ln for ln in target_langs if LANG_CODES.get(ln)]
+
+        # Submit all translations concurrently.
+        translate_futures = {
+            translate_pool.submit(_translate_one_language, lang_name): lang_name
+            for lang_name in valid_langs
+        }
+
+        # As each translation finishes, immediately dispatch generation.
+        for t_fut in as_completed(translate_futures):
+            lang_name = translate_futures[t_fut]
+            try:
+                _, translated = t_fut.result()
+            except Exception as e:
+                logger.error(f"Translation failed for {lang_name}: {e}", exc_info=True)
                 continue
 
-            pct = 60 + int(20 * (idx / max(total, 1)))
-
-            # Case 1: English -> Indic (direct translation)
-            if source_lang == "English":
-                _publish(job_id, "translating", f"Translating → {lang_name} …", {"pct": pct})
-                translated = translate_segments(
-                    segments=segments,
-                    source_lang="English",
-                    target_lang_name=lang_name,
-                    target_lang_code=lang_code,
-                    job_id=job_id,
-                )
-            # Case 2: Indic -> English (direct translation)
-            elif lang_name == "English":
-                _publish(job_id, "translating", f"Translating → {lang_name} …", {"pct": pct})
-                translated = translate_segments(
-                    segments=segments,
-                    source_lang=source_lang,
-                    target_lang_name="English",
-                    target_lang_code=ENGLISH_CODE,
-                    job_id=job_id,
-                )
-            # Case 3: Indic -> Indic (pivot through English)
-            else:
-                # Step 1: Indic -> English
-                _publish(job_id, "translating", f"Translating → {lang_name} (Step 1/2: {source_lang}→English) …", {"pct": pct})
-                english_segments = translate_segments(
-                    segments=segments,
-                    source_lang=source_lang,
-                    target_lang_name="English",
-                    target_lang_code=ENGLISH_CODE,
-                    job_id=job_id,
-                )
-
-                # Remap segments for step 2: the 'translated' text becomes the new 'text'
-                remapped_segments = [
-                    {**seg, "text": seg["translated"]} for seg in english_segments
-                ]
-
-                # Step 2: English -> Target Indic
-                _publish(job_id, "translating", f"Translating → {lang_name} (Step 2/2: English→{lang_name}) …", {"pct": pct + 5})
-                translated = translate_segments(
-                    segments=remapped_segments,
-                    source_lang="English",
-                    target_lang_name=lang_name,
-                    target_lang_code=lang_code,
-                    job_id=job_id,
-                )
+            if not translated:
+                continue
 
             translated_map[lang_name] = translated
+            _publish(job_id, "translating", f"Translation done → {lang_name}")
 
-            # Dispatch immediately — do not wait for the other languages.
-            futures[pool.submit(
+            gen_futures[gen_pool.submit(
                 _generate_for_language,
                 lang_name, translated, source_lang,
                 upload_path, ws, is_video,
-                farmer_context, mode,
+                farmer_context, mode, quality_mode,
+                None, voice_gender, speaker_wav,
             )] = lang_name
 
-        if futures:
+        if gen_futures:
             _publish(job_id, "generating", "Generating output files …")
             _update_job(job_id, status="generating")
 
-        for fut in as_completed(futures):
-            lang_name = futures[fut]
+        for fut in as_completed(gen_futures):
+            lang_name = gen_futures[fut]
             done += 1
             try:
                 file_paths.extend(fut.result())
             except Exception as e:
-                # One language's outputs failing must not sink the whole job.
                 logger.error(f"Generation failed for {lang_name}: {e}", exc_info=True)
-            pct = 80 + int(12 * (done / max(len(futures), 1)))
+            pct = 80 + int(12 * (done / max(len(gen_futures), 1)))
             _publish(
                 job_id, "generating",
-                f"Generated {lang_name} ({done}/{len(futures)}) …",
+                f"Generated {lang_name} ({done}/{len(gen_futures)}) …",
                 {"pct": pct},
             )
 
@@ -386,6 +450,10 @@ def _generate_for_language(
     is_video: bool,
     farmer_context: Optional[str] = None,
     mode: str = "translate",
+    quality_mode: str = "full",
+    output_formats: Optional[list[str]] = None,
+    voice_gender: str = "female",
+    speaker_wav: Optional[str] = None,
 ) -> list[str]:
     """
     Produce one language's full output set. Runs in the generation pool.
@@ -395,6 +463,10 @@ def _generate_for_language(
     subprocesses, which parallelize cleanly. All paths are per-language, so
     concurrent invocations never write the same file.
     """
+    # Default: generate all formats if none specified
+    if output_formats is None:
+        output_formats = ["txt", "docx", "srt", "vtt", "mp3", "dubbed_mp4", "captioned_mp4", "ivr_wav", "whatsapp"]
+
     from backend.pipeline.packager import (
         write_txt, write_bilingual_docx, write_srt, write_vtt,
         write_tts_mp3, write_dubbed_mp4, write_captioned_mp4, write_translated_csv,
@@ -403,25 +475,42 @@ def _generate_for_language(
 
     out: list[str] = []
 
-    txt_p    = write_txt(trans_segs, lang_name, ws)
-    docx_p   = write_bilingual_docx(trans_segs, source_lang, lang_name, ws, farmer_context=farmer_context, mode=mode)
-    srt_p    = write_srt(trans_segs, lang_name, ws)
-    vtt_p    = write_vtt(trans_segs, lang_name, ws)
-    mp3_p    = write_tts_mp3(trans_segs, lang_name, ws)
-    ivr_p    = write_ivr_wav(mp3_p, lang_name, ws)
-    dubbed_p = write_dubbed_mp4(
-        original_path if is_video else None, mp3_p, lang_name, ws
-    )
-    mp4_p    = write_captioned_mp4(
-        original_path if is_video else None, srt_p, lang_name, ws, audio_path=mp3_p
-    )
+    txt_p  = write_txt(trans_segs, lang_name, ws)                    if "txt"  in output_formats else None
+    docx_p = write_bilingual_docx(trans_segs, source_lang, lang_name, ws, farmer_context=farmer_context, mode=mode) \
+                                                                      if "docx" in output_formats else None
+    srt_p  = write_srt(trans_segs, lang_name, ws)                    if "srt"  in output_formats else None
+    vtt_p  = write_vtt(trans_segs, lang_name, ws)                    if "vtt"  in output_formats else None
+
+    # TTS — required for audio, dubbed video, captioned video
+    needs_audio = any(f in output_formats for f in ["mp3", "dubbed_mp4", "captioned_mp4", "ivr_wav", "whatsapp"])
+    mp3_p  = write_tts_mp3(
+        trans_segs, lang_name, ws,
+        quality_mode=quality_mode,
+        voice_gender=voice_gender,
+        speaker_wav=speaker_wav,
+    ) if needs_audio else None
+
+    if quality_mode == "draft":
+        dubbed_p  = None
+        mp4_p     = None
+        ivr_p     = None
+        wa_chunks = []
+    else:
+        ivr_p     = write_ivr_wav(mp3_p, lang_name, ws)              if "ivr_wav"      in output_formats and mp3_p else None
+        dubbed_p  = write_dubbed_mp4(
+            original_path if is_video else None, mp3_p, lang_name, ws
+        )                                                              if "dubbed_mp4"   in output_formats and mp3_p else None
+        mp4_p     = write_captioned_mp4(
+            original_path if is_video else None, srt_p, lang_name, ws, audio_path=mp3_p
+        )                                                              if "captioned_mp4" in output_formats and srt_p else None
+        wa_chunks = write_whatsapp_chunks(dubbed_p or mp4_p, lang_name, ws) \
+                                                                       if "whatsapp" in output_formats and (dubbed_p or mp4_p) else []
+
     csv_p    = (
         write_translated_csv(trans_segs, lang_name, ws)
         if original_path and Path(original_path).suffix.lower() == ".csv"
         else None
     )
-
-    wa_chunks = write_whatsapp_chunks(dubbed_p or mp4_p, lang_name, ws)
 
     for p in [txt_p, docx_p, srt_p, vtt_p, mp3_p, ivr_p, dubbed_p, mp4_p, csv_p]:
         if p:
@@ -441,6 +530,8 @@ def _stage_generating(
     source_lang: str,
     target_langs: list[str],
     original_path: Optional[str],
+    voice_gender: str = "female",
+    speaker_wav: Optional[str] = None,
 ) -> list[str]:
     _publish(job_id, "generating", "Generating output files …")
     _update_job(job_id, status="generating")
@@ -453,7 +544,7 @@ def _stage_generating(
 
     for lang_name, trans_segs in translated_map.items():
         file_paths.extend(
-            _generate_for_language(lang_name, trans_segs, source_lang, original_path, ws, is_video)
+            _generate_for_language(lang_name, trans_segs, source_lang, original_path, ws, is_video, quality_mode="full", voice_gender=voice_gender, speaker_wav=speaker_wav)
         )
 
     return file_paths

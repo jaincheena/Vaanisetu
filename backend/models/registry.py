@@ -201,14 +201,15 @@ class ModelRegistry:
     # Whisper
     # ------------------------------------------------------------------
     def _load_whisper(self) -> None:
-        from backend.config import WHISPER_MODEL, WHISPER_MODEL_DIR
+        from backend.config import WHISPER_MODEL, WHISPER_MODEL_DIR, DEVICE, WHISPER_COMPUTE_TYPE
         try:
-            import whisper
+            from faster_whisper import WhisperModel
             logger.info(f"Loading Whisper {WHISPER_MODEL} ...")
-            self.whisper_model = whisper.load_model(
+            self.whisper_model = WhisperModel(
                 WHISPER_MODEL,
+                device=DEVICE,
+                compute_type=WHISPER_COMPUTE_TYPE,
                 download_root=str(WHISPER_MODEL_DIR),
-                device="cpu",
             )
             self._whisper_loaded = True
             logger.info("Whisper loaded ✓")
@@ -238,6 +239,7 @@ class ModelRegistry:
             self._indic_en_loaded = True
 
     def _load_indic_model(self, name: str, local_path: str, hf_id: str):
+        from backend.config import DEVICE
         try:
             import os
             import torch
@@ -265,12 +267,20 @@ class ModelRegistry:
                 source,
                 trust_remote_code=True,
                 local_files_only=is_local,
-                torch_dtype=torch.float32,
+                torch_dtype=torch.float16 if DEVICE == 'cuda' else torch.float32,
                 token=token,
             )
  
-            model = model.to("cpu")
+            model = model.to(DEVICE)
             model.eval()
+
+            if DEVICE == "cpu":
+                import torch
+                model = torch.quantization.quantize_dynamic(
+                    model,
+                    {torch.nn.Linear},
+                    dtype=torch.qint8,
+                )
  
             logger.info(f"IndicTrans2 {name} loaded ✓")
  
@@ -284,7 +294,7 @@ class ModelRegistry:
     # Coqui TTS
     # ------------------------------------------------------------------
     def _load_tts(self) -> None:
-        from backend.config import COQUI_TTS_MODEL_DIR, COQUI_TTS_MODEL_NAME
+        from backend.config import COQUI_TTS_MODEL_DIR, COQUI_TTS_MODEL_NAME, DEVICE
         try:
             # Compatibility monkey-patch for newer transformers/torch with coqui-tts
             import transformers.utils.import_utils as iu
@@ -328,7 +338,7 @@ class ModelRegistry:
 
             self.tts_model = TTS(
                 model_name=COQUI_TTS_MODEL_NAME,
-                gpu=False,
+                gpu=(DEVICE == 'cuda'),
             )
 
             self._tts_loaded = True
@@ -351,7 +361,7 @@ class ModelRegistry:
 
     def make_tts_replica(self):
         """A fresh Coqui TTS instance, or None if TTS is unavailable."""
-        from backend.config import COQUI_TTS_MODEL_DIR, COQUI_TTS_MODEL_NAME
+        from backend.config import COQUI_TTS_MODEL_DIR, COQUI_TTS_MODEL_NAME, DEVICE
         try:
             from TTS.api import TTS
             tts_dir = Path(COQUI_TTS_MODEL_DIR)
@@ -360,11 +370,11 @@ class ModelRegistry:
                     model_path=str(tts_dir),
                     config_path=str(tts_dir / "config.json"),
                     progress_bar=False,
-                    gpu=False,
+                    gpu=(DEVICE == 'cuda'),
                 )
             return TTS(
                 model_name=COQUI_TTS_MODEL_NAME,
-                gpu=False,
+                gpu=(DEVICE == 'cuda'),
             )
         except Exception as e:
             logger.warning(f"TTS replica load failed: {e}")

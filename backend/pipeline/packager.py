@@ -125,14 +125,51 @@ def _fmt_srt_time(seconds: float) -> str:
     return f"{h:02d}:{m:02d}:{s:02d},{ms:03d}"
 
 
+def _wrap_caption_line(text: str, max_chars: int = 42) -> str:
+    """
+    Wrap caption text so no line exceeds max_chars characters.
+    Splits on word boundaries; preserves existing newlines.
+    TV-safe: max 42 chars/line, max 2 lines.
+    """
+    words = text.split()
+    lines = []
+    current = ""
+    for word in words:
+        if current and len(current) + 1 + len(word) > max_chars:
+            lines.append(current)
+            current = word
+            if len(lines) == 2:
+                # Cap at 2 lines — append remaining words to line 2
+                remaining = " ".join(words[words.index(word):])
+                lines[-1] = remaining[:max_chars * 2]  # hard truncate if extreme
+                break
+        else:
+            current = (current + " " + word).strip() if current else word
+    if current and len(lines) < 2:
+        lines.append(current)
+    return "\n".join(lines)
+
+
 def write_srt(segments: list[dict], lang_name: str, out_dir: Path) -> str:
     path = str(out_dir / f"subtitles_{lang_name}.srt")
     with open(path, "w", encoding="utf-8") as f:
-        for idx, seg in enumerate(segments, start=1):
-            start = _fmt_srt_time(seg.get("start", 0))
-            end   = _fmt_srt_time(seg.get("end",   0))
-            text  = seg.get("translated", "")
-            f.write(f"{idx}\n{start} --> {end}\n{text}\n\n")
+        idx = 1
+        for seg in segments:
+            text = seg.get("translated", "").strip()
+            if not text:
+                continue
+            start_s = float(seg.get("start", 0))
+            end_s   = float(seg.get("end",   0))
+            # Enforce minimum cue duration of 0.5 s
+            if end_s <= start_s:
+                end_s = start_s + 0.5
+            elif end_s - start_s < 0.5:
+                end_s = start_s + 0.5
+            start = _fmt_srt_time(start_s)
+            end   = _fmt_srt_time(end_s)
+            wrapped = _wrap_caption_line(text)
+            f.write(f"{idx}\n{start} --> {end}\n{wrapped}\n\n")
+            idx += 1
     return path
 
 
@@ -147,11 +184,22 @@ def write_vtt(segments: list[dict], lang_name: str, out_dir: Path) -> str:
     path = str(out_dir / f"subtitles_{lang_name}.vtt")
     with open(path, "w", encoding="utf-8") as f:
         f.write("WEBVTT\n\n")
-        for idx, seg in enumerate(segments, start=1):
-            start = _fmt_vtt_time(seg.get("start", 0))
-            end   = _fmt_vtt_time(seg.get("end",   0))
-            text  = seg.get("translated", "")
-            f.write(f"{idx}\n{start} --> {end}\n{text}\n\n")
+        idx = 1
+        for seg in segments:
+            text = seg.get("translated", "").strip()
+            if not text:
+                continue
+            start_s = float(seg.get("start", 0))
+            end_s   = float(seg.get("end",   0))
+            if end_s <= start_s:
+                end_s = start_s + 0.5
+            elif end_s - start_s < 0.5:
+                end_s = start_s + 0.5
+            start = _fmt_vtt_time(start_s)
+            end   = _fmt_vtt_time(end_s)
+            wrapped = _wrap_caption_line(text)
+            f.write(f"{idx}\n{start} --> {end}\n{wrapped}\n\n")
+            idx += 1
     return path
 
 
@@ -162,10 +210,18 @@ def write_tts_mp3(
     segments: list[dict],
     lang_name: str,
     out_dir: Path,
+    quality_mode: str = "full",
+    voice_gender: str = "female",
+    speaker_wav: Optional[str] = None,
 ) -> Optional[str]:
     from backend.pipeline.tts import generate_tts_for_segments
     mp3_path = str(out_dir / f"audio_{lang_name}.mp3")
-    result = generate_tts_for_segments(segments, lang_name, mp3_path)
+    result = generate_tts_for_segments(
+        segments, lang_name, mp3_path,
+        quality_mode=quality_mode,
+        voice_gender=voice_gender,
+        speaker_wav=speaker_wav,
+    )
     return result
 
 
@@ -294,6 +350,18 @@ def create_zip(
         "source_lang": job_meta.get("source_lang"),
         "target_langs": job_meta.get("target_langs", []),
         "files": [os.path.basename(p) for p in file_paths if p and os.path.exists(p)],
+        "file_guide": {
+            "translation_LANG.txt":       {"size": "tiny",   "use": "Plain text — SMS, app content, offline reading"},
+            "bilingual_LANG.docx":        {"size": "small",  "use": "Printed handout for field officers & trainers"},
+            "subtitles_LANG.srt":         {"size": "tiny",   "use": "Subtitles for VLC player, video editors"},
+            "subtitles_LANG.vtt":         {"size": "tiny",   "use": "Subtitles for web/YouTube embed"},
+            "audio_LANG.mp3":             {"size": "medium", "use": "AI-spoken audio — radio, WhatsApp audio broadcast"},
+            "dubbed_LANG.mp4":            {"size": "LARGE",  "use": "Video with translated audio — gram panchayat screenings"},
+            "captioned_LANG.mp4":         {"size": "LARGE",  "use": "Video with burned subtitles — social media, WhatsApp"},
+            "ivr_LANG.wav":               {"size": "small",  "use": "8kHz telephone audio for IVR/feature phone calls"},
+            "whatsapp_partXX_LANG.mp4":   {"size": "medium", "use": "Auto-split <15MB chunks for WhatsApp delivery"},
+            "translated_LANG.csv":        {"size": "tiny",   "use": "Translated CSV data — field survey reporting"},
+        }
     }
     manifest_path = str(out_dir / "manifest.json")
     with open(manifest_path, "w", encoding="utf-8") as f:
