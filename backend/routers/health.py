@@ -28,6 +28,8 @@ async def health():
             "SELECT COUNT(*) as c FROM review_queue WHERE status='pending'"
         ).fetchone()["c"]
 
+    from backend.config import LAZY_LOAD_MODELS
+
     return {
         "ram_gb":         round(vm.total / 1e9, 1),
         "ram_free_gb":    round(vm.available / 1e9, 1),
@@ -38,6 +40,8 @@ async def health():
         "current_jobs":   get_current_jobs(),   # all jobs running right now
         "review_pending": review_pending,
         "models_loaded":  registry.models_status,
+        "jit_mode":       LAZY_LOAD_MODELS,
+        "models_ready":   True,
         "concurrency": {
             "jobs":     get_concurrency(),      # fixed at startup
             "generate": plan("generate"),       # re-sized per job from free RAM

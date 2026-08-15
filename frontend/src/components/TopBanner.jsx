@@ -17,10 +17,11 @@ export default function TopBanner() {
     return () => clearInterval(id)
   }, [])
 
-  const allModelsLoaded = health?.models_loaded &&
+  const allModelsLoaded = health?.models_ready || health?.jit_mode || (
+    health?.models_loaded &&
     health.models_loaded.whisper &&
-    health.models_loaded.en_indic &&
-    health.models_loaded.indic_en
+    health.models_loaded.en_indic
+  )
 
   return (
     <>
@@ -47,7 +48,7 @@ export default function TopBanner() {
                 <span className={`dot ${allModelsLoaded ? '' : 'amber'}`} />
                 <span>
                   Models: {allModelsLoaded ? (
-                    <span style={{ color: 'var(--green-accent)' }}>Ready (AgriShield™ ON)</span>
+                    <span style={{ color: 'var(--green-accent)', fontWeight: 600 }}>Ready (AgriShield™ ON)</span>
                   ) : (
                     <span style={{ color: 'var(--amber)' }}>Loading…</span>
                   )}
