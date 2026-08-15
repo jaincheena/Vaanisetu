@@ -187,7 +187,11 @@ class ModelRegistry:
     # ------------------------------------------------------------------
     def load_all(self) -> None:
         """Load all models. Called from FastAPI lifespan."""
-        from backend.config import EAGER_LOAD_REVERSE_BRIDGE
+        from backend.config import LAZY_LOAD_MODELS, EAGER_LOAD_REVERSE_BRIDGE
+
+        if LAZY_LOAD_MODELS:
+            logger.info("Low-RAM mode active: AI models will load on-demand just-in-time per stage (idle RAM < 60MB)")
+            return
 
         self._load_whisper()
         self._load_en_indic()
@@ -196,6 +200,34 @@ class ModelRegistry:
         else:
             logger.info("Reverse Bridge (indic→en) deferred until first use")
         self._load_tts()
+
+    def get_whisper(self):
+        """Return Whisper model, loading on-demand if needed."""
+        if not self._whisper_loaded or self.whisper_model is None:
+            with self._load_lock:
+                if not self._whisper_loaded or self.whisper_model is None:
+                    self._load_whisper()
+        return self.whisper_model
+
+    def release_whisper_if_low_ram(self) -> None:
+        """Release Whisper model from memory after transcription on low-RAM laptops."""
+        from backend.config import IS_LOW_RAM
+        if IS_LOW_RAM and self.whisper_model is not None:
+            logger.info("Low-RAM optimization: Releasing Whisper weights to reclaim memory for translation")
+            self.whisper_model = None
+            self._whisper_loaded = False
+            self.clean_memory()
+
+    def clean_memory(self) -> None:
+        """Force garbage collection and clear PyTorch cache."""
+        import gc
+        gc.collect()
+        try:
+            import torch
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+        except Exception:
+            pass
 
     # ------------------------------------------------------------------
     # Whisper

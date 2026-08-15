@@ -51,19 +51,22 @@ def run_pipeline(job_id: str) -> None:
         _stage_validating(job_id)
         upload_path, source_lang, target_langs, mode, farmer_context, quality_mode, output_formats = _load_job_params(job_id)
 
-        # Hardware Resource Saver logic
-        resource_saver = False
+        # Hardware Resource Saver logic (auto-enabled on low-RAM machines)
+        from backend.config import IS_LOW_RAM
+        resource_saver = IS_LOW_RAM
         if farmer_context and "[RESOURCE_SAVER]" in farmer_context:
             resource_saver = True
             farmer_context = farmer_context.replace("[RESOURCE_SAVER]", "").strip()
-            # Throttle Whisper/Torch threads
+
+        if resource_saver:
             os.environ["OMP_NUM_THREADS"] = "2"
             os.environ["MKL_NUM_THREADS"] = "2"
             try:
                 import torch
-                logger.info("Resource Saver Mode enabled.")
-            except ImportError:
-                logger.warning("Resource Saver Mode: torch not found.")
+                torch.set_num_threads(2)
+                logger.info("Low-RAM Resource Saver Mode enabled (capped at 2 threads, minimal RAM footprint).")
+            except Exception:
+                pass
 
         _stage_extracting(job_id, upload_path)  # This stage might modify upload_path if it's a document
         wav_path = _get_wav_path(job_id)  # This gets the WAV path if it's audio/video

@@ -75,11 +75,15 @@ def _get_default_whisper_model() -> str:
         return user_set
     try:
         import psutil
-        free_gb = psutil.virtual_memory().available / (1024 ** 3)
-        if free_gb < 4.0:
-            return "base"
-        elif free_gb < 7.0:
-            return "small"
+        vm = psutil.virtual_memory()
+        free_gb = vm.available / (1024 ** 3)
+        total_gb = vm.total / (1024 ** 3)
+        if total_gb <= 8.5 or free_gb < 3.0:
+            return "tiny"   # ~75MB weights, uses only ~120MB RAM
+        elif free_gb < 6.0:
+            return "base"   # ~140MB weights, uses only ~220MB RAM
+        elif free_gb < 10.0:
+            return "small"  # ~460MB weights, uses ~700MB RAM
         else:
             return "large-v3-turbo"
     except Exception:
@@ -89,6 +93,17 @@ WHISPER_MODEL        = _get_default_whisper_model()
 WHISPER_MODEL_DIR    = MODEL_DIR / "whisper"
 WHISPER_COMPUTE_TYPE = os.getenv("WHISPER_COMPUTE_TYPE",
                                   "float16" if DEVICE == "cuda" else "int8")
+
+def is_low_ram_device() -> bool:
+    try:
+        import psutil
+        vm = psutil.virtual_memory()
+        return (vm.total / (1024 ** 3)) <= 8.5 or (vm.available / (1024 ** 3)) < 4.0 or DEVICE == "cpu"
+    except Exception:
+        return DEVICE == "cpu"
+
+IS_LOW_RAM = is_low_ram_device()
+LAZY_LOAD_MODELS = os.getenv("VAANISETU_LAZY_LOAD", "1" if IS_LOW_RAM else "0") == "1"
 
 # FFmpeg / ffprobe executable paths
 FFMPEG_PATH = os.getenv("VAANISETU_FFMPEG", "ffmpeg")
