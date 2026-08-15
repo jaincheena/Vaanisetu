@@ -90,13 +90,22 @@ def check_frontend():
     else:
         print("      Pre-compiled Web UI bundle ready: PASS\n")
 
-def open_browser_delayed(url="http://localhost:8765", delay=1.8):
+def open_browser_when_ready(url="http://localhost:8765", max_wait=30):
     import threading
-    def _open():
-        time.sleep(delay)
-        print(f"\n[OK] Opening web browser at {url} ...")
+    def _wait_and_open():
+        start_t = time.time()
+        while time.time() - start_t < max_wait:
+            try:
+                with urllib.request.urlopen(f"{url}/api/health", timeout=0.8) as resp:
+                    if resp.status == 200:
+                        print(f"\n[OK] Server is ready! Opening web browser at {url} ...\n")
+                        webbrowser.open(url)
+                        return
+            except Exception:
+                time.sleep(0.3)
         webbrowser.open(url)
-    th = threading.Thread(target=_open, daemon=True)
+
+    th = threading.Thread(target=_wait_and_open, daemon=True)
     th.start()
 
 def start_server():
@@ -106,11 +115,11 @@ def start_server():
     print("  Local Web Access: http://localhost:8765")
     print("  Office WiFi LAN:  http://0.0.0.0:8765")
     print()
-    print("  Server is starting... Web browser will open automatically.")
+    print("  Server is starting... Web browser will open automatically once live.")
     print("  Press Ctrl+C in this window at any time to stop the server.")
     print("=" * 80 + "\n")
 
-    open_browser_delayed("http://localhost:8765", delay=2.0)
+    open_browser_when_ready("http://localhost:8765")
 
     try:
         import uvicorn

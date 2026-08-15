@@ -51,11 +51,16 @@ async def lifespan(app: FastAPI):
     fits, msg = preflight()
     (logger.info if fits else logger.warning)(msg)
 
-    # Load models in a thread-pool executor to avoid blocking event loop
-    await loop.run_in_executor(None, registry.load_all)
+    async def _init_models_in_background():
+        try:
+            logger.info("Initializing AI models in background thread...")
+            await loop.run_in_executor(None, registry.load_all)
+            await loop.run_in_executor(None, init_pools)
+            logger.info("AI model registry and replica pools ready ✓")
+        except Exception as e:
+            logger.warning(f"Model initialization background note: {e}")
 
-    # Build replica pools from whatever RAM is left once the models are in
-    await loop.run_in_executor(None, init_pools)
+    asyncio.create_task(_init_models_in_background())
 
     # Start the RAM-sized pool of job workers
     await start_workers()
