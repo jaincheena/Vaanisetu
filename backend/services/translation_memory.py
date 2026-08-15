@@ -105,8 +105,8 @@ def store_approved(
     source_text: str,
     translated_text: str,
 ) -> None:
-    """Store human-approved translation with confidence=0.92."""
-    store(src_lang, tgt_lang, source_text, translated_text, 0.92)
+    """Store human-approved translation with high confidence=0.99 (>98%)."""
+    store(src_lang, tgt_lang, source_text, translated_text, 0.99)
 
 
 def get_glossary(limit: int = 500) -> list[dict]:

@@ -233,7 +233,7 @@ def _seed_domain_translations(conn: sqlite3.Connection) -> None:
             INSERT OR REPLACE INTO translation_memory
             (source_hash, source_text, source_lang, target_lang, translated_text,
              confidence, times_used, created_at, last_used_at, flagged, domain)
-            VALUES (?, ?, ?, ?, ?, 0.98, 5, ?, ?, 0, 'agriculture')
+            VALUES (?, ?, ?, ?, ?, 0.99, 5, ?, ?, 0, 'agriculture')
             """,
             (key, src_t, src_l, tgt_l, tgt_t, now, now),
         )
