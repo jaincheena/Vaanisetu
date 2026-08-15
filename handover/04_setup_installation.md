@@ -2,16 +2,30 @@
 
 ---
 
-## ⚡ 1-Click Instant Quickstart (Fastest & Easiest)
+## ⚡ 1-Click Interactive Onboarding Wizard (Recommended for All Users)
 
-**For all users and evaluators:**
+**For all users, field officers, and hackathon evaluators:**
 1. Simply double-click **`quick_start.bat`** in the main project folder.
-2. The launcher automatically:
-   - Verifies Python environment and creates local directories on `C:\VaaniSetu`.
-   - Compiles the UI bundle (if not already built).
-   - Starts the FastAPI ASGI server on port `8765`.
-   - **Automatically opens your default web browser** to `http://localhost:8765`.
+2. The interactive assistant automatically:
+   - **Prerequisite Detection:** Checks for Python 3.10+; if missing, offers automated 1-click installer download and setup instructions.
+   - **Environment Setup:** Creates all required storage directories on `C:\VaaniSetu\` (`models`, `workspace`, `outputs`, `uploads`, `logs`).
+   - **Dependency Auto-Install:** Verifies dependencies and auto-prompts `pip install -r requirements.txt` if needed.
+   - **Low-RAM Sizing & JIT Models:** Automatically inspects available RAM and selects the optimal Whisper model (`tiny`/`base`/`small`/`large-v3-turbo`) with lazy loading (<60MB idle RAM).
+   - **Web UI Verification:** Ensures the pre-compiled React distribution bundle is ready.
+   - **Health-Polled Launch:** Starts the FastAPI server, monitors `/api/health`, and **only opens your web browser to `http://localhost:8765` after all prerequisites, dependencies, and models are verified and the server is live**.
 3. Pick any of the **1-Click Agricultural Scenarios** on the home screen and start localizing immediately!
+
+---
+
+## Hardware Compatibility & Memory Profiles
+
+VaaniSetu automatically adapts its pipeline to the host PC's available memory:
+
+| Hardware Tier | Target Device | Whisper Model | Peak RAM | Mode & Worker Sizing |
+| :--- | :--- | :--- | :--- | :--- |
+| **Low-Memory Tier** | Basic Field Laptop (4–8 GB RAM) | `tiny` or `base` | **< 650 MB** | JIT Lazy Loading + Auto Resource Saver |
+| **Standard Tier** | Office Desktop (8–16 GB RAM) | `small` or `base` | **~1.2 GB** | Balanced Pipelined Execution |
+| **High-Performance Tier** | Workstation / Dedicated Server (16+ GB RAM / GPU) | `large-v3-turbo` | **~3.5 GB** | Full Precision + XTTS Voice Cloning |
 
 ---
 
@@ -23,13 +37,12 @@
 Double-click `scripts\health_check.bat` (or `scripts\check_hardware.bat`) to verify all prerequisites.
 
 **Requirements:**
-- Windows 11 (64-bit)
-- Intel i5 / Ryzen 5 or better
-- 16 GB RAM (minimum)
-- 200 GB free disk space
-- Python 3.11+ ([python.org](https://python.org))
-- Node.js 18+ ([nodejs.org](https://nodejs.org))
-- FFmpeg in PATH ([ffmpeg.org](https://ffmpeg.org))
+- Windows 10/11 (64-bit)
+- Intel i3 / i5 / Ryzen 3 / 5 or better
+- 4 GB RAM minimum (8 GB+ recommended)
+- 15 GB free disk space (for offline models and workspace)
+- Python 3.10+ ([python.org](https://python.org))
+- Bundled FFmpeg included in repository root (or system PATH)
 
 ### Step 2 — Install Software & Build Frontend
 Double-click `scripts\setup.bat`

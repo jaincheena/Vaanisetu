@@ -556,9 +556,8 @@ For any fresh laptop, new user, or hackathon evaluator:
    - **Prerequisite Detection:** Checks for Python 3.10+; if missing, offers to automatically download and launch the official Windows installer with setup instructions.
    - **Environment Setup:** Creates all local storage and log directories (`C:\VaaniSetu\models`, `workspace`, `outputs`, `uploads`, `logs`).
    - **Dependency Auto-Install:** Detects missing packages and prompts to install `requirements.txt`.
-   - **Model Asset Management:** Detects offline model weights and offers 1-click downloads for Piper TTS voices (~100MB) or full model checkpoints.
-   - **Web UI Verification:** Ensures the pre-compiled React distribution bundle is ready.
-   - **Zero-Friction Launch:** Starts the FastAPI ASGI server on port `8765` and **automatically opens your web browser to `http://localhost:8765`**.
+   - **Low-RAM Auto-Adaptation:** Dynamically sizes Whisper (`tiny`/`base`/`small`) to fit available memory, keeping peak RAM < 650MB with lazy loading (<60MB idle).
+   - **Health-Verified Launch:** Starts the server, monitors `/api/health`, and **only opens your web browser to `http://localhost:8765` after all prerequisites, dependencies, and models are verified and the server is live**.
 
 ---
 

@@ -5,20 +5,21 @@
 ## Daily Operations
 
 | Task | Who | When | How |
-|------|-----|------|-----|
-| Start the server | IT Admin / Senior Staff | Start of work day | Double-click `start_vaanisetu.bat` |
-| Check system health | Any user | Anytime | Look at the top banner in the browser |
-| Submit a translation job | Training Officer | As needed | Upload page |
+| :--- | :--- | :--- | :--- |
+| **1-Click Start Server** | Any User / Admin | Start of work day | Double-click **`quick_start.bat`** (browser opens automatically once live) |
+| Check system health | Any user | Anytime | Look at top status bar or run `scripts\health_check.bat` |
+| Submit a translation job | Training Officer | As needed | Upload page (use 1-click presets for instant demo) |
 | Review amber segments | Content Reviewer | Daily (before distributing) | Review Queue page |
+| Practice / Train Staff | All Employees | Ongoing | Training Academy page (`/training`) |
 | Export impact report | Programme Manager | Monthly | Impact Ledger → Export PDF |
-| Backup database | IT Admin | Weekly | `backup.bat` → external drive |
-| Stop the server | IT Admin | End of work day | `stop_vaanisetu.bat` |
+| Backup database | IT Admin | Weekly | `scripts\backup.bat` → external drive |
+| Stop the server | IT Admin | End of work day | `scripts\stop_vaanisetu.bat` (or Ctrl+C in terminal) |
 
 ---
 
 ## Submitting a Job — Step by Step
 
-1. **Open** `http://localhost:8765` in any browser on the office WiFi network
+1. **Launch Server:** Double-click `quick_start.bat`. The wizard verifies prerequisites, dependencies, and models, and **automatically launches your browser to `http://localhost:8765` once the server is healthy and online**.
 2. **Login** with the provided office credentials (default: `admin` / `baif2026`)
 3. Click **Upload** in the sidebar
 4. **(Optional) Select a 1-Click Preset:** Click any of the 3 built-in demo scenarios (Crop Disease Alert, Dairy Veterinary Advisory, Farmer Voice Query) to auto-fill text, languages, and settings instantly.

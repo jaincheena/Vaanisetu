@@ -1,7 +1,7 @@
 # VaaniSetu — Deployment & Operational Readiness Guide
 
 > **Target Audience:** BAIF IT Administrators, Field DevOps Engineers, and Hackathon Evaluation Panel  
-> **Architecture Goal:** 100% Offline, Deterministic, Repeatable Deployment across BAIF Regional Centers with Zero-Config Runtime and Automated Disaster Recovery.
+> **Architecture Goal:** 100% Offline, Deterministic, Repeatable Deployment across BAIF Regional Centers with Zero-Config Runtime, Low-RAM Adaptability, and Automated Disaster Recovery.
 
 ---
 
@@ -9,10 +9,11 @@
 
 | Phase | Duration (Broadband Setup) | Duration (Air-Gapped USB Setup) | Frequency | Operator Skill Level |
 | :--- | :---: | :---: | :---: | :---: |
+| **⚡ 1-Click Interactive Launch** | **< 10 Seconds** | **< 10 Seconds** | Daily / Anytime | **Zero-technical (`quick_start.bat`)** |
 | **Prerequisites Validation** | 1 Minute | 1 Minute | Once per PC | Non-technical (runs script) |
 | **Dependency Installation** | 3-5 Minutes | 0 Minutes (pre-bundled venv) | Once per PC | Automated (`setup.bat`) |
 | **Model Weights Download** | 5-8 Minutes | 2 Minutes (USB copy) | Once per PC | Automated (`download_models.bat`) |
-| **Cold Server Startup** | 5-10 Seconds | 5-10 Seconds | Daily / Auto-start | 1-Click (`start_vaanisetu.bat`) |
+| **Cold Server Startup** | 0.2 Seconds | 0.2 Seconds | Daily / Auto-start | 1-Click (`quick_start.bat`) |
 | **Total Time to Live Service** | **~10-15 Minutes** | **~3-5 Minutes** | — | **Zero configuration required** |
 
 ---
@@ -21,12 +22,13 @@
 
 ### Minimum vs Recommended Hardware Matrix
 
-| Hardware Component | Minimum Requirement (Field Laptop) | Recommended Specification (Office Server) |
+| Hardware Component | Minimum Tier (Basic Field Laptop) | Recommended Tier (Office Server) |
 | :--- | :--- | :--- |
-| **Operating System** | Windows 10/11 (64-bit) or Ubuntu Linux 20.04+ | Windows 11 Pro / Windows Server 2022 |
-| **Processor (CPU)** | Intel Core i3 / Ryzen 3 (4 Cores, 2.0 GHz) | Intel Core i7 / Ryzen 7 (8+ Cores, 3.5 GHz) |
-| **System RAM** | 8 GB (with Resource Saver Mode enabled) | 16 GB – 32 GB DDR4/DDR5 |
-| **Disk Storage** | 20 GB free space on `C:\` drive | 50 GB+ SSD free space on `C:\` drive |
+| **Operating System** | Windows 10/11 (64-bit) or Linux | Windows 11 Pro / Windows Server 2022 |
+| **Processor (CPU)** | Intel Core i3 / Ryzen 3 (Dual/Quad Core, 2.0 GHz) | Intel Core i7 / Ryzen 7 (8+ Cores, 3.5 GHz) |
+| **System RAM** | **4 GB – 8 GB RAM** (Peak usage < 650 MB) | 16 GB – 32 GB DDR4/DDR5 |
+| **Idle Memory Footprint** | **< 60 MB RAM** (JIT Lazy Model Loading) | ~1.5 GB RAM (Pre-warmed pools) |
+| **Disk Storage** | 15 GB free space on `C:\` drive | 50 GB+ SSD free space on `C:\` drive |
 | **GPU Compute** | None required (Runs INT8 CPU quantized) | NVIDIA RTX 3060 / 4060 (6GB+ VRAM) — *Auto-detected* |
 | **Network** | Zero internet required at runtime (Offline LAN) | Office WiFi Router / 1 Gbps Ethernet Switch |
 
@@ -43,11 +45,13 @@
 
 ## 3. Repeatable Deployment Workflows
 
-### Method A: Single-Command Automated LAN Deployment (Standard)
+### Method A: ⚡ 1-Click Interactive Onboarding Wizard (`quick_start.bat`)
 
-Used for new office computers connected to the internet during initial staging:
+Used for all new computers, non-technical field officers, or evaluation judges:
 
-1. **Clone the Repository:**
+1. Double-click **`quick_start.bat`** in the repository root.
+2. The wizard automatically validates Python, storage, dependencies, and model weights.
+3. Once the server is online and health is verified, **the web browser opens automatically to `http://localhost:8765`**.
    ```cmd
    git clone https://github.com/jaincheena/Vaanisetu.git C:\VaaniSetuApp
    cd C:\VaaniSetuApp
