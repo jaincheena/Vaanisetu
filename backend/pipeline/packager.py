@@ -293,20 +293,34 @@ def write_advisory_video(
         draw.rectangle([(0, 0), (1280, 120)], fill=(27, 67, 50))
         draw.rectangle([(0, 115), (1280, 120)], fill=(232, 146, 74))
 
+        # Title text
+        draw.text((60, 45), f"BAIF Agricultural Advisory — {lang_name}", fill=(255, 255, 255))
+
+        # Body text
+        full_text = " ".join([seg.get("translated", "") for seg in segments if seg.get("translated")])
+        if full_text:
+            lines = [full_text[i:i+60] for i in range(0, min(len(full_text), 420), 60)]
+            y = 180
+            for line in lines:
+                draw.text((80, y), line, fill=(230, 240, 235))
+                y += 44
+
         # Bottom footer
         draw.rectangle([(0, 640), (1280, 720)], fill=(12, 20, 16))
+        draw.text((60, 665), "Bharatiya Agro Industries Foundation (BAIF) · 100% Offline AI Localized", fill=(180, 200, 190))
 
         # Save card image
         img.save(card_img)
 
-        # Render video with audio
+        # Render video with audio and +faststart for immediate web streaming
         cmd = [
             ffmpeg_executable(), "-y",
             "-loop", "1", "-i", card_img,
             "-i", audio_path,
             "-c:v", "libx264", "-tune", "stillimage",
             "-c:a", "aac", "-b:a", "128k",
-            "-pix_fmt", "yuv420p", "-shortest",
+            "-pix_fmt", "yuv420p", "-movflags", "+faststart",
+            "-shortest",
             out_video
         ]
         subprocess.run(cmd, capture_output=True, check=False)

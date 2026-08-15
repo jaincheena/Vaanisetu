@@ -9,20 +9,26 @@ import WhatsAppSimulator from '../components/WhatsAppSimulator'
 import IVRSimulator from '../components/IVRSimulator'
 
 const SOURCE_LANGS = [
-  'English', 'Hindi', 'Bengali', 'Telugu', 'Marathi', 'Tamil',
-  'Gujarati', 'Urdu', 'Kannada', 'Odia', 'Malayalam', 'Punjabi', 'Assamese', 'Nepali',
+  'Marathi', 'Hindi', 'Gujarati', 'English', 'Telugu', 'Kannada',
+  'Bengali', 'Tamil', 'Malayalam', 'Punjabi', 'Odia', 'Urdu', 'Assamese', 'Nepali',
 ]
 
 const OUTPUT_FORMATS = [
-  { key: 'txt', label: 'Plain Text (.txt)', desc: 'SMS, app content, offline reading', size: 'tiny', default: true, group: 'text' },
-  { key: 'docx', label: 'Bilingual Doc (.docx)', desc: 'Printed handout for field officers', size: 'small', default: true, group: 'text' },
-  { key: 'srt', label: 'Subtitles SRT (.srt)', desc: 'VLC player, video editors, YouTube', size: 'tiny', default: true, group: 'text' },
-  { key: 'vtt', label: 'Subtitles VTT (.vtt)', desc: 'Web embed, BAIF portal upload', size: 'tiny', default: false, group: 'text' },
-  { key: 'mp3', label: 'Audio MP3 (.mp3)', desc: 'Community radio, WhatsApp audio', size: 'medium', default: true, group: 'audio' },
-  { key: 'ivr_wav', label: 'IVR Audio (.wav)', desc: '8kHz for IVR / feature phones', size: 'small', default: false, group: 'audio' },
-  { key: 'dubbed_mp4', label: 'Dubbed Video (.mp4)', desc: 'Video with translated voice-over', size: 'large', default: false, group: 'video', fullOnly: true },
-  { key: 'captioned_mp4', label: 'Captioned Video (.mp4)', desc: 'Burned subtitles for social media', size: 'large', default: false, group: 'video', fullOnly: true },
-  { key: 'whatsapp', label: 'WhatsApp Chunks (.mp4)', desc: 'Auto-split <15MB for delivery', size: 'medium', default: false, group: 'video', fullOnly: true },
+  { key: 'dubbed_mp4', label: '🎬 Localized Video (.mp4)', desc: 'HD video with voiceover & burned subtitles for WhatsApp & TV', size: 'large', default: true, group: 'video' },
+  { key: 'mp3', label: '🎧 AI Voice Audio (.mp3)', desc: 'High-quality audio for WhatsApp voice notes & community radio', size: 'medium', default: true, group: 'audio' },
+  { key: 'ivr_wav', label: '📞 Telecom IVR Audio (.wav)', desc: '8kHz Mono for automated voice calls to ₹1,000 keypad feature phones', size: 'small', default: true, group: 'audio' },
+  { key: 'docx', label: '📄 Bilingual Advisory Doc (.docx)', desc: 'Printable prescription handout for field extension officers', size: 'small', default: true, group: 'text' },
+  { key: 'srt', label: '📝 Subtitles SRT (.srt)', desc: 'VLC media player, video editing, and YouTube subtitles', size: 'tiny', default: true, group: 'text' },
+  { key: 'txt', label: '📱 SMS & Plain Text (.txt)', desc: 'SMS broadcasting, farmer portal updates, and text logs', size: 'tiny', default: true, group: 'text' },
+  { key: 'vtt', label: '🌐 Web Subtitles VTT (.vtt)', desc: 'HTML5 web video player subtitle tracks', size: 'tiny', default: false, group: 'text' },
+  { key: 'whatsapp', label: '📦 WhatsApp 60s Chunks (.mp4)', desc: 'Auto-split clips (<15MB) for WhatsApp status broadcast', size: 'medium', default: false, group: 'video' },
+]
+
+const DELIVERY_BUNDLES = [
+  { id: 'all', label: '🌟 All-in-One Multi-Channel Pack (Recommended)', formats: ['dubbed_mp4', 'mp3', 'ivr_wav', 'docx', 'srt', 'txt', 'vtt'] },
+  { id: 'mobile', label: '📱 WhatsApp & Mobile Pack', formats: ['dubbed_mp4', 'mp3', 'docx', 'txt'] },
+  { id: 'ivr', label: '📞 Feature Phone IVR & SMS Pack', formats: ['ivr_wav', 'txt'] },
+  { id: 'print', label: '📄 Field Officer Handout Pack', formats: ['docx', 'srt', 'txt'] },
 ]
 
 const DEFAULT_FORMATS = OUTPUT_FORMATS.filter(f => f.default).map(f => f.key)
@@ -71,7 +77,7 @@ export default function Upload() {
   const [sourceLang, setSourceLang] = useState('Auto-Detect')
   const [inputType, setInputType] = useState('file') // 'file' | 'text' | 'mic'
   const [textContent, setTextContent] = useState('')
-  const [targetLangs, setTargetLangs] = useState(['Hindi'])
+  const [targetLangs, setTargetLangs] = useState(['Marathi', 'Hindi'])
   const [file, setFile] = useState(null)
   const [farmerCtx, setFarmerCtx] = useState('')
   const [resourceSaver, setResourceSaver] = useState(false)
@@ -79,6 +85,7 @@ export default function Upload() {
   const [qualityMode, setQualityMode] = useState('draft') // Default to draft for fast responsiveness
   const [selectedFormats, setSelectedFormats] = useState(DEFAULT_FORMATS)
   const [showFormats, setShowFormats] = useState(false)
+  const [activeBundle, setActiveBundle] = useState('all')
 
   // Scenarios state
   const [scenarios, setScenarios] = useState([])
@@ -90,8 +97,8 @@ export default function Upload() {
   const [progress, setProgress] = useState(null)
   const [result, setResult] = useState(null)
   const [previewData, setPreviewData] = useState(null)
-  const [activePreviewTab, setActivePreviewTab] = useState('bilingual') // 'bilingual' | 'audio' | 'whatsapp' | 'ivr' | 'files'
-  const [previewLang, setPreviewLang] = useState('Hindi')
+  const [activePreviewTab, setActivePreviewTab] = useState('bilingual') // 'bilingual' | 'audio' | 'video' | 'whatsapp' | 'ivr' | 'files'
+  const [previewLang, setPreviewLang] = useState('Marathi')
   const [error, setError] = useState(null)
   const [showVisualTour, setShowVisualTour] = useState(false)
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false)
@@ -104,6 +111,11 @@ export default function Upload() {
       .catch(() => {})
   }, [])
 
+  const applyBundle = (bundle) => {
+    setActiveBundle(bundle.id)
+    setSelectedFormats(bundle.formats)
+  }
+
   const loadScenario = (s) => {
     setActiveScenarioId(s.id)
     setMode(s.mode)
@@ -111,6 +123,7 @@ export default function Upload() {
     setTargetLangs(s.target_langs)
     setQualityMode(s.quality_mode || 'draft')
     setFarmerCtx(s.farmer_context || '')
+    setSelectedFormats(s.output_formats || DEFAULT_FORMATS)
     setInputType('text')
     setTextContent(s.sample_text)
     if (s.target_langs.length > 0) {
@@ -119,14 +132,14 @@ export default function Upload() {
   }
 
   const toggleFormat = (key) => {
-    setSelectedFormats(prev =>
-      prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
-    )
+    setSelectedFormats(prev => {
+      const next = prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+      setActiveBundle('custom')
+      return next
+    })
   }
 
-  const effectiveFormats = qualityMode === 'draft'
-    ? selectedFormats.filter(f => !OUTPUT_FORMATS.find(o => o.key === f)?.fullOnly)
-    : selectedFormats
+  const effectiveFormats = selectedFormats
 
   const canSubmit = (inputType === 'file' ? file : (inputType === 'mic' ? file : textContent.trim()))
     && targetLangs.length > 0 && !submitting
@@ -137,6 +150,9 @@ export default function Upload() {
       if (r.ok) {
         const d = await r.json()
         setPreviewData(d)
+        if (d.job?.target_langs?.length) {
+          setPreviewLang(d.job.target_langs[0])
+        }
       }
     } catch (e) {
       console.warn('Failed to load preview:', e)
@@ -545,56 +561,83 @@ export default function Upload() {
             </div>
           </div>
 
-          {/* ── Optional Advanced Settings Accordion ── */}
+          {/* ── Delivery Channel Packs & Format Selector ── */}
           <div className="card mb-4">
-            <div
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}
-              onClick={() => setShowAdvancedSettings(s => !s)}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 18 }}>⚙️</span>
-                <div>
-                  <strong style={{ fontSize: 14, color: 'var(--text)' }}>
-                    Optional Advanced Settings (Output Formats & Hardware Throttling)
-                  </strong>
-                  <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                    {showAdvancedSettings ? 'Click to collapse' : 'Click to customize WhatsApp video clips, 8kHz IVR audio, or CPU throttle'}
-                  </div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <div>
+                <strong style={{ fontSize: 14, color: 'var(--text)' }}>
+                  📦 Delivery Channel Preset
+                </strong>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
+                  Select the rural distribution channels for this advisory
                 </div>
               </div>
-              <span style={{ fontSize: 14, color: 'var(--text-muted)' }}>
+              <span className="badge green" style={{ fontSize: 11 }}>
+                {selectedFormats.length} formats active
+              </span>
+            </div>
+
+            {/* Quick Bundle Pills */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 8, marginBottom: 14 }}>
+              {DELIVERY_BUNDLES.map(b => (
+                <button
+                  key={b.id}
+                  type="button"
+                  onClick={() => applyBundle(b)}
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: 6,
+                    border: `1px solid ${activeBundle === b.id ? 'var(--accent)' : 'var(--border)'}`,
+                    background: activeBundle === b.id ? 'rgba(74, 158, 122, 0.15)' : 'var(--bg-input)',
+                    color: activeBundle === b.id ? 'var(--accent)' : 'var(--text)',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    fontSize: 12,
+                    fontWeight: activeBundle === b.id ? 600 : 400,
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  {b.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Optional Advanced Format Customization */}
+            <div
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', paddingTop: 8, borderTop: '1px solid var(--border)' }}
+              onClick={() => setShowAdvancedSettings(s => !s)}
+            >
+              <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                ⚙️ {showAdvancedSettings ? 'Hide Individual Format Toggles' : 'Customize Individual Formats & Hardware Controls'}
+              </span>
+              <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
                 {showAdvancedSettings ? '▲' : '▼'}
               </span>
             </div>
 
             {showAdvancedSettings && (
-              <div style={{ marginTop: 18, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
+              <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px dashed var(--border)' }}>
                 {/* Format Grid */}
                 <div style={{ marginBottom: 16 }}>
-                  <strong style={{ fontSize: 13, color: 'var(--text)', display: 'block', marginBottom: 10 }}>
-                    📦 Output Formats ({effectiveFormats.length} selected)
-                  </strong>
-                  {['text', 'audio', 'video'].map(group => {
+                  {['video', 'audio', 'text'].map(group => {
                     const groupFormats = OUTPUT_FORMATS.filter(f => f.group === group)
-                    const groupLabels = { text: '📝 Text & Subtitles', audio: '🔊 Audio & Telecom', video: '🎥 Video (Full Quality only)' }
+                    const groupLabels = { video: '🎥 Video Formats (WhatsApp & TV)', audio: '🔊 Audio & Telecom (Radio & IVR)', text: '📝 Text & Subtitles (Print & SMS)' }
                     return (
                       <div key={group} style={{ marginBottom: 14 }}>
                         <div className="section-label" style={{ fontSize: 11, marginBottom: 6 }}>{groupLabels[group]}</div>
                         <div className="format-grid">
                           {groupFormats.map(fmt => {
-                            const isDisabledByMode = fmt.fullOnly && qualityMode === 'draft'
-                            const isSelected = selectedFormats.includes(fmt.key) && !isDisabledByMode
+                            const isSelected = selectedFormats.includes(fmt.key)
                             return (
                               <label
                                 key={fmt.key}
-                                className={`format-item ${isSelected ? 'selected' : ''} ${isDisabledByMode ? 'disabled' : ''}`}
-                                style={{ opacity: isDisabledByMode ? 0.4 : 1, cursor: isDisabledByMode ? 'not-allowed' : 'pointer' }}
+                                className={`format-item ${isSelected ? 'selected' : ''}`}
+                                style={{ cursor: 'pointer' }}
                               >
                                 <input
                                   type="checkbox"
                                   checked={isSelected}
-                                  disabled={isDisabledByMode}
-                                  onChange={() => !isDisabledByMode && toggleFormat(fmt.key)}
+                                  onChange={() => toggleFormat(fmt.key)}
                                 />
                                 <div className="format-item-info">
                                   <div className="format-item-name">{fmt.label}</div>
@@ -802,18 +845,28 @@ export default function Upload() {
               border: '1px solid var(--border)',
               textAlign: 'center'
             }}>
-              <div style={{ fontSize: 32, marginBottom: 8 }}>🎧</div>
+              <div style={{ fontSize: 36, marginBottom: 8 }}>🎧</div>
               <h4 style={{ margin: '0 0 6px 0', fontSize: 16 }}>
                 AI Synthetic Voice Track ({previewLang})
               </h4>
               <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16 }}>
-                Synthesized via {qualityMode === 'full' ? 'Coqui XTTS Voice Clone' : 'Piper Indic ONNX Voice Engine'} with Pitch Matching
+                Natural speech synthesized via Indic Neural TTS · Ready for WhatsApp voice notes & community radio
               </p>
-              <audio
-                controls
-                src={`/api/jobs/${jobId}/audio/${previewLang}`}
-                style={{ width: '100%', maxWidth: 460, height: 44 }}
-              />
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
+                <audio
+                  key={`audio-${jobId}-${previewLang}`}
+                  controls
+                  src={`/api/jobs/${jobId}/audio/${previewLang}`}
+                  style={{ width: '100%', maxWidth: 480, height: 44 }}
+                />
+                <a
+                  className="btn btn-sm btn-secondary"
+                  href={`/api/jobs/${jobId}/audio/${previewLang}`}
+                  download={`audio_${previewLang}.mp3`}
+                >
+                  ⬇️ Download {previewLang} Audio (.mp3)
+                </a>
+              </div>
             </div>
           )}
 
@@ -826,19 +879,27 @@ export default function Upload() {
               border: '1px solid var(--border)',
               textAlign: 'center'
             }}>
-              <div style={{ fontSize: 32, marginBottom: 6 }}>🎬</div>
+              <div style={{ fontSize: 36, marginBottom: 6 }}>🎬</div>
               <h4 style={{ margin: '0 0 6px 0', fontSize: 16 }}>
-                Dubbed Video Output ({previewLang})
+                Dubbed & Advisory Video ({previewLang})
               </h4>
               <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16 }}>
-                High-definition localized video with translated audio track & synchronized subtitles
+                High-definition localized video with translated voiceover track & synchronized captions
               </p>
-              <div style={{ maxWidth: 640, margin: '0 auto' }}>
+              <div style={{ maxWidth: 640, margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
                 <video
+                  key={`video-${jobId}-${previewLang}`}
                   controls
                   src={`/api/jobs/${jobId}/video/${previewLang}`}
                   style={{ width: '100%', borderRadius: 8, background: '#000', maxHeight: 380 }}
                 />
+                <a
+                  className="btn btn-sm btn-secondary"
+                  href={`/api/jobs/${jobId}/video/${previewLang}`}
+                  download={`video_advisory_${previewLang}.mp4`}
+                >
+                  ⬇️ Download {previewLang} Video (.mp4)
+                </a>
               </div>
             </div>
           )}
@@ -847,9 +908,10 @@ export default function Upload() {
           {activePreviewTab === 'whatsapp' && (
             <div>
               <p style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', marginBottom: 12 }}>
-                💬 Simulating how rural smartphone farmers receive this multi-lingual audio note & text advisory on WhatsApp.
+                💬 Simulating how rural smartphone farmers receive this multi-lingual audio note & advisory on WhatsApp.
               </p>
               <WhatsAppSimulator
+                key={`wa-${jobId}-${previewLang}`}
                 text={previewData?.translations?.[previewLang] || textContent}
                 langName={previewLang}
                 audioSrc={`/api/jobs/${jobId}/audio/${previewLang}`}
@@ -864,6 +926,7 @@ export default function Upload() {
                 📞 Simulating automated voice broadcast calls to ₹1,000 basic keypad phones over 8kHz GSM telecom.
               </p>
               <IVRSimulator
+                key={`ivr-${jobId}-${previewLang}`}
                 audioSrc={`/api/jobs/${jobId}/ivr/${previewLang}`}
                 langName={previewLang}
               />
@@ -873,32 +936,56 @@ export default function Upload() {
           {/* 6. Output Files Tab */}
           {activePreviewTab === 'files' && (
             <div>
-              <div className="section-label" style={{ marginBottom: 12 }}>Generated Packages & Artifacts</div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 10 }}>
-                {(previewData?.files || [
-                  `audio_${previewLang}.mp3`,
-                  `ivr_audio_${previewLang}.wav`,
-                  `translation_${previewLang}.txt`,
-                  `bilingual_doc_${previewLang}.docx`,
-                  `subtitles_${previewLang}.srt`,
-                  `video_advisory_${previewLang}.mp4`
-                ]).map(f => (
+              <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div className="section-label">Generated Multi-Channel Packages & Artifacts</div>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                  {previewData?.files?.length || 0} files ready
+                </span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 10 }}>
+                {[
+                  { name: `video_advisory_${previewLang}.mp4`, channel: '📺 WhatsApp Video & KVK Screens', desc: 'HD video with audio voiceover & burned subtitles', url: `/api/jobs/${jobId}/video/${previewLang}` },
+                  { name: `audio_${previewLang}.mp3`, channel: '🎧 WhatsApp Audio & Community Radio', desc: '44.1kHz stereo MP3 for smartphones & radio', url: `/api/jobs/${jobId}/audio/${previewLang}` },
+                  { name: `ivr_audio_${previewLang}.wav`, channel: '📞 Feature Phone IVR Broadcast', desc: '8kHz Mono telecom audio for outbound voice calls', url: `/api/jobs/${jobId}/ivr/${previewLang}` },
+                  { name: `bilingual_doc_${previewLang}.docx`, channel: '📄 Field Officer Prescription Slip', desc: 'Printable formatted Word document for physical handouts', url: null },
+                  { name: `subtitles_${previewLang}.srt`, channel: '📝 Video Subtitles (SRT)', desc: 'Synchronized subtitle captions for VLC & YouTube', url: null },
+                  { name: `translation_${previewLang}.txt`, channel: '📱 SMS & Digital Records', desc: 'Plain UTF-8 text for bulk SMS & agronomist ERP', url: null },
+                ].map(item => (
                   <div
-                    key={f}
+                    key={item.name}
                     style={{
                       background: 'var(--bg-input)',
                       border: '1px solid var(--border)',
                       borderRadius: 6,
-                      padding: '10px 12px',
+                      padding: '12px 14px',
                       display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between'
+                      flexDirection: 'column',
+                      gap: 4
                     }}
                   >
-                    <span style={{ fontSize: 12, fontFamily: 'monospace', color: 'var(--text)' }}>
-                      📄 {f}
-                    </span>
-                    <span style={{ fontSize: 10, color: 'var(--accent)' }}>✓ Ready</span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: 12, fontFamily: 'monospace', fontWeight: 600, color: 'var(--text)' }}>
+                        📄 {item.name}
+                      </span>
+                      <span style={{ fontSize: 10, color: 'var(--accent)' }}>✓ Ready</span>
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--accent)', fontWeight: 500 }}>
+                      {item.channel}
+                    </div>
+                    <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+                      {item.desc}
+                    </div>
+                    {item.url && (
+                      <div style={{ marginTop: 6, paddingTop: 6, borderTop: '1px dashed var(--border)' }}>
+                        <a
+                          href={item.url}
+                          download={item.name}
+                          style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}
+                        >
+                          ⬇️ Direct Download
+                        </a>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -920,10 +1007,10 @@ export default function Upload() {
               download
               id="btn-download"
             >
-              ⬇️ Download Full Output ZIP
+              ⬇️ Download Complete Multi-Channel ZIP Package
             </a>
             <button className="btn btn-secondary" onClick={reset} id="btn-new-job">
-              ➕ New Job
+              ➕ New Advisory
             </button>
             <button className="btn btn-secondary" onClick={() => navigate('/history')}>
               📋 History

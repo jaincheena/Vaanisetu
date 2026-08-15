@@ -2,7 +2,7 @@
 
 > **Target Platform:** BAIF Development Research Foundation AI Localization Platform  
 > **Evaluation Session:** Hackathon Final Validation & Jury Evidence  
-> **Execution Date:** 2026-08-15 21:56:55 UTC  
+> **Execution Date:** 2026-08-15 22:01:26 UTC  
 > **Overall Verdict:** **12/12 TESTS PASSED (100% PASS RATE)**
 
 ---
@@ -23,23 +23,23 @@
 
 | Test ID | Critical User Journey | Expected Outcome | Verified Actual Result | Status | Duration |
 | :--- | :--- | :--- | :--- | :---: | :---: |
-| **TC-JOURNEY-01** | HQ Video Broadcast Multi-Language Output Generation | Generates text, docx, srt, vtt, and mp3 outputs | `Generated 5 files: ['translation_Hindi.txt', 'bilingual_Hindi.docx', 'subtitles_Hindi.srt', 'subtitles_Hindi.vtt', 'audio_Hindi.mp3']` | `PASS` | 1738.98 ms |
-| **TC-JOURNEY-02** | Reverse Bridge Farmer Voice Query to HQ English Brief | Creates bilingual summary document with field context header | `DOCX created at bilingual_English.docx (37312 bytes)` | `PASS` | 25.17 ms |
-| **TC-JOURNEY-03** | Confidence Gate Flagging & Translation Memory Self-Learning | Flags low-confidence segment to Review Queue; approved edit updates TM | `Queue routed: True, TM instant cache hit: 'गेहूं पर पीला तांबेरा (Yellow Rust) देखा गया'` | `PASS` | 91.88 ms |
-| **TC-JOURNEY-04** | In-Browser Scenario Presets API Availability | Returns 3 realistic agricultural demonstration scenarios | `Returned 3 scenarios: ['scenario_wheat_rust', 'scenario_dairy_care', 'scenario_reverse_bridge']` | `PASS` | 384.75 ms |
+| **TC-JOURNEY-01** | HQ Video Broadcast Multi-Language Output Generation | Generates text, docx, srt, vtt, and mp3 outputs | `Generated 5 files: ['translation_Hindi.txt', 'bilingual_Hindi.docx', 'subtitles_Hindi.srt', 'subtitles_Hindi.vtt', 'audio_Hindi.mp3']` | `PASS` | 1640.59 ms |
+| **TC-JOURNEY-02** | Reverse Bridge Farmer Voice Query to HQ English Brief | Creates bilingual summary document with field context header | `DOCX created at bilingual_English.docx (37312 bytes)` | `PASS` | 28.92 ms |
+| **TC-JOURNEY-03** | Confidence Gate Flagging & Translation Memory Self-Learning | Flags low-confidence segment to Review Queue; approved edit updates TM | `Queue routed: True, TM instant cache hit: 'गेहूं पर पीला तांबेरा (Yellow Rust) देखा गया'` | `PASS` | 78.45 ms |
+| **TC-JOURNEY-04** | In-Browser Scenario Presets API Availability | Returns 3 realistic agricultural demonstration scenarios | `Returned 3 scenarios: ['scenario_wheat_rust', 'scenario_dairy_care', 'scenario_reverse_bridge']` | `PASS` | 328.37 ms |
 
 ### B. Edge Cases & Domain Resilience
 
 | Test ID | Edge Case Scenario | Expected Outcome | Verified Actual Result | Status | Duration |
 | :--- | :--- | :--- | :--- | :---: | :---: |
 | **TC-EDGE-01** | AgriShield (TM) Domain Entity & Scheme Protection | Protects PM-KISAN, DAP, Urea, Gir, Fall Armyworm from literal translation | `Restored text: 'Apply DAP and Urea for Gir cattle fodder के तहत PM-KISAN योजना से बचाव के लिए Fall Armyworm .'` | `PASS` | 0.07 ms |
-| **TC-EDGE-02** | Whisper VAD Silence & Zero-Duration Subtitle Guard | Filters out empty/zero-duration timestamps from SRT subtitle output | `Filtered SRT contains 1 valid block(s)` | `PASS` | 1.9 ms |
-| **TC-EDGE-03** | Subtitle Line-Wrap & Screen Bleed Guard | Wraps subtitles at max 42 characters and caps at 2 lines | `Wrapped into 2 line(s): ['शेतकरी मित्रांनो, गहू पिकावर पिवळा तांबेरा', 'नियंत्रणासाठी प्रोपिकोनाझोल बुरशीनाशक फवारावे.']` | `PASS` | 0.01 ms |
-| **TC-EDGE-04** | Target-Language Aware Smart Cache Deduplication | Hits cache only when requested target languages are a subset of cached set | `Subset ['Hindi'] hit: True, New target ['Tamil'] re-runs pipeline: True` | `PASS` | 12.7 ms |
-| **TC-EDGE-05** | Voice Gender Analysis Graceful Fallback | Returns valid default gender ('female') on unparseable/missing audio | `Resolved gender='female', speaker_clip=None` | `PASS` | 23.52 ms |
+| **TC-EDGE-02** | Whisper VAD Silence & Zero-Duration Subtitle Guard | Filters out empty/zero-duration timestamps from SRT subtitle output | `Filtered SRT contains 1 valid block(s)` | `PASS` | 1.48 ms |
+| **TC-EDGE-03** | Subtitle Line-Wrap & Screen Bleed Guard | Wraps subtitles at max 42 characters and caps at 2 lines | `Wrapped into 2 line(s): ['शेतकरी मित्रांनो, गहू पिकावर पिवळा तांबेरा', 'नियंत्रणासाठी प्रोपिकोनाझोल बुरशीनाशक फवारावे.']` | `PASS` | 0.02 ms |
+| **TC-EDGE-04** | Target-Language Aware Smart Cache Deduplication | Hits cache only when requested target languages are a subset of cached set | `Subset ['Hindi'] hit: True, New target ['Tamil'] re-runs pipeline: True` | `PASS` | 13.36 ms |
+| **TC-EDGE-05** | Voice Gender Analysis Graceful Fallback | Returns valid default gender ('female') on unparseable/missing audio | `Resolved gender='female', speaker_clip=None` | `PASS` | 21.19 ms |
 | **TC-EDGE-06** | Indic to Indic Translation Single English Pivot Check | Detects Indic to Indic pair and triggers single English pivot pre-computation | `Needs pivot flag=True for Marathi -> ['Hindi', 'Gujarati', 'Bengali']` | `PASS` | 0.01 ms |
-| **TC-EDGE-07** | Pipeline Shared Locks Mutual Exclusion Verification | Acquires TRANSCRIBE_LOCK, TTS_LOCK, TRANSLATE_LOCK without deadlock | `Locks cleanly acquired and released within 0.73ms` | `PASS` | 0.73 ms |
-| **TC-EDGE-08** | Automatic Disk Recovery & Workspace Cleanup | Purges heavy intermediate WAV/workspace files after packaging | `Workspace C:\VaaniSetu\workspace\cleanup_acb06b24 exists: False` | `PASS` | 1.18 ms |
+| **TC-EDGE-07** | Pipeline Shared Locks Mutual Exclusion Verification | Acquires TRANSCRIBE_LOCK, TTS_LOCK, TRANSLATE_LOCK without deadlock | `Locks cleanly acquired and released within 0.78ms` | `PASS` | 0.78 ms |
+| **TC-EDGE-08** | Automatic Disk Recovery & Workspace Cleanup | Purges heavy intermediate WAV/workspace files after packaging | `Workspace C:\VaaniSetu\workspace\cleanup_cdc46970 exists: False` | `PASS` | 1.24 ms |
 
 ---
 

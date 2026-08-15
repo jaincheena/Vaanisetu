@@ -150,37 +150,37 @@ async def get_demo_scenarios():
     return [
         {
             "id": "scenario_wheat_rust",
-            "title": "🌾 Crop Disease Emergency Advisory",
-            "subtitle": "Wheat Yellow Rust Fungicide Protocol (Maharashtra & Gujarat)",
-            "source_lang": "Marathi",
-            "target_langs": ["Hindi", "Gujarati"],
+            "title": "🌾 Maharashtra & National Crop Disease Advisory",
+            "subtitle": "Wheat Yellow Rust Fungicide Protocol (Maharashtra & Central India)",
+            "source_lang": "English",
+            "target_langs": ["Marathi", "Hindi", "Gujarati", "Telugu", "Kannada"],
             "mode": "translate",
             "quality_mode": "draft",
-            "output_formats": ["txt", "srt", "mp3", "docx"],
-            "farmer_context": "Immediate advisory for wheat farmers in Vidarbha. Yellow Rust spores detected in field blocks. Recommend Propiconazole 25% EC spray.",
-            "sample_text": "शेतकरी मित्रांनो, गहू पिकावर पिवळा तांबेरा (Yellow Rust) रोगाचा प्रादुर्भाव दिसून येत आहे. हा बुरशीजन्य रोग पानांवर पिवळ्या रंगाच्या रेषांच्या स्वरूपात वेगाने पसरतो. याच्या तातडीच्या नियंत्रणासाठी प्रोपिकोनाझोल २५% ईसी (Propiconazole 25% EC) हे बुरशीनाशक १ मिली प्रति लिटर पाण्यात मिसळून तात्काळ फवारणी करावी. तसेच युरिया खताचा अतिरेकी वापर टाळावा. अधिक मार्गदर्शनासाठी आपल्या जवळच्या कृषी विज्ञान केंद्राशी (KVK) अथवा BAIF विस्तार अधिकाऱ्याशी संपर्क साधा.",
+            "output_formats": ["txt", "docx", "srt", "vtt", "mp3", "ivr_wav", "dubbed_mp4", "whatsapp"],
+            "farmer_context": "Immediate advisory for wheat farmers across Maharashtra and Vidarbha. Yellow Rust spores detected in field blocks. Recommend Propiconazole 25% EC spray.",
+            "sample_text": "Immediate advisory for wheat farmers across Maharashtra and Gujarat: Yellow Rust fungal spores have been detected in regional field blocks. For rapid containment, spray Propiconazole 25% EC at 1 ml per liter of water immediately across the entire canopy. Avoid excessive urea fertilizer application during early vegetative stages. Contact your nearest Krishi Vigyan Kendra (KVK) or BAIF field extension officer for door-step guidance.",
         },
         {
             "id": "scenario_dairy_care",
-            "title": "🐄 Livestock Veterinary Advisory",
+            "title": "🐄 Livestock Veterinary & Dairy Advisory",
             "subtitle": "Lumpy Skin Disease (LSD) Prevention for Indigenous Gir & Sahiwal Breeds",
             "source_lang": "English",
-            "target_langs": ["Hindi", "Marathi", "Gujarati", "Bengali", "Kannada"],
+            "target_langs": ["Marathi", "Hindi", "Gujarati", "Bengali", "Kannada"],
             "mode": "translate",
             "quality_mode": "draft",
-            "output_formats": ["txt", "srt", "mp3", "docx", "ivr_wav"],
+            "output_formats": ["txt", "docx", "srt", "vtt", "mp3", "ivr_wav", "dubbed_mp4", "whatsapp"],
             "farmer_context": "BAIF Livestock Development Programme. Prevention, goat pox vaccination, and isolation protocols for dairy cattle showing fever and nodular skin eruptions.",
             "sample_text": "Urgent advisory for dairy farmers: To protect your Gir and Sahiwal cattle from Lumpy Skin Disease (LSD), administer goat pox vaccine immediately. If cattle exhibit high fever, watery eyes, or cutaneous nodules, isolate them into quarantine sheds. Apply organic neem oil formulation on open skin lesions to prevent secondary bacterial infection and fly bites. Provide mineral mixture and fresh water daily. Contact BAIF veterinary field team for doorstep emergency care.",
         },
         {
             "id": "scenario_reverse_bridge",
-            "title": "🎙️ Farmer Voice Query → Pune HQ",
+            "title": "🎙️ Farmer Voice Query → Pune HQ Agronomists",
             "subtitle": "Bundelkhand Chickpea Farmer Query forwarded to Central Agronomists",
             "source_lang": "Hindi",
-            "target_langs": ["English"],
+            "target_langs": ["Marathi", "English"],
             "mode": "reverse_bridge",
             "quality_mode": "draft",
-            "output_formats": ["txt", "docx", "mp3"],
+            "output_formats": ["txt", "docx", "mp3", "ivr_wav", "dubbed_mp4"],
             "farmer_context": "Field query from Bundelkhand region: Drip irrigation emitter clogging due to hard water salt accumulation in chickpea fields.",
             "sample_text": "नमस्ते साहब, हमारे ड्रिप इरिगेशन (Drip Irrigation) की नलियों में खारे पानी की वजह से सफेद नमक जम गया है और पानी बहुत धीमा टपक रहा है। क्या हम इसमें हाइड्रोक्लोरिक एसिड का एसिड ट्रीटमेंट कर सकते हैं? कृपया चना फसल के लिए सही घोल की मात्रा, पीएच स्तर और सुरक्षा सावधानियां तुरंत बताएं।",
         }
@@ -240,9 +240,9 @@ async def preview_job(job_id: str, current_user: dict = Depends(get_current_user
 
 @router.get("/{job_id}/audio/{lang_name}")
 async def stream_audio_file(job_id: str, lang_name: str):
-    """Stream translated MP3 audio directly for in-browser playback."""
+    """Stream translated MP3 audio directly with proper HTTP range support."""
     import zipfile
-    import io
+    from fastapi import Response
     from backend.utils.file_utils import job_workspace
     ws_dir = job_workspace(job_id)
     target_name = f"audio_{lang_name}.mp3"
@@ -250,7 +250,7 @@ async def stream_audio_file(job_id: str, lang_name: str):
     # 1. Direct workspace check
     ws_audio = ws_dir / target_name
     if ws_audio.exists():
-        return FileResponse(str(ws_audio), media_type="audio/mpeg")
+        return FileResponse(str(ws_audio), media_type="audio/mpeg", headers={"Accept-Ranges": "bytes"})
         
     # 2. Check ZIP archive
     zip_p = str(job_zip_path(job_id))
@@ -259,9 +259,18 @@ async def stream_audio_file(job_id: str, lang_name: str):
             with zipfile.ZipFile(zip_p, 'r') as z:
                 if target_name in z.namelist():
                     audio_bytes = z.read(target_name)
-                    return StreamingResponse(io.BytesIO(audio_bytes), media_type="audio/mpeg")
-        except Exception:
-            pass
+                    return Response(
+                        content=audio_bytes,
+                        media_type="audio/mpeg",
+                        headers={
+                            "Accept-Ranges": "bytes",
+                            "Content-Length": str(len(audio_bytes)),
+                            "Content-Disposition": f"inline; filename={target_name}",
+                            "Cache-Control": "public, max-age=3600"
+                        }
+                    )
+        except Exception as e:
+            logger.warning(f"Error reading audio from ZIP: {e}")
 
     raise HTTPException(404, f"Audio for {lang_name} not found")
 
@@ -269,12 +278,35 @@ async def stream_audio_file(job_id: str, lang_name: str):
 @router.get("/{job_id}/ivr/{lang_name}")
 async def stream_ivr_file(job_id: str, lang_name: str):
     """Stream 8kHz telephony WAV audio for IVR playback."""
+    import zipfile
+    from fastapi import Response
     from backend.utils.file_utils import job_workspace
     ws_dir = job_workspace(job_id)
     target_name = f"ivr_audio_{lang_name}.wav"
     ws_ivr = ws_dir / target_name
     if ws_ivr.exists():
-        return FileResponse(str(ws_ivr), media_type="audio/wav")
+        return FileResponse(str(ws_ivr), media_type="audio/wav", headers={"Accept-Ranges": "bytes"})
+    
+    # Check ZIP archive
+    zip_p = str(job_zip_path(job_id))
+    if os.path.exists(zip_p):
+        try:
+            with zipfile.ZipFile(zip_p, 'r') as z:
+                if target_name in z.namelist():
+                    ivr_bytes = z.read(target_name)
+                    return Response(
+                        content=ivr_bytes,
+                        media_type="audio/wav",
+                        headers={
+                            "Accept-Ranges": "bytes",
+                            "Content-Length": str(len(ivr_bytes)),
+                            "Content-Disposition": f"inline; filename={target_name}",
+                            "Cache-Control": "public, max-age=3600"
+                        }
+                    )
+        except Exception:
+            pass
+
     # Fallback to standard MP3 audio
     return await stream_audio_file(job_id, lang_name)
 
@@ -283,25 +315,41 @@ async def stream_ivr_file(job_id: str, lang_name: str):
 async def stream_video_file(job_id: str, lang_name: str):
     """Stream translated dubbed/advisory MP4 video for in-browser playback."""
     import zipfile
-    import io
+    from fastapi import Response
     from backend.utils.file_utils import job_workspace
     ws_dir = job_workspace(job_id)
     
-    for candidate in [f"video_dubbed_{lang_name}.mp4", f"dubbed_{lang_name}.mp4", f"video_advisory_{lang_name}.mp4", f"captioned_{lang_name}.mp4"]:
+    candidates = [
+        f"video_dubbed_{lang_name}.mp4",
+        f"dubbed_{lang_name}.mp4",
+        f"video_advisory_{lang_name}.mp4",
+        f"captioned_{lang_name}.mp4"
+    ]
+
+    for candidate in candidates:
         ws_vid = ws_dir / candidate
         if ws_vid.exists():
-            return FileResponse(str(ws_vid), media_type="video/mp4")
+            return FileResponse(str(ws_vid), media_type="video/mp4", headers={"Accept-Ranges": "bytes"})
             
     zip_p = str(job_zip_path(job_id))
     if os.path.exists(zip_p):
         try:
             with zipfile.ZipFile(zip_p, 'r') as z:
-                for candidate in [f"video_dubbed_{lang_name}.mp4", f"dubbed_{lang_name}.mp4", f"video_advisory_{lang_name}.mp4", f"captioned_{lang_name}.mp4"]:
+                for candidate in candidates:
                     if candidate in z.namelist():
                         vid_bytes = z.read(candidate)
-                        return StreamingResponse(io.BytesIO(vid_bytes), media_type="video/mp4")
-        except Exception:
-            pass
+                        return Response(
+                            content=vid_bytes,
+                            media_type="video/mp4",
+                            headers={
+                                "Accept-Ranges": "bytes",
+                                "Content-Length": str(len(vid_bytes)),
+                                "Content-Disposition": f"inline; filename={candidate}",
+                                "Cache-Control": "public, max-age=3600"
+                            }
+                        )
+        except Exception as e:
+            logger.warning(f"Error reading video from ZIP: {e}")
 
     raise HTTPException(404, f"Video for {lang_name} not found")
 

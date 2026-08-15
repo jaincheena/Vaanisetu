@@ -2,15 +2,17 @@ import React from 'react'
 
 // All 22 official Indian languages + English
 const ALL_LANGS = [
-  'Hindi', 'Marathi', 'English', 'Gujarati', 'Bengali', 'Kannada',
-  'Telugu', 'Tamil', 'Malayalam', 'Punjabi', 'Urdu', 'Odia',
+  'Marathi', 'Hindi', 'Gujarati', 'English', 'Telugu', 'Kannada',
+  'Bengali', 'Tamil', 'Malayalam', 'Punjabi', 'Odia', 'Urdu',
   'Assamese', 'Nepali', 'Maithili', 'Sanskrit', 'Konkani', 'Sindhi',
   'Dogri', 'Kashmiri', 'Manipuri', 'Bodo', 'Santhali',
 ]
 
-// Languages with verified end-to-end pipeline (Piper + IndicTrans2 + review)
+// Languages with verified end-to-end translation and speech pipelines
 export const ACTIVE_LANGS = new Set([
-  'Hindi', 'Marathi', 'English', 'Gujarati', 'Bengali', 'Kannada',
+  'Marathi', 'Hindi', 'Gujarati', 'English', 'Telugu', 'Kannada',
+  'Bengali', 'Tamil', 'Malayalam', 'Punjabi', 'Odia', 'Urdu',
+  'Assamese', 'Nepali',
 ])
 
 export default function LangChipGrid({ selected, onChange, exclude = [] }) {
@@ -18,7 +20,7 @@ export default function LangChipGrid({ selected, onChange, exclude = [] }) {
   const active = langs.filter(l => ACTIVE_LANGS.has(l))
 
   const toggle = (lang) => {
-    if (!ACTIVE_LANGS.has(lang)) return // silently block disabled langs
+    if (!ACTIVE_LANGS.has(lang)) return
     if (selected.includes(lang)) {
       onChange(selected.filter(l => l !== lang))
     } else {
@@ -27,15 +29,27 @@ export default function LangChipGrid({ selected, onChange, exclude = [] }) {
   }
 
   const selectActive = () => onChange(active)
+  const selectMaharashtra = () => onChange(['Marathi', 'Hindi'])
+  const selectWestern = () => onChange(['Marathi', 'Hindi', 'Gujarati'])
+  const selectSouth = () => onChange(['Telugu', 'Kannada', 'Tamil', 'Malayalam'])
   const clearAll = () => onChange([])
 
   return (
     <div>
-      <div className="chip-grid-actions">
+      <div className="chip-grid-actions" style={{ flexWrap: 'wrap', gap: 8 }}>
         <span className="chip-count">
           {selected.length} of {active.length} active languages selected
         </span>
-        <div className="flex gap-2">
+        <div className="flex gap-2" style={{ flexWrap: 'wrap' }}>
+          <button className="btn btn-sm btn-secondary" onClick={selectMaharashtra} type="button" title="Pune HQ & Maharashtra field blocks">
+            🚩 Maharashtra (MR + HI)
+          </button>
+          <button className="btn btn-sm btn-secondary" onClick={selectWestern} type="button" title="Maharashtra, Gujarat, MP">
+            🌾 Western India
+          </button>
+          <button className="btn btn-sm btn-secondary" onClick={selectSouth} type="button">
+            🌴 South Hub
+          </button>
           <button className="btn btn-sm btn-secondary" onClick={selectActive} type="button">
             All Active
           </button>
