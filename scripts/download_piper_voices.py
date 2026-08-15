@@ -1,104 +1,77 @@
-﻿"""
+"""
 VaaniSetu -- Piper Voice Downloader
-Downloads ONNX voice models for supported Indic languages from the
-official Piper releases on GitHub.
+Downloads ONNX voice models from the official rhasspy/piper-voices repository on Hugging Face.
 
-Usage:
-    python scripts/download_piper_voices.py
-    python scripts/download_piper_voices.py --lang Hindi Bengali Tamil
-
-Voices are saved to C:\VaaniSetu\models\piper\ (PIPER_VOICES_DIR in config).
-Each voice needs two files: <stem>.onnx + <stem>.onnx.json  (~15-50 MB each).
+Voices are saved to C:\\VaaniSetu\\models\\piper\\ (PIPER_VOICES_DIR in config).
+Each voice needs two files: <stem>.onnx + <stem>.onnx.json.
 """
 
-import argparse
 import sys
 import urllib.request
 import urllib.error
-import tarfile
-import tempfile
-import os
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
-PIPER_RELEASE_BASE = "https://github.com/rhasspy/piper/releases/download/2023.11.14-2"
+HF_BASE = "https://huggingface.co/rhasspy/piper-voices/resolve/main"
 
-VOICE_URLS = {
-    "hi_IN-swara-medium":    f"{PIPER_RELEASE_BASE}/voice-hi_IN-swara-medium.tar.gz",
-    "bn_BD-sishir-medium":   f"{PIPER_RELEASE_BASE}/voice-bn_BD-sishir-medium.tar.gz",
-    "gu_IN-bagicha-medium":  f"{PIPER_RELEASE_BASE}/voice-gu_IN-bagicha-medium.tar.gz",
-    "kn_IN-lili-medium":     f"{PIPER_RELEASE_BASE}/voice-kn_IN-lili-medium.tar.gz",
-    "mr_IN-vani-medium":     f"{PIPER_RELEASE_BASE}/voice-mr_IN-vani-medium.tar.gz",
-    "ta_IN-anbu-medium":     f"{PIPER_RELEASE_BASE}/voice-ta_IN-anbu-medium.tar.gz",
-    "te_IN-anu-medium":      f"{PIPER_RELEASE_BASE}/voice-te_IN-anu-medium.tar.gz",
-    "ne_NP-google-medium":   f"{PIPER_RELEASE_BASE}/voice-ne_NP-google-medium.tar.gz",
-    "en_US-amy-medium":      f"{PIPER_RELEASE_BASE}/voice-en_US-amy-medium.tar.gz",
+# Exact Hugging Face paths for available Piper Indic and English voices
+VOICE_PATHS = {
+    "hi_IN-pratham-medium":   "hi/hi_IN/pratham/medium",
+    "hi_IN-priyamvada-medium":"hi/hi_IN/priyamvada/medium",
+    "hi_IN-rohan-medium":     "hi/hi_IN/rohan/medium",
+    "mr_IN-google-medium":    "mr/mr_IN/google/medium",
+    "te_IN-maya-medium":      "te/te_IN/maya/medium",
+    "te_IN-padmavathi-medium":"te/te_IN/padmavathi/medium",
+    "te_IN-venkatesh-medium": "te/te_IN/venkatesh/medium",
+    "ne_NP-google-medium":    "ne/ne_NP/google/medium",
+    "en_US-amy-medium":       "en/en_US/amy/medium",
+    "en_US-ryan-medium":      "en/en_US/ryan/medium",
 }
 
-
-def download_and_extract(url, stem, dest_dir):
+def download_voice(stem, rel_dir, dest_dir):
+    dest_dir.mkdir(parents=True, exist_ok=True)
     onnx_dest = dest_dir / f"{stem}.onnx"
     json_dest = dest_dir / f"{stem}.onnx.json"
-    if onnx_dest.exists() and json_dest.exists():
+
+    if onnx_dest.exists() and json_dest.exists() and onnx_dest.stat().st_size > 1000:
         print(f"  [OK] Already installed: {stem}")
         return True
 
     print(f"  [DL] {stem} ...")
-    with tempfile.NamedTemporaryFile(suffix=".tar.gz", delete=False) as tmp:
-        tmp_path = Path(tmp.name)
-    try:
-        req = urllib.request.Request(url, headers={"User-Agent": "VaaniSetu/1.0"})
-        with urllib.request.urlopen(req, timeout=180) as resp:
-            with open(tmp_path, "wb") as f:
-                while chunk := resp.read(65536):
-                    f.write(chunk)
-        with tarfile.open(tmp_path, "r:gz") as tar:
-            for member in tar.getmembers():
-                name = Path(member.name).name
-                if name.endswith(".onnx") and not name.endswith(".onnx.json"):
-                    member.name = name
-                    tar.extract(member, path=dest_dir)
-                    extracted = dest_dir / name
-                    if extracted.exists() and extracted != onnx_dest:
-                        extracted.rename(onnx_dest)
-                elif name.endswith(".onnx.json"):
-                    member.name = name
-                    tar.extract(member, path=dest_dir)
-                    extracted = dest_dir / name
-                    if extracted.exists() and extracted != json_dest:
-                        extracted.rename(json_dest)
-        if onnx_dest.exists() and json_dest.exists():
-            print(f"  [OK] Installed: {stem}")
-            return True
-        print(f"  [ERR] Extraction incomplete for {stem}")
-        return False
-    except Exception as e:
-        print(f"  [ERR] {e}")
-        return False
-    finally:
-        if tmp_path.exists():
-            os.unlink(tmp_path)
+    onnx_url = f"{HF_BASE}/{rel_dir}/{stem}.onnx"
+    json_url = f"{HF_BASE}/{rel_dir}/{stem}.onnx.json"
 
+    try:
+        # Download JSON
+        req = urllib.request.Request(json_url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=30) as resp, open(json_dest, "wb") as f:
+            f.write(resp.read())
+
+        # Download ONNX
+        req = urllib.request.Request(onnx_url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=120) as resp, open(onnx_dest, "wb") as f:
+            while chunk := resp.read(65536):
+                f.write(chunk)
+
+        print(f"  [OK] Successfully installed: {stem}")
+        return True
+    except Exception as e:
+        print(f"  [ERR] Download failed for {stem}: {e}")
+        if json_dest.exists():
+            json_dest.unlink()
+        if onnx_dest.exists():
+            onnx_dest.unlink()
+        return False
 
 def main():
-    from backend.config import PIPER_VOICES_DIR, PIPER_VOICE_MAP
-    parser = argparse.ArgumentParser(description="Download Piper TTS voices")
-    parser.add_argument("--lang", nargs="*", help="Language names (default: all)")
-    args = parser.parse_args()
-
-    if args.lang:
-        stems = [PIPER_VOICE_MAP[l] for l in args.lang if l in PIPER_VOICE_MAP]
-    else:
-        stems = list(PIPER_VOICE_MAP.values())
-
+    from backend.config import PIPER_VOICES_DIR
     print(f"\nTarget directory: {PIPER_VOICES_DIR}")
-    print(f"Downloading {len(stems)} voice(s)...\n")
+    print(f"Downloading {len(VOICE_PATHS)} voice(s)...\n")
 
-    ok = sum(download_and_extract(VOICE_URLS[s], s, PIPER_VOICES_DIR) for s in stems if s in VOICE_URLS)
-    print(f"\nDone: {ok}/{len(stems)} voices ready.")
-
+    ok = sum(download_voice(stem, rel_dir, PIPER_VOICES_DIR) for stem, rel_dir in VOICE_PATHS.items())
+    print(f"\nDone: {ok}/{len(VOICE_PATHS)} voices ready.")
 
 if __name__ == "__main__":
     main()

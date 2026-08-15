@@ -127,28 +127,19 @@ DEFAULT_TTS_ENGINE   = os.getenv("VAANISETU_TTS_ENGINE", "piper")  # piper | xtt
 # Map display language name → Piper voice model stem (without .onnx)
 # Only languages with available Piper voices are listed; others fall back.
 PIPER_VOICE_MAP: dict[str, str] = {
-    "Hindi":     "hi_IN-swara-medium",
-    "Bengali":   "bn_BD-sishir-medium",
-    "Gujarati":  "gu_IN-bagicha-medium",
-    "Kannada":   "kn_IN-lili-medium",
-    "Marathi":   "mr_IN-vani-medium",
-    "Tamil":     "ta_IN-anbu-medium",
-    "Telugu":    "te_IN-anu-medium",
+    "Hindi":     "hi_IN-pratham-medium",
+    "Marathi":   "mr_IN-google-medium",
+    "Telugu":    "te_IN-maya-medium",
     "Nepali":    "ne_NP-google-medium",
     "English":   "en_US-amy-medium",
 }
 
 # Gender-specific Piper voice overrides for male voices.
-# Most Indic Piper voices are female; only list languages where a
-# distinct male voice model is available. For unlisted languages,
-# voice_detector falls back to PIPER_VOICE_MAP (female) or XTTS cloning.
 PIPER_VOICE_MAP_MALE: dict[str, str] = {
-    "English":   "en_US-ryan-medium",      # en_US-ryan is a male voice
-    "Hindi":     "hi_IN-swara-medium",     # Only one Piper Hindi voice currently
-    "Bengali":   "bn_BD-sishir-medium",    # sishir is male
-    "Gujarati":  "gu_IN-bagicha-medium",   # Fallback: single voice
-    "Kannada":   "kn_IN-lili-medium",      # Fallback: single voice
-    "Marathi":   "mr_IN-vani-medium",      # Fallback: single voice
+    "English":   "en_US-ryan-medium",
+    "Hindi":     "hi_IN-rohan-medium",
+    "Telugu":    "te_IN-venkatesh-medium",
+    "Marathi":   "mr_IN-google-medium",
 }
 
 # ---------------------------------------------------------------------------
