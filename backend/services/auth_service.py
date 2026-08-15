@@ -51,7 +51,7 @@ def create_access_token(data: dict, expires_delta: int = None) -> str:
 def seed_admin_user():
     """Ensure the default BAIF admin user exists on system initialization."""
     with get_db() as conn:
-        user = conn.execute("SELECT id FROM users WHERE username='admin'").fetchone()
+        user = conn.execute("SELECT username FROM users WHERE username='admin'").fetchone()
         if not user:
             logger.info("Seeding default BAIF admin user (admin / baif2026)...")
             hashed = get_password_hash("baif2026")
