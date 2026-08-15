@@ -1,3 +1,5 @@
+import React, { useState, useRef } from 'react'
+
 const DEFAULT_ACCEPT = 'video/*,audio/*,video/mp4,video/x-matroska,video/quicktime,video/x-msvideo,video/webm,.mp4,.mkv,.avi,.mov,.webm,.mp3,.wav,.ogg,.m4a,.flac,.aac,.opus,.3gp,.amr,.caf,.wma,.txt,.pdf,.docx,.csv'
 const ICONS   = { video: '🎬', audio: '🎙️', text: '📄' }
 
@@ -34,11 +36,11 @@ export default function DragDropZone({ onFile, accept }) {
       onDragOver={e => { e.preventDefault(); setDragging(true) }}
       onDragLeave={() => setDragging(false)}
       onDrop={onDrop}
-      onClick={() => inputRef.current.click()}
+      onClick={() => inputRef.current && inputRef.current.click()}
       role="button"
       id="file-drop-zone"
       tabIndex={0}
-      onKeyDown={e => e.key === 'Enter' && inputRef.current.click()}
+      onKeyDown={e => e.key === 'Enter' && inputRef.current && inputRef.current.click()}
     >
       <input
         ref={inputRef}
