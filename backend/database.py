@@ -105,6 +105,7 @@ def init_db() -> None:
         _safe_add_column(conn, "jobs", "confidence_level",        "TEXT")
         _safe_add_column(conn, "jobs", "farmer_context",          "TEXT")
         _safe_add_column(conn, "jobs", "quality_mode",            "TEXT DEFAULT 'full'")
+        _safe_add_column(conn, "jobs", "output_formats",          "TEXT")
         _safe_add_column(conn, "translation_memory", "domain",   "TEXT DEFAULT 'agriculture'")
         conn.commit()
     finally:

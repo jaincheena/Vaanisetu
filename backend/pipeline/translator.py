@@ -24,12 +24,50 @@ _PROTECT_PATTERNS = [
     re.compile(r'\b([A-Za-z]+[0-9]+[A-Za-z0-9]*|[0-9]+[A-Za-z]+[A-Za-z0-9]*)\b'),
 ]
 
-# Glossary of proper nouns and technical terms that should not be translated.
-# This list can be expanded or loaded from a configuration file/database.
+# AgriShield™ — Specialized BAIF Agricultural & Rural Development Entity Dictionary
+# Protects mission-critical domain entities, government schemes, chemical formulas,
+# crop varieties, pest names, and livestock breeds from literal translation errors.
 _GLOSSARY_TERMS = [
-    "HSBC", "ChatGPT", "Docker", "Kubernetes", "WhatsApp", "YouTube", "Facebook",
-    "Instagram", "Twitter", "Google", "Microsoft", "Amazon", "Apple",
-    "SRI",  # System of Rice Intensification
+    # Technology & General Platforms
+    "WhatsApp", "YouTube", "Facebook", "Instagram", "Twitter", "Google", "Microsoft", "Android", "iOS",
+    
+    # Government Agricultural Schemes & Portals
+    "PM-KISAN", "PMFBY", "PMKSY", "e-NAM", "KCC", "Kisan Credit Card", "Soil Health Card",
+    "MGNREGA", "NABARD", "ATMA", "KVK", "ICAR", "RKVY", "NFSM", "MIDH", "APMC", "Mandi",
+    "BAIF", "Bharatiya Agro Industries Foundation",
+    
+    # Agricultural Practices & Methods
+    "SRI", "System of Rice Intensification", "DSR", "Direct Seeded Rice", "Zero Tillage",
+    "Mulching", "Vermicompost", "Vermicomposting", "Jeevamrut", "Beejamrut", "Panchagavya",
+    "Drip Irrigation", "Micro-irrigation", "Fertigation", "Integrated Pest Management", "IPM",
+    "Crop Rotation", "Hydroponics", "Polyhouse", "Shade Net",
+    
+    # Pests, Plant Pathogens & Crop Diseases
+    "Fall Armyworm", "Spodoptera frugiperda", "Yellow Rust", "Puccinia striiformis",
+    "Stem Borer", "Leaf Miner", "Whitefly", "Aphids", "Thrips", "Bollworm", "Pink Bollworm",
+    "Blast Disease", "Sheath Blight", "Downy Mildew", "Powdery Mildew", "Root Rot",
+    "Wilt", "Anthracnose", "Dieback", "Bacterial Leaf Blight",
+    
+    # Livestock & Veterinary Diseases
+    "Lumpy Skin Disease", "LSD", "Foot and Mouth Disease", "FMD", "Mastitis",
+    "Brucellosis", "Anthrax", "Black Quarter", "BQ", "Hemorrhagic Septicemia", "HS",
+    "Theileriosis", "Babesiosis", "Deworming",
+    
+    # Indigenous & Improved Livestock Breeds (BAIF Cattle/Goat programs)
+    "Gir", "Sahiwal", "Red Sindhi", "Tharparkar", "Kankrej", "Rathi", "Ongole", "Hallikar",
+    "Murrah", "Surti", "Jaffrabadi", "Nili-Ravi", "Osmanabadi", "Sirohi", "Barbari", "Jamnapari",
+    "Black Bengal", "Boer", "Kadaknath",
+    
+    # Fertilizers, Nutrients & Bio-inoculants
+    "DAP", "Di-Ammonium Phosphate", "Urea", "MOP", "Muriate of Potash", "SSP", "Single Super Phosphate",
+    "NPK 19:19:19", "NPK 12:32:16", "NPK 10:26:26", "NPK 20:20:0:13", "Zinc Sulphate",
+    "Ferrous Sulphate", "Borax", "Gypsum", "Trichoderma", "Trichoderma viride",
+    "Pseudomonas fluorescens", "Azotobacter", "Rhizobium", "PSB", "Phosphate Solubilizing Bacteria",
+    "Mycorrhiza", "VAM", "Neem Cake", "Neem Oil",
+    
+    # Crop Types & Agro-Ecological Seasons
+    "Kharif", "Rabi", "Zaid", "BT Cotton", "Desi Cotton", "Basmati", "Hybrid Napier", "Lucerne",
+    "Berseem", "Stylosanthes", "Azolla", "Silage",
 ]
 
 # Build a case-insensitive regex from the glossary and add it to the patterns.

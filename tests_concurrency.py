@@ -57,7 +57,7 @@ def test_translate_generate_overlap() -> None:
     events, lock = [], threading.Lock()
     live = {"n": 0, "peak": 0}
 
-    def fake_translate(segments, source_lang, target_lang_name, target_lang_code, job_id):
+    def fake_translate(segments, source_lang, target_lang_name, target_lang_code, job_id, *args, **kwargs):
         with lock:
             events.append((time.perf_counter(), "translate", "start"))
         time.sleep(TRANSLATE_S)

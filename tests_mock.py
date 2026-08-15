@@ -74,7 +74,7 @@ def test_pipeline_run(mock_subproc, mock_tts, mock_trans, mock_whisper, mock_ext
     )
     
     # Mock indictrans2
-    def fake_trans(segments, source_lang, target_lang_name, target_lang_code, job_id):
+    def fake_trans(segments, source_lang, target_lang_name, target_lang_code, job_id, **kwargs):
         res = []
         for s in segments:
             res.append({
@@ -102,7 +102,7 @@ def test_pipeline_run(mock_subproc, mock_tts, mock_trans, mock_whisper, mock_ext
     mock_trans.side_effect = fake_trans
     
     # Mock TTS
-    def fake_tts(segments, lang, mp3_path):
+    def fake_tts(segments, lang, mp3_path, **kwargs):
         mp3 = Path(mp3_path)
         with open(mp3, "wb") as f:
             f.write(b"mp3 data")

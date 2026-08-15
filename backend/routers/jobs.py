@@ -132,15 +132,135 @@ async def submit_job(
             """
             INSERT INTO jobs
             (id, mode, submitter_id, filename, file_hash, file_size, input_type,
-             source_lang, target_langs, status, queued_at, farmer_context, quality_mode)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'queued', ?, ?, ?)
+             source_lang, target_langs, status, queued_at, farmer_context, quality_mode, output_formats)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'queued', ?, ?, ?, ?)
             """,
             (job_id, mode, current_user["username"], file.filename, file_hash, file_size, input_type,
-             source_lang, json.dumps(langs), now, farmer_context, quality_mode),
+             source_lang, json.dumps(langs), now, farmer_context, quality_mode,
+             json.dumps(parsed_output_formats) if parsed_output_formats else None),
         )
 
     await enqueue(job_id)
     return {"job_id": job_id, "message": "Job queued"}
+
+
+@router.get("/scenarios")
+async def get_demo_scenarios():
+    """Return pre-configured realistic agricultural demonstration scenarios for 1-click test runs."""
+    return [
+        {
+            "id": "scenario_wheat_rust",
+            "title": "🌾 Crop Disease Emergency Advisory",
+            "subtitle": "Wheat Yellow Rust Fungicide Protocol (Maharashtra & Gujarat)",
+            "source_lang": "Marathi",
+            "target_langs": ["Hindi", "Gujarati"],
+            "mode": "translate",
+            "quality_mode": "draft",
+            "output_formats": ["txt", "srt", "mp3", "docx"],
+            "farmer_context": "Immediate advisory for wheat farmers in Vidarbha. Yellow Rust spores detected in field blocks. Recommend Propiconazole 25% EC spray.",
+            "sample_text": "शेतकरी मित्रांनो, गहू पिकावर पिवळा तांबेरा (Yellow Rust) रोगाचा प्रादुर्भाव दिसून येत आहे. हा बुरशीजन्य रोग पानांवर पिवळ्या रंगाच्या रेषांच्या स्वरूपात वेगाने पसरतो. याच्या तातडीच्या नियंत्रणासाठी प्रोपिकोनाझोल २५% ईसी (Propiconazole 25% EC) हे बुरशीनाशक १ मिली प्रति लिटर पाण्यात मिसळून तात्काळ फवारणी करावी. तसेच युरिया खताचा अतिरेकी वापर टाळावा. अधिक मार्गदर्शनासाठी आपल्या जवळच्या कृषी विज्ञान केंद्राशी (KVK) अथवा BAIF विस्तार अधिकाऱ्याशी संपर्क साधा.",
+        },
+        {
+            "id": "scenario_dairy_care",
+            "title": "🐄 Livestock Veterinary Advisory",
+            "subtitle": "Lumpy Skin Disease (LSD) Prevention for Indigenous Gir & Sahiwal Breeds",
+            "source_lang": "English",
+            "target_langs": ["Hindi", "Marathi", "Gujarati", "Bengali", "Kannada"],
+            "mode": "translate",
+            "quality_mode": "draft",
+            "output_formats": ["txt", "srt", "mp3", "docx", "ivr_wav"],
+            "farmer_context": "BAIF Livestock Development Programme. Prevention, goat pox vaccination, and isolation protocols for dairy cattle showing fever and nodular skin eruptions.",
+            "sample_text": "Urgent advisory for dairy farmers: To protect your Gir and Sahiwal cattle from Lumpy Skin Disease (LSD), administer goat pox vaccine immediately. If cattle exhibit high fever, watery eyes, or cutaneous nodules, isolate them into quarantine sheds. Apply organic neem oil formulation on open skin lesions to prevent secondary bacterial infection and fly bites. Provide mineral mixture and fresh water daily. Contact BAIF veterinary field team for doorstep emergency care.",
+        },
+        {
+            "id": "scenario_reverse_bridge",
+            "title": "🎙️ Farmer Voice Query → Pune HQ",
+            "subtitle": "Bundelkhand Chickpea Farmer Query forwarded to Central Agronomists",
+            "source_lang": "Hindi",
+            "target_langs": ["English"],
+            "mode": "reverse_bridge",
+            "quality_mode": "draft",
+            "output_formats": ["txt", "docx", "mp3"],
+            "farmer_context": "Field query from Bundelkhand region: Drip irrigation emitter clogging due to hard water salt accumulation in chickpea fields.",
+            "sample_text": "नमस्ते साहब, हमारे ड्रिप इरिगेशन (Drip Irrigation) की नलियों में खारे पानी की वजह से सफेद नमक जम गया है और पानी बहुत धीमा टपक रहा है। क्या हम इसमें हाइड्रोक्लोरिक एसिड का एसिड ट्रीटमेंट कर सकते हैं? कृपया चना फसल के लिए सही घोल की मात्रा, पीएच स्तर और सुरक्षा सावधानियां तुरंत बताएं।",
+        }
+    ]
+
+
+@router.get("/{job_id}/preview")
+async def preview_job(job_id: str, current_user: dict = Depends(get_current_user)):
+    """Return in-browser preview data (transcripts, audio availability, and manifest) for completed jobs."""
+    import zipfile
+    with get_db() as conn:
+        row = conn.execute("SELECT * FROM jobs WHERE id=?", (job_id,)).fetchone()
+    if not row:
+        raise HTTPException(404, "Job not found")
+    
+    data = dict(row)
+    if data.get("target_langs"):
+        try:
+            data["target_langs"] = json.loads(data["target_langs"])
+        except Exception:
+            pass
+
+    zip_p = data.get("output_path") or str(job_zip_path(job_id))
+    files_list = []
+    translations = {}
+    subtitles = {}
+    transcript = ""
+    manifest = {}
+
+    if os.path.exists(zip_p):
+        try:
+            with zipfile.ZipFile(zip_p, 'r') as z:
+                files_list = z.namelist()
+                if "manifest.json" in files_list:
+                    manifest = json.loads(z.read("manifest.json").decode("utf-8"))
+                if "transcript.txt" in files_list:
+                    transcript = z.read("transcript.txt").decode("utf-8")
+                for fn in files_list:
+                    if fn.startswith("translation_") and fn.endswith(".txt"):
+                        lang = fn.replace("translation_", "").replace(".txt", "")
+                        translations[lang] = z.read(fn).decode("utf-8")
+                    elif fn.startswith("subtitles_") and fn.endswith(".srt"):
+                        lang = fn.replace("subtitles_", "").replace(".srt", "")
+                        subtitles[lang] = z.read(fn).decode("utf-8")
+        except Exception as e:
+            logger.warning(f"Error reading zip for preview: {e}")
+
+    return {
+        "job": data,
+        "files": files_list,
+        "manifest": manifest,
+        "transcript": transcript,
+        "translations": translations,
+        "subtitles": subtitles,
+    }
+
+
+@router.get("/{job_id}/audio/{lang_name}")
+async def stream_audio_file(job_id: str, lang_name: str):
+    """Stream translated MP3 audio directly for in-browser playback."""
+    import zipfile
+    import io
+    zip_p = str(job_zip_path(job_id))
+    target_name = f"audio_{lang_name}.mp3"
+    
+    if not os.path.exists(zip_p):
+        from backend.utils.file_utils import job_workspace
+        ws_audio = job_workspace(job_id) / target_name
+        if ws_audio.exists():
+            return FileResponse(str(ws_audio), media_type="audio/mpeg")
+        raise HTTPException(404, "Audio file not found")
+
+    try:
+        with zipfile.ZipFile(zip_p, 'r') as z:
+            if target_name not in z.namelist():
+                raise HTTPException(404, f"Audio for {lang_name} not found in output")
+            audio_bytes = z.read(target_name)
+            return StreamingResponse(io.BytesIO(audio_bytes), media_type="audio/mpeg")
+    except Exception as e:
+        raise HTTPException(500, f"Failed to stream audio: {e}")
 
 
 @router.get("/{job_id}/stream")

@@ -49,7 +49,7 @@ def run_pipeline(job_id: str) -> None:
     upload_path = None
     try:
         _stage_validating(job_id)
-        upload_path, source_lang, target_langs, mode, farmer_context, quality_mode = _load_job_params(job_id)
+        upload_path, source_lang, target_langs, mode, farmer_context, quality_mode, output_formats = _load_job_params(job_id)
 
         # Hardware Resource Saver logic
         resource_saver = False
@@ -92,6 +92,7 @@ def run_pipeline(job_id: str) -> None:
             farmer_context=farmer_context,
             mode=mode,
             quality_mode=quality_mode,
+            output_formats=output_formats,
             voice_gender=voice_gender,
             speaker_wav=speaker_wav,
         )
@@ -154,6 +155,12 @@ def _load_job_params(job_id: str):
         row = conn.execute("SELECT * FROM jobs WHERE id=?", (job_id,)).fetchone()
     upload_path = _find_upload(job_id, row["filename"])
     target_langs = json.loads(row["target_langs"] or "[]")
+    output_formats = None
+    if "output_formats" in row.keys() and row["output_formats"]:
+        try:
+            output_formats = json.loads(row["output_formats"])
+        except Exception:
+            pass
     return (
         upload_path,
         row["source_lang"],
@@ -161,6 +168,7 @@ def _load_job_params(job_id: str):
         row["mode"],
         row["farmer_context"],
         row["quality_mode"] or "full",
+        output_formats,
     )
 
 
@@ -248,6 +256,7 @@ def _stage_translating(
     farmer_context: Optional[str] = None,
     mode: str = "translate",
     quality_mode: str = "full",
+    output_formats: Optional[list[str]] = None,
     voice_gender: str = "female",
     speaker_wav: Optional[str] = None,
 ) -> tuple[dict[str, list[dict]], list[str]]:
@@ -417,7 +426,7 @@ def _stage_translating(
                 lang_name, translated, source_lang,
                 upload_path, ws, is_video,
                 farmer_context, mode, quality_mode,
-                None, voice_gender, speaker_wav,
+                output_formats, voice_gender, speaker_wav,
             )] = lang_name
 
         if gen_futures:
