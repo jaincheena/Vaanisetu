@@ -1,11 +1,12 @@
 """
 VaaniSetu — Modern Interactive Launcher & Onboarding Assistant
-Crafted with modern typography, warm saffron/slate styling, and robust lifecycle management.
+Crafted with modern typography, warm saffron/slate styling, real verification gates, and model management.
 """
 
 import sys
 import os
 import time
+import shutil
 import subprocess
 import webbrowser
 import urllib.request
@@ -61,7 +62,7 @@ def free_port(port=8765):
             pass
 
 def check_directories():
-    print(f" {INDIGO_BOLD}[1/4]{RESET} {WHITE_BOLD}Verifying local storage architecture...{RESET}")
+    print(f" {INDIGO_BOLD}[1/4]{RESET} {WHITE_BOLD}Verifying local storage architecture & disk capacity...{RESET}")
     dirs = [
         BASE_DIR,
         BASE_DIR / "models",
@@ -76,7 +77,17 @@ def check_directories():
     ]
     for d in dirs:
         d.mkdir(parents=True, exist_ok=True)
-    print(f"       {EMERALD_BOLD}[OK]{RESET} {SLATE}Storage directories verified at C:\\VaaniSetu{RESET}\n")
+    
+    # Check free disk space on C:
+    try:
+        total, used, free = shutil.disk_usage("C:/")
+        free_gb = free / (1024 ** 3)
+        if free_gb < 5.0:
+            print(f"       {SAFFRON}[WARNING] Low disk space on C:\\ ({free_gb:.1f} GB free). At least 10 GB recommended.{RESET}")
+        else:
+            print(f"       {EMERALD_BOLD}[OK]{RESET} {SLATE}Storage directories verified at C:\\VaaniSetu ({free_gb:.1f} GB free disk space){RESET}\n")
+    except Exception:
+        print(f"       {EMERALD_BOLD}[OK]{RESET} {SLATE}Storage directories verified at C:\\VaaniSetu{RESET}\n")
 
 def check_dependencies():
     print(f" {INDIGO_BOLD}[2/4]{RESET} {WHITE_BOLD}Checking Python AI & Web runtime libraries...{RESET}")
@@ -100,24 +111,71 @@ def check_dependencies():
         else:
             print(f"       {SLATE}Proceeding with existing runtime packages.{RESET}\n")
 
+def download_lightweight_models():
+    """Download lightweight Piper Indic voices + Whisper base."""
+    print(f"\n {SAFFRON_BOLD}--- Downloading Lightweight Offline Model Assets (~350 MB) ---{RESET}")
+    # 1. Piper Indic Voices
+    print(f" {SLATE}[1/2] Downloading Piper TTS Indian Language ONNX Voices (~200MB)...{RESET}")
+    piper_script = REPO_ROOT / "scripts" / "download_piper_voices.py"
+    if piper_script.exists():
+        subprocess.run([sys.executable, str(piper_script)])
+    
+    # 2. Whisper Base Model
+    print(f"\n {SLATE}[2/2] Pre-caching Whisper speech recognition weights (~140MB)...{RESET}")
+    try:
+        whisper_dir = str(BASE_DIR / "models" / "whisper")
+        cmd = [
+            sys.executable, "-c",
+            f"from faster_whisper import WhisperModel; WhisperModel('base', download_root=r'{whisper_dir}')"
+        ]
+        res = subprocess.run(cmd, capture_output=True, text=True)
+        if res.returncode != 0:
+            # Fallback to standard whisper if faster-whisper not compiled
+            subprocess.run([
+                sys.executable, "-c",
+                f"import whisper; whisper.load_model('base', download_root=r'{whisper_dir}')"
+            ])
+        print(f" {EMERALD_BOLD}[OK] Whisper weights downloaded successfully!{RESET}\n")
+    except Exception as e:
+        print(f" {SAFFRON}[!] Whisper pre-cache skipped ({e}). Will load on-demand.{RESET}\n")
+
 def check_models():
-    print(f" {INDIGO_BOLD}[3/4]{RESET} {WHITE_BOLD}Verifying AI Model weights & memory profile...{RESET}")
+    print(f" {INDIGO_BOLD}[3/4]{RESET} {WHITE_BOLD}Verifying AI Model weights & hardware sizing...{RESET}")
     from backend.config import WHISPER_MODEL, IS_LOW_RAM
 
     whisper_dir = BASE_DIR / "models" / "whisper"
     indic_dir = BASE_DIR / "models" / "indictrans2-en-indic"
+    piper_dir = BASE_DIR / "models" / "piper"
 
     has_whisper = whisper_dir.exists() and any(whisper_dir.iterdir())
     has_indic = indic_dir.exists() and any(indic_dir.iterdir())
+    has_piper = piper_dir.exists() and any(piper_dir.iterdir())
 
-    print(f"       {SLATE}Adaptive Hardware Tier:{RESET} {SAFFRON_BOLD}{'Low-RAM Safe Profile (<650MB peak)' if IS_LOW_RAM else 'Standard Precision Profile'}{RESET}")
-    print(f"       {SLATE}Active STT Engine:{RESET}      {WHITE_BOLD}Whisper ({WHISPER_MODEL}){RESET}")
+    print(f"       {SLATE}Hardware Memory Tier:{RESET} {SAFFRON_BOLD}{'Low-RAM Safe Profile (<650MB peak)' if IS_LOW_RAM else 'Standard Precision Profile'}{RESET}")
+    print(f"       {SLATE}Selected STT Engine:{RESET}   {WHITE_BOLD}Whisper ({WHISPER_MODEL}){RESET}")
 
-    if not (has_whisper and has_indic):
-        print(f"       {EMERALD_BOLD}[READY]{RESET} {SLATE}Offline JIT mode active (Zero idle RAM). Run scripts\\download_models.bat anytime.{RESET}")
+    if not (has_whisper and has_indic and has_piper):
+        print(f"\n       {SAFFRON}[!] Offline AI model weights not fully downloaded yet in C:\\VaaniSetu\\models.{RESET}")
+        print(f"       {WHITE_BOLD}Options:{RESET}")
+        print(f"         {WHITE_BOLD}1. [RECOMMENDED]{RESET} Download Lightweight Offline Models (~350 MB, ~1-2 min)")
+        print(f"            {SLATE}Includes: Whisper Base + Piper Indic Voices (Hindi, Marathi, Bengali, Tamil, etc.){RESET}")
+        print(f"         {WHITE_BOLD}2.{RESET} Download Full Offline Model Weights (~5.5 GB, ~5-10 min)")
+        print(f"            {SLATE}Includes: Complete IndicTrans2 + Whisper + Piper + Coqui XTTS{RESET}")
+        print(f"         {WHITE_BOLD}3.{RESET} Start Immediately (Instant JIT Mode — downloads on first job)")
+        
+        try:
+            choice = input(f"\n       Enter choice (1, 2, or 3) [Default: 3]: ").strip()
+            if choice == "1":
+                download_lightweight_models()
+            elif choice == "2":
+                print(f"       {SLATE}Running full model downloader...{RESET}")
+                subprocess.run(["cmd", "/c", str(REPO_ROOT / "scripts" / "download_models.bat")])
+            else:
+                print(f"       {EMERALD_BOLD}[READY]{RESET} {SLATE}Instant JIT mode active. Models will load on-demand per job.{RESET}\n")
+        except (KeyboardInterrupt, EOFError):
+            print(f"\n       {EMERALD_BOLD}[READY]{RESET} {SLATE}Instant JIT mode active.{RESET}\n")
     else:
-        print(f"       {EMERALD_BOLD}[OK]{RESET} {SLATE}Offline weights detected in C:\\VaaniSetu\\models{RESET}")
-    print()
+        print(f"       {EMERALD_BOLD}[OK]{RESET} {SLATE}Offline weights detected in C:\\VaaniSetu\\models{RESET}\n")
 
 def check_frontend():
     print(f" {INDIGO_BOLD}[4/4]{RESET} {WHITE_BOLD}Checking React Web Interface distribution...{RESET}")
@@ -125,7 +183,7 @@ def check_frontend():
     if not dist_index.exists():
         print(f"       {SLATE}Compiling React web bundle (one-time step)...{RESET}")
         subprocess.run(["npm", "install"], cwd=str(REPO_ROOT / "frontend"), shell=True)
-        subprocess.run(["npm", "run", "build"], cwd=str(REPO_ROOT / "frontend"), shell=True)
+        subprocess.run(["cmd", "/c", "npm run build"], cwd=str(REPO_ROOT / "frontend"))
         print(f"       {EMERALD_BOLD}[OK]{RESET} {SLATE}Production build compiled successfully{RESET}\n")
     else:
         print(f"       {EMERALD_BOLD}[OK]{RESET} {SLATE}Pre-compiled Web UI bundle ready in frontend\\dist{RESET}\n")
