@@ -272,33 +272,43 @@ export default function Upload() {
         </div>
       </div>
 
-      {/* ── 30-Second Visual Feature Guide & Video Walkthrough Banner ── */}
+      {/* ── 3-Step Field Advisory Guide Banner ── */}
       {!result && !submitting && (
         <div className="card mb-4" style={{
           background: 'linear-gradient(135deg, rgba(82, 196, 135, 0.08) 0%, rgba(30, 41, 59, 0.5) 100%)',
           borderColor: 'rgba(82, 196, 135, 0.3)',
           padding: '14px 18px'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ fontSize: 24 }}>🎥</span>
+              <span style={{ fontSize: 24 }}>💡</span>
               <div>
                 <strong style={{ fontSize: 14, color: 'var(--text)' }}>
-                  How to Use VaaniSetu — 30-Second Visual Guide
+                  3-Step Advisory Localization Guide
                 </strong>
                 <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted)' }}>
-                  Translate videos, voice notes, and advisories for rural farmers in 3 easy steps
+                  Translate advisories, veterinary guides, and farmer voice queries in 3 simple steps
                 </p>
               </div>
             </div>
-            <button
-              type="button"
-              className="btn btn-sm btn-secondary"
-              onClick={() => setShowVisualTour(v => !v)}
-              style={{ fontSize: 12, fontWeight: 600 }}
-            >
-              {showVisualTour ? '▲ Hide Guide' : '▼ View Visual Guide'}
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <button
+                type="button"
+                className="btn btn-sm btn-secondary"
+                onClick={() => navigate('/docs')}
+                style={{ fontSize: 12 }}
+              >
+                📖 Platform Manual
+              </button>
+              <button
+                type="button"
+                className="btn btn-sm btn-secondary"
+                onClick={() => setShowVisualTour(v => !v)}
+                style={{ fontSize: 12, fontWeight: 600 }}
+              >
+                {showVisualTour ? '▲ Hide Steps' : '▼ Quick Steps'}
+              </button>
+            </div>
           </div>
 
           {showVisualTour && (
@@ -306,25 +316,25 @@ export default function Upload() {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
                 <div style={{ background: 'var(--bg-input)', padding: '12px 14px', borderRadius: 8, border: '1px solid var(--border)' }}>
                   <div style={{ fontSize: 20, marginBottom: 4 }}>1️⃣ Choose Input</div>
-                  <strong style={{ fontSize: 13, color: 'var(--text)' }}>Upload or Pick Preset</strong>
+                  <strong style={{ fontSize: 13, color: 'var(--text)' }}>Upload or Pick Field Preset</strong>
                   <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '4px 0 0 0', lineHeight: 1.4 }}>
-                    Click a 1-Click Scenario Preset below, drop an MP4 video / MP3 audio, or type your advisory text.
+                    Pick a 1-Click Scenario Preset below, drop an MP4 video / MP3 audio, or paste raw text.
                   </p>
                 </div>
 
                 <div style={{ background: 'var(--bg-input)', padding: '12px 14px', borderRadius: 8, border: '1px solid var(--border)' }}>
-                  <div style={{ fontSize: 20, marginBottom: 4 }}>2️⃣ Select Languages</div>
-                  <strong style={{ fontSize: 13, color: 'var(--text)' }}>Pick Regional Target</strong>
+                  <div style={{ fontSize: 20, marginBottom: 4 }}>2️⃣ Select Languages & Pack</div>
+                  <strong style={{ fontSize: 13, color: 'var(--text)' }}>Pick Regional Targets</strong>
                   <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '4px 0 0 0', lineHeight: 1.4 }}>
-                    Select Hindi, Marathi, Gujarati, Bengali, Telugu, Kannada, etc. with native Indic voices.
+                    Choose Marathi 🚩, Hindi, Gujarati, etc. and select your delivery channel preset (WhatsApp, IVR, Print).
                   </p>
                 </div>
 
                 <div style={{ background: 'var(--bg-input)', padding: '12px 14px', borderRadius: 8, border: '1px solid var(--border)' }}>
                   <div style={{ fontSize: 20, marginBottom: 4 }}>3️⃣ Localize & Export</div>
-                  <strong style={{ fontSize: 13, color: 'var(--text)' }}>Listen, Review & Share</strong>
+                  <strong style={{ fontSize: 13, color: 'var(--text)' }}>Preview & Download</strong>
                   <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '4px 0 0 0', lineHeight: 1.4 }}>
-                    Click "Start AI Localization". Play audio, preview WhatsApp/IVR formats, and download 1-click ZIP!
+                    Click "Start AI Localization". Play audio/video, simulate WhatsApp/IVR, and download the full ZIP!
                   </p>
                 </div>
               </div>
