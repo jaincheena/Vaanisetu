@@ -1,85 +1,88 @@
-# VaaniSetu — Training Plan
+# VaaniSetu — Interactive Handover & Gamified Training Masterclass
+
+> **Document Goal:** Provide a fun, engaging, scenario-based handover and training framework for BAIF Development Research Foundation.  
+> **Philosophy:** No boring slides or dense manuals — learn by doing through interactive simulators, gamified quizzes, micro-learning video storyboards, and audio scenario exercises.
 
 ---
 
-## Session 1 — Staff Training (2 Hours)
+## 1. The 3-Tier Gamified Mastery Framework
 
-**Audience:** Training officers, field coordinators, content reviewers  
-**Format:** Hands-on workshop with the live system  
-**Ideal Group Size:** 4–8 participants
-
-### Agenda
-
-| Time | Activity | Notes |
-|------|----------|-------|
-| 0:00–0:15 | Welcome & why VaaniSetu | Show impact numbers; compare to manual translation cost |
-| 0:15–0:30 | Tour of the interface | Sidebar navigation, top banner (RAM, disk, model status) |
-| 0:30–0:55 | Live demo: submit a job | Use a real 5-min training video; watch all 7 stages |
-| 0:55–1:15 | Understanding confidence badges | Explain green/amber/red with examples |
-| 1:15–1:40 | Review Queue walkthrough | Approve, edit, reject — each participant reviews one segment |
-| 1:40–1:50 | Reverse Bridge mode | Demo: upload a short farmer recording |
-| 1:50–2:00 | Q&A + Quick Reference Card | Hand out printed Quick Reference Card |
-
-### Competency Checklist — Staff
-
-After training, each participant should be able to:
-- [ ] Open VaaniSetu from any office device
-- [ ] Submit a translation job with correct source and target languages
-- [ ] Interpret confidence badges and take appropriate action
-- [ ] Review and approve/edit amber segments in the Review Queue
-- [ ] Download the output ZIP and identify file formats
-- [ ] Use Reverse Bridge mode for farmer recordings
-- [ ] Know who to contact if the system is slow or unresponsive
+```
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                             VAANISETU MASTERY & CERTIFICATION TRACKS                             │
+├────────────────────────────────┬────────────────────────────────┬────────────────────────────────┤
+│ 🌾 LEVEL 1: ROOKIE LOCALIZER   │ 🛡️ LEVEL 2: QUALITY GATEKEEPER │ ⚙️ LEVEL 3: OPERATIONAL HERO   │
+│ (Field & Extension Staff)      │ (Bilingual Content Reviewers)  │ (IT & Systems Administrators)  │
+├────────────────────────────────┼────────────────────────────────┼────────────────────────────────┤
+│ • 1-Click Scenario Presets     │ • Spotting Mistranslations     │ • 100% Offline Air-Gapped USB  │
+│ • Direct Mic Voice Recording   │ • Confidence Gate Scenarios    │ • RAM & Mutex Lock Sizing      │
+│ • WhatsApp & IVR Simulators    │ • Approving Amber Alerts       │ • Rotating Production Logs     │
+│ • Subtitle & Script Formats    │ • Translation Memory Training  │ • 1-Click Automated Rollback   │
+└────────────────────────────────┴────────────────────────────────┴────────────────────────────────┘
+```
 
 ---
 
-## Session 2 — IT Admin Training (1 Hour)
+## 2. Interactive In-App Training Academy (`/training`)
 
-**Audience:** IT staff who will maintain the server  
-**Format:** Hands-on with the server PC
+BAIF staff can access the **Interactive Training Academy** directly within the web app at `http://localhost:8765/training`:
 
-### Agenda
-
-| Time | Activity |
-|------|----------|
-| 0:00–0:10 | System overview — what's installed where |
-| 0:10–0:20 | Starting and stopping the server (`.bat` scripts) |
-| 0:20–0:35 | Running the weekly backup |
-| 0:35–0:45 | Disk management — cleanup of uploads/workspace |
-| 0:45–0:55 | Troubleshooting table walkthrough |
-| 0:55–1:00 | Emergency procedures (power cut, crash) |
-
-### Competency Checklist — IT Admin
-
-After training, the admin should be able to:
-- [ ] Start and stop the VaaniSetu server
-- [ ] Explain the directory structure under `C:\VaaniSetu\`
-- [ ] Run backup to external drive
-- [ ] Identify and clear disk space when needed
-- [ ] Restart a failed job
-- [ ] Set up Windows Firewall rule for port 8765
-- [ ] Add a new user (tell them the LAN URL and provide the shared login string)
-- [ ] Identify when to call for developer support
+1. **Interactive Scenario Challenges:** 4 dynamic agricultural challenges testing AgriShield™ protection, Confidence Gate approvals, and basic feature phone telecom dispatch.
+2. **Instant Score & Explanations:** Explains *why* agricultural acronyms (e.g. PM-KISAN, DAP, Gir cattle) require protected token shields and why amber segments must never be distributed before review.
+3. **Digital Certification Badge:** Generates an offline-verifiable **Certified AI Localization Practitioner** diploma with printable timestamp.
 
 ---
 
-## 90-Day Adoption Plan
+## 3. Micro-Learning Video Scripts & Audio Guides (60-Second Bytes)
 
-| Week | Milestone | Owner |
-|------|-----------|-------|
-| Week 1 | Hardware check + setup + model download | IT Admin |
-| Week 2 | Staff training session with 2 pilot jobs | Training Officer |
-| Week 3–4 | Submit 5–10 real jobs; review all amber segments | Training Officers |
-| Week 5–6 | Review Queue established as daily routine | Content Reviewer |
-| Week 7–8 | Check Glossary — validate recurring terms | Senior Staff |
-| Week 9–10 | First Impact Ledger export — share with management | Programme Manager |
-| Week 11–12 | Identify any gaps; adjust language list if needed | IT Admin + Staff |
-| Month 3 | Full adoption — VaaniSetu part of standard workflow | All |
+### 🎬 Video Byte 1: "Broadcast Localization in 3 Clicks"
+- **Visual Scene:** Field officer opens browser at `http://localhost:8765`.
+- **Action (0:00-0:20):** Clicks the green badge `"🌾 Scenario 1: Crop Disease Emergency Advisory"`.
+- **Action (0:20-0:40):** Selects Marathi and Hindi, toggles ⚡ **Draft Mode**, and hits `"🚀 Start AI Localization"`.
+- **Action (0:40-0:60):** Switches to the **In-Browser Audio Player**, hits play to verify the pitch-matched voice, and downloads the ready-to-share WhatsApp video clips.
+
+### 🎬 Video Byte 2: "The Review Queue & The Amber Alert"
+- **Visual Scene:** A yellow badge `"⚠ Review Needed"` pops up in the top navigation.
+- **Action (0:00-0:25):** Officer clicks `"Review Queue"` in sidebar. Reads side-by-side: English original vs Hindi machine translation.
+- **Action (0:25-0:45):** Corrects a local dialect word for "fertilizer mixture" directly in the inline textbox.
+- **Action (0:45-0:60):** Clicks `"Approve"`. Shows how the job status changes to `"🟢 Cleared for Distribution"` and the correction is permanently saved into Translation Memory.
+
+### 🎬 Video Byte 3: "Bridging the Digital Divide (8kHz Telecom IVR)"
+- **Visual Scene:** Split screen showing a smartphone farmer vs a tribal farmer holding a ₹1,000 Nokia-style keypad phone.
+- **Action (0:00-0:30):** Officer uploads an audio advisory and selects the `"IVR .wav"` format checkbox.
+- **Action (0:30-0:60):** Tests the 8kHz audio on the interactive phone dialer simulator in the browser before exporting to BAIF's outbound voice broadcast service.
 
 ---
 
-1. **Never skip the Review Queue** — amber segments must be reviewed before distribution
-2. **Check disk periodically** — automatic workspace cleanup is active, but outputs accumulate over time
-3. **The system gets smarter** — Translation Memory improves the more it is used and corrected
-4. **Queue management is RAM-aware** — submitting multiple files schedules them safely across worker pools
-5. **No internet needed** — reassure staff that the system works entirely offline
+## 4. Hands-On Training Workshop Schedule (2-Hour Interactive Session)
+
+| Time Slot | Module | Interactive Exercise & Gamified Activity |
+| :--- | :--- | :--- |
+| **00:00 – 00:20** | **The Big Picture** | Live demonstration: Localizing a 5-minute English training video into Marathi, Hindi, and Gujarati in real-time. |
+| **00:20 – 00:50** | **Hands-On Job Arena** | Every trainee opens `http://localhost:8765`, records a 15-second voice note using their laptop mic, and localizes it into their native language. |
+| **00:50 – 01:20** | **The Gatekeeper Challenge** | Trainer injects intentional ambiguous terms (e.g. chemical dosages); trainees use the Review Queue to flag, correct, and approve them. |
+| **01:20 – 01:45** | **Last-Mile Simulator Race** | Trainees test the WhatsApp message preview and the 8kHz IVR keypad dialer. |
+| **01:45 – 02:00** | **In-App Certification Exam** | All trainees take the in-app interactive quiz at `/training` and print their completion certificates. |
+
+---
+
+## 5. Competency & Certification Checklist
+
+### 🌾 Field Officers & Extension Staff
+- [ ] Can connect to `http://localhost:8765` over office WiFi on laptop or smartphone.
+- [ ] Can use the 1-Click Realistic Agricultural Presets for rapid demo/testing.
+- [ ] Can record voice directly into the browser via the microphone recorder.
+- [ ] Can selectively pick output formats (Text, Subtitles, Audio, Video) to save time and disk space.
+- [ ] Understands the difference between ⚡ **Draft Mode** (2 min turnaround) and 🎬 **Full Quality Mode** (complete dubbed video).
+
+### 🛡️ Bilingual Reviewers & Content Editors
+- [ ] Understands confidence scoring: 🟢 Green ($\ge 85\%$), 🟡 Amber ($65-84\%$), 🔴 Red ($< 65\%$).
+- [ ] Never clears amber content for distribution without human verification.
+- [ ] Knows how to edit sentences directly in the Review Queue to continuously train the SQLite Translation Memory.
+- [ ] Understands how AgriShield™ protects 120+ mission-critical agricultural schemes, pest names, and fertilizers.
+
+### ⚙️ IT & Systems Administrators
+- [ ] Can run automated pre-flight checks using `scripts\health_check.bat`.
+- [ ] Knows how to execute a 1-click disaster recovery rollback using `scripts\rollback.bat`.
+- [ ] Understands the 100% offline air-gapped USB deployment procedure (`scripts\install_from_usb.bat`).
+- [ ] Knows how to monitor rotating logs at `C:\VaaniSetu\logs\vaanisetu.log` and verify health at `/api/health`.

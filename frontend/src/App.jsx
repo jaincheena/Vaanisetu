@@ -7,6 +7,7 @@ import History from './pages/History'
 import ReviewQueue from './pages/ReviewQueue'
 import ImpactLedger from './pages/ImpactLedger'
 import Glossary from './pages/Glossary'
+import TrainingHub from './pages/TrainingHub'
 
 import { AuthProvider, useAuth } from './context/AuthContext'
 
@@ -55,6 +56,7 @@ function AppContent() {
               <Route path="/review" element={<ProtectedRoute><ReviewQueue /></ProtectedRoute>} />
               <Route path="/impact" element={<ProtectedRoute adminOnly><ImpactLedger /></ProtectedRoute>} />
               <Route path="/glossary" element={<ProtectedRoute><Glossary /></ProtectedRoute>} />
+              <Route path="/training" element={<ProtectedRoute><TrainingHub /></ProtectedRoute>} />
             </Routes>
           </main>
         </div>
