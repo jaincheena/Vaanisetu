@@ -32,14 +32,18 @@
 **BAIF** (Bharatiya Agro Industries Foundation) is an agricultural NGO. They produce training content in English and a few regional languages, but farmers they serve often speak only their local language (Hindi, Tamil, Odia, Assamese, etc.).
 
 **VaaniSetu** solves this by:
-- Accepting uploaded **videos / audio recordings / text** from BAIF staff
+- Accepting uploaded **videos / audio recordings / documents / direct microphone voice** from BAIF staff
 - **Transcribing** them using **faster-Whisper** (CTranslate2 INT8, 4-8× faster than openai-whisper, with real Silero VAD)
-- **Translating** them into up to **22 Indian languages** using AI4Bharat's IndicTrans2 (INT8 quantized)
+- **Translating** them into Indian languages using AI4Bharat's IndicTrans2 (INT8 quantized)
+- **AgriShield™ Domain Protection**: 120+ specialized agricultural terms, government schemes (PM-KISAN, PMFBY), pests, fertilizer formulas, and livestock breeds protected from mistranslation via regex token shields
 - Running all target-language translations **concurrently** in a dedicated thread pool, with a cached English pivot for Indic→Indic pairs
+- **Gender-Aware Voice Matching & Voice Cloning**: Librosa pitch detection automatically detects speaker gender to choose male/female Piper voices or extract a 15-second reference clip for high-fidelity Coqui XTTS voice cloning
 - Generating **multiple output formats**: subtitles (.srt, .vtt), bilingual Word docs (.docx), plain text, AI-spoken audio (.mp3 via Piper TTS or Coqui XTTS), legacy IVR audio (.wav), captioned video (.mp4), and auto-split WhatsApp video chunks
 - Offering a **⚡ Draft / 🎬 Full Quality mode** toggle: Draft delivers text+SRT+audio in minutes; Full renders all outputs including dubbed video
-- **Voice Gender Detection & Cloning**: Automatically detects speaker gender and uses FFmpeg to extract reference audio, creating high-fidelity voice clones in Full Quality mode using Coqui XTTS.
-- **Upload-Time Format Selector**: Users select exactly which formats they want (e.g. only text and MP3), drastically saving processing time and ZIP size by skipping large video rendering.
+- **Upload-Time Format Selector**: Users select exactly which formats they want (e.g. only text and MP3), drastically saving processing time and ZIP size by skipping large video rendering
+- **Interactive In-Browser Result Studio**: Live audio player for synthetic voices, side-by-side bilingual transcript inspection, WhatsApp & IVR feature phone delivery simulators
+- **1-Click Realistic Agricultural Presets**: Instant demo scenarios for crop disease alerts, dairy veterinary care, and farmer voice queries
+- **Interactive Hackathon Tour & ROI Calculator**: Built-in 4-step jury tour with technical benchmark matrix and dynamic ₹ Lakhs ROI calculator
 - Throttling hardware via **Resource Saver Mode** so low-end NGO computers don't freeze during heavy AI workloads
 - Providing a **Review Queue** so staff can check low-confidence translations before distributing
 - **Auto-detecting CUDA GPUs** at startup for 10-30× speedup on machines that have them, with graceful CPU INT8 fallback
@@ -618,20 +622,23 @@ Because VaaniSetu is designed for remote, offline NGO field offices, "Deployment
 
 | Method | Endpoint | Purpose | Returns |
 |--------|----------|---------|---------|
-| `POST` | `/api/jobs/submit` | Submit a file for translation | `{job_id, message}` |
-| `GET` | `/api/jobs/{id}/stream` | SSE progress stream | Event stream |
+| `POST` | `/api/jobs/submit` | Submit a file/text/voice for translation | `{job_id, message}` |
+| `GET` | `/api/jobs/scenarios` | Pre-configured BAIF agricultural demo presets | Array of scenario objects |
+| `GET` | `/api/jobs/{id}/preview` | In-browser preview (transcripts, files, manifest) | `{job, files, transcript, translations}` |
+| `GET` | `/api/jobs/{id}/audio/{lang}` | Stream translated MP3 for in-browser audio playback | Audio stream (`audio/mpeg`) |
+| `GET` | `/api/jobs/{id}/stream` | SSE live progress stream | Event stream |
 | `GET` | `/api/jobs/{id}/status` | Check job status | Job object |
-| `GET` | `/api/jobs/{id}/download` | Download output ZIP | ZIP file |
+| `GET` | `/api/jobs/{id}/download` | Download full output ZIP | ZIP file |
 | `GET` | `/api/jobs/history` | List all jobs | Array of jobs |
 | `GET` | `/api/review/queue` | List review items | Array of items |
 | `GET` | `/api/review/stats` | Counts by status | `{pending, approved, ...}` |
 | `POST` | `/api/review/{id}` | Approve/edit/reject | `{success, new_status}` |
-| `GET` | `/api/impact` | Impact summary | Summary object |
+| `GET` | `/api/impact` | Impact summary & metrics | Summary object |
 | `POST` | `/api/impact/config` | Update language rates | `{success}` |
 | `GET` | `/api/impact/export/pdf` | Download PDF report | PDF file |
 | `GET` | `/api/glossary` | List glossary terms | Array of terms |
 | `GET` | `/api/glossary/export/docx` | Download glossary | DOCX file |
-| `GET` | `/api/health` | System health | `{ram_gb, disk_gb, models_loaded, device, ...}` |
+| `GET` | `/api/health` | System health & concurrency metrics | `{ram_gb, disk_gb, models_loaded, device, ...}` |
 
 ### Submit Job — Form Fields
 ```

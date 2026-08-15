@@ -4,15 +4,19 @@
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│  LAYER 4: USER INTERFACE                            │
-│  React 18 + Vite · Runs in any office browser       │
+│  LAYER 4: USER INTERFACE (React 18 + Vite)          │
+│  In-Browser Result Studio · Live Audio Player       │
+│  WhatsApp & IVR Feature Phone Simulators            │
+│  1-Click Demo Presets · Direct Mic Voice Recorder   │
 │  5 Pages: Upload · History · Review · Impact · Glossary │
-│  Polls /api/health every 30s · SSE for live progress │
+│  Polls /api/health every 30s · SSE for live progress│
 └────────────────────┬────────────────────────────────┘
                      │ HTTP / SSE on port 8765
 ┌────────────────────▼────────────────────────────────┐
 │  API LAYER (FastAPI + JWT Authentication)           │
-│  REST endpoints + SSE stream (publish_threadsafe)   │
+│  REST endpoints + Live MP3 Audio Streaming          │
+│  In-Browser Preview Endpoint (/api/jobs/{id}/preview)│
+│  Demo Scenarios (/api/jobs/scenarios)               │
 │  Role-Based Access Control (Admin vs User)          │
 └────────────────────┬────────────────────────────────┘
                      │ Python function calls / Thread Pools
@@ -21,7 +25,9 @@
 │  RAM-Aware Job Queue · Concurrency Planner          │
 │  Model Replica Pools · Shared Locks (Whisper/TTS/IT2)│
 │  Pipelined Processor (Translate ↔ Generate Overlap) │
-│  FFmpeg 8.1.2 · faster-Whisper (INT8 CTranslate2) · IndicTrans2 · Piper TTS · Coqui XTTS  │
+│  FFmpeg · faster-Whisper (INT8 CTranslate2 + VAD)   │
+│  IndicTrans2 · AgriShield™ Domain Dictionary (120+) │
+│  Librosa Pitch Analysis → Piper TTS / Coqui XTTS    │
 │  Translation Memory · Confidence Scorer             │
 └────────────────────┬────────────────────────────────┘
                      │ SQLite WAL (30s timeout) · File I/O
@@ -29,7 +35,7 @@
 │  LAYER 1: DATA LAYER                                │
 │  SQLite WAL (4 tables) · C:\VaaniSetu\              │
 │  workspace/{job_id}/ · outputs/{job_id}.zip         │
-│  models/ (Whisper, IndicTrans2, Coqui XTTS)         │
+│  models/ (faster-Whisper, IndicTrans2, XTTS, Piper) │
 └─────────────────────────────────────────────────────┘
 ```
 

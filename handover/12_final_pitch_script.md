@@ -63,17 +63,19 @@
 > - We protect BAIF with the Confidence Gate.
 
 **Speaker 2:**
-*(Takes over the audio seamlessly. Switches the screen share to the VaaniSetu App Dashboard mockup (`vaanisetu_app_ui.png`))*
+*(Takes over the audio seamlessly. Switches the screen share to the live VaaniSetu Studio at `http://localhost:8765`)*
 
 "How did we generate those physical outputs? We brought the AI to the ground."
 
-"VaaniSetu runs 100% offline on a standard BAIF office laptop. There is absolutely zero internet connection required. A field officer simply drags an English video into our beautiful, minimal web dashboard, selects up to 22 Indian languages, and clicks start."
+"VaaniSetu runs 100% offline on a standard office laptop. There is absolutely zero internet connection required. A field officer can drag an English video or record live speech directly from their microphone."
 
-"Locally, OpenAI's Whisper model transcribes the audio, and AI4Bharat's IndicTrans2 translates the text. Within 45 minutes, it spits out the WhatsApp chunks, the IVR audio, and the Word documents you just saw."
+"Under the hood, **faster-Whisper (INT8 + Silero VAD)** transcribes speech 4 to 8 times faster than standard models, and **AI4Bharat's IndicTrans2** translates into regional Indian languages concurrently."
 
-*(Speaker 2 switches the screen share to the Confidence Gate mockup (`confidence_gate_ui.png`))*
+"Crucially, we engineered **AgriShield™** — a domain dictionary protecting 120+ specialized agricultural terms like PM-KISAN, Yellow Rust, DAP fertilizer, and Gir cattle breeds from dangerous translation errors."
 
-"And because agricultural advice can be a matter of life and death, we built a **Confidence Gate**. The AI mathematically scores its own certainty on every sentence. If it's unsure, it flags the sentence Amber or Red in this Review Queue, pausing distribution until a human reviews it. It then saves that correction to its Translation Memory, so it never makes the same mistake twice."
+"Notice our **In-Browser Result Studio**: judges can listen to the pitch-matched synthetic voice immediately, view original vs translated transcripts side-by-side, and test our live WhatsApp and Feature Phone IVR simulators without ever downloading or extracting a ZIP."
+
+"And because agricultural advice can be a matter of life and death, our **Confidence Gate** flags any uncertain sentence into the Review Queue, saving human corrections directly into our self-learning Translation Memory."
 
 ---
 

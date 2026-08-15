@@ -55,12 +55,22 @@ To differentiate your team, you must deliver the pitch like a well-rehearsed the
 - **Psychology:** By forcing the judges to physically do something, you instantly break their "Zoom fatigue". While they scan it, you explain that they are downloading an auto-chunked WhatsApp video and a bilingual document.
 
 ### The UI Demo (1:30 - 2:30)
-- **Action:** Speaker 2 switches the screen share to the VaaniSetu dashboard.
-- **Delivery:** Talk *fast* but *clear*. Do not explain every button. Emphasize the **Confidence Gate** (show the Red/Amber/Green Review Queue). This is your technical differentiator.
+- **Action:** Speaker 2 switches screen share to the VaaniSetu dashboard (`http://localhost:8765`).
+- **Delivery (1-Click Demo):** 
+  1. Click the **"🌾 Scenario 1: Crop Disease Emergency Advisory"** preset on the Upload page.
+  2. Explain: *"With one click, we've loaded a real-world wheat yellow rust disease advisory, protected by our AgriShield™ dictionary containing 120+ mission-critical agricultural terms."*
+  3. Click **"🚀 Start AI Localization"** (in Draft Mode, processes in seconds).
+  4. Point to the **In-Browser Result Studio**:
+     - Hit **Play** on the audio player to let the judges hear the synthetic voice.
+     - Switch to the **Bilingual Transcript** tab to show original vs Hindi translation side-by-side.
+     - Switch to the **WhatsApp Simulator** tab: *"This is how the farmer sees it on WhatsApp."*
+     - Switch to the **Feature Phone IVR Simulator** tab: *"And this is how non-smartphone farmers hear the 8kHz broadcast on a ₹1,000 phone."*
+  5. Show the **Review Queue** tab: Highlight how the Confidence Gate flags uncertain segments for human approval.
 
 ### The Impact Ledger Close (2:30 - 3:00)
-- **Action:** Show the Impact Ledger dashboard displaying money and time saved.
-- **Delivery:** Finish with a powerful metric. *"We took translation costs from ₹25,000 to ₹0. We took the timeline from 3 weeks to 45 minutes. And we did it 100% offline."*
+- **Action:** Switch to the **Impact Ledger** page. Adjust the interactive sliders (e.g. 25 videos/month).
+- **Delivery:** Finish with an undeniable metric: *"Across BAIF's 12 regional centers, VaaniSetu saves over ₹1.8 Crores annually in commercial translation fees and reaches 2,16,000 smallholder farmers — completely offline, with zero runtime costs."*
+- **Bonus:** Point out the **"🏆 3-Min Demo Tour"** button in the top navigation for judges who want to explore the technical benchmarks independently.
 
 ---
 

@@ -656,6 +656,37 @@ VaaniSetu itself as an internal operational tool has no distribution — so even
 
 ---
 
+## SECTION 8: HACKATHON WINNING DIFFERENTIATORS & JURY FAQ
+
+---
+
+**Q47. There are 35 other teams solving this. What are your key differentiators?**
+
+VaaniSetu wins on five decisive, objective engineering benchmarks:
+1. **AgriShield™ Domain Dictionary**: 120+ mission-critical agricultural schemes (PM-KISAN, PMFBY), pest names, fertilizer formulas, and BAIF livestock breeds protected from mistranslation. Generic models make dangerous errors on dosage and variety names.
+2. **Gender-Aware Pitch Analysis & Voice Cloning**: Librosa F0 analysis detects speaker gender to choose male/female Piper voices or extract a 15-second reference clip for high-fidelity Coqui XTTS voice cloning. Other solutions use flat, hardcoded female TTS.
+3. **Interactive In-Browser Result Studio**: Judges and staff can listen to synthesized audio, compare bilingual transcripts side-by-side, and test WhatsApp/IVR simulators in the browser without unzipping.
+4. **Last-Mile Multiformat Delivery**: Auto-generates WhatsApp <15MB chunks and 8kHz mono audio for ₹1,000 basic feature phones.
+5. **Dynamic ROI Impact Calculator**: Real-time economic model proving ₹1.8+ Crores in annual savings across BAIF's 12 regional centers.
+
+---
+
+**Q48. How do you handle hardware constraints on low-end NGO laptops during a live presentation?**
+
+We have triple-layered hardware resilience:
+1. **faster-Whisper (CTranslate2 INT8)** + Silero VAD runs 4-8x faster on basic CPUs.
+2. **Piper TTS (ONNX)** generates natural speech in ~0.1 seconds per sentence on CPU.
+3. **Resource Saver Mode & Thread Throttling** ensures 16GB laptops never freeze or swap to disk.
+4. **1-Click Realistic Agricultural Demo Presets** allow instant 30-second live demonstrations during strict time-boxed jury presentations.
+
+---
+
+**Q49. How does Translation Memory improve accuracy over time?**
+
+When a bilingual reviewer edits an amber-flagged segment in the Review Queue and approves it, the correction is saved directly to SQLite with `confidence=0.92` and tagged with the `agriculture` domain. The next time that sentence or advisory appears, it resolves from the cache in <1 millisecond with zero model compute, building a permanent, proprietary BAIF language asset.
+
+---
+
 ## CLOSING STATEMENT FOR PANEL
 
 > VaaniSetu is not a research prototype. It is a production-ready system that a BAIF IT administrator can install today, that a BAIF training officer can use immediately without training, and that a programme manager can use to generate donor reports tomorrow.

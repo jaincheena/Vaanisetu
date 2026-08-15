@@ -18,20 +18,29 @@
 
 ## Submitting a Job — Step by Step
 
-1. **Open** `http://localhost:8765` in any browser
-2. **Login** with the provided office credentials
+1. **Open** `http://localhost:8765` in any browser on the office WiFi network
+2. **Login** with the provided office credentials (default: `admin` / `baif2026`)
 3. Click **Upload** in the sidebar
-4. **Choose mode:**
-   - *Translate Content* — for BAIF training videos/audio
-   - *Reverse Bridge* — for farmer audio recordings
-4. **Select source language** (what language the file is in)
-5. **Click language chips** to select target languages (you can pick multiple)
-6. **(Optional) Toggle Resource Saver Mode** if your PC is slow
-6b. **(New) Choose Quality Mode:** Select ⚡ Draft for fast preview (text+SRT+audio in minutes) or 🎬 Full Quality for complete outputs including dubbed video (default)
-7. **Drag your file** into the upload zone (or click to browse)
-8. Click **Start Translation**
-8. Watch the **progress bar** — 7 stages take 2–60 minutes (Draft mode: 2–10 min; Full mode: 10–60 min) depending on file length
-9. When done, **download the ZIP** which contains all output files
+4. **(Optional) Select a 1-Click Preset:** Click any of the 3 built-in demo scenarios (Crop Disease Alert, Dairy Veterinary Advisory, Farmer Voice Query) to auto-fill text, languages, and settings instantly.
+5. **Choose Mode:**
+   - *HQ Advisory → Farmer Media* — for BAIF training videos/audio/documents
+   - *Farmer Voice → HQ English Bridge* — for farmer field audio recordings
+6. **Select Input Type:**
+   - *📁 File Upload* — Drag & drop `.mp4`, `.mp3`, `.docx`, `.pdf`, or `.csv`
+   - *📝 Text / Script* — Type or paste advisory text
+   - *🎙️ Record Mic* — Record live farmer audio directly from your microphone
+7. **Language Settings:**
+   - Source: Auto-Detect (Whisper AI) or specific language
+   - Target: Select from verified active Indic languages (Hindi, Marathi, Gujarati, Bengali, Kannada, English)
+8. **Select Output Formats (Optional):** Expand "Output Formats" to select only the files you need (e.g. only Text & MP3 to skip heavy video rendering).
+9. **Choose Quality Mode:** Select ⚡ Draft Mode for fast turnaround (30 sec–2 min) or 🎬 Full Quality Mode for video dubbing & WhatsApp chunking.
+10. Click **🚀 Start AI Localization**
+11. **Live Result Studio:** Once complete, use the interactive tabs to:
+    - 🎧 Listen to translated voice playback in the browser
+    - 📄 Compare source and translated transcripts side-by-side
+    - 💬 Preview the WhatsApp advisory message
+    - 📞 Test the 8kHz IVR phone broadcast
+    - ⬇️ Download individual files or the complete ZIP package
 
 ---
 

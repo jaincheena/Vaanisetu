@@ -115,9 +115,34 @@ If the progress bar has been stuck on the same stage for more than 30 minutes, c
 
 ---
 
-**Q: Can two people submit jobs at the same time?**
+**Q: How does the system match the speaker's voice gender?**
 
-Yes — both jobs are accepted and queued. The server dynamically allocates background workers based on computer RAM and physical CPU cores (running jobs concurrently on 16GB+ systems, or processing serially on low-memory laptops). You can see the active jobs and queue position in the top banner.
+VaaniSetu uses pitch analysis (`librosa`) to detect the speaker's vocal frequency in the original recording:
+- **Male Speaker** (fundamental frequency < 165Hz) → Synthesizes speech using a natural male voice profile.
+- **Female Speaker** (fundamental frequency ≥ 165Hz) → Synthesizes speech using a female voice profile.
+In **Full Quality Mode**, the system extracts a 15-second audio reference clip to clone the speaker's tone using Coqui XTTS.
+
+---
+
+**Q: Can I record voice directly into the application without uploading a file?**
+
+Yes! On the **Upload** page, click the **"🎙️ Record Mic"** tab. Click **"Start Recording"**, speak your advisory or query, and click **"Stop"**. The audio clip will be automatically processed by the pipeline.
+
+---
+
+**Q: Can I choose which output files to generate so it runs faster?**
+
+Yes! Click **"Output Formats"** on the Upload page. You can uncheck heavy video files (like dubbed MP4s) and generate only Text (.txt), Subtitles (.srt), and Audio (.mp3). This saves disk space and finishes much faster on basic laptops.
+
+---
+
+**Q: Can I listen to the translated audio and check WhatsApp previews directly in the browser?**
+
+Yes! When a job completes, the **Interactive Result Studio** appears on the screen. You can:
+1. **🎧 In-Browser Audio Player**: Click play to hear the translated audio immediately without extracting any ZIP files.
+2. **📄 Bilingual Transcript**: Read the original vs translated text side-by-side.
+3. **💬 WhatsApp Simulator**: See how the bulletin message and voice note look on a farmer's phone.
+4. **📞 Feature Phone IVR Simulator**: Test how the 8kHz audio sounds on a basic keypad phone.
 
 ---
 
