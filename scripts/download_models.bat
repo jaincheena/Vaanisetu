@@ -2,90 +2,53 @@
 setlocal
 
 set MODELS=C:\VaaniSetu\models
+if not exist "%MODELS%" mkdir "%MODELS%"
 
 echo.
 echo ========================================
 echo   VaaniSetu - Download AI Models
 echo ========================================
-echo   This will download approximately 6-8 GB.
-echo   Including XTTS and Piper TTS voices.
+echo   This will download offline AI models:
+echo   - Whisper Speech-to-Text
+echo   - IndicTrans2 EN-Indic & Indic-EN
+echo   - Piper Indic ONNX Voices
+echo   - Coqui XTTS v2 Voice Cloning (Optional)
 echo ========================================
 echo.
 
-REM =====================================================
-REM Hugging Face Token (replace with your actual token)
-REM =====================================================
 set HF_TOKEN=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
 set HUGGING_FACE_HUB_TOKEN=%HF_TOKEN%
 
-
-
-if %errorlevel% neq 0 (
-    echo.
-    echo [ERROR] Hugging Face login failed.
-    pause
-    exit /b 1
-)
-
-REM =====================================================
-REM Whisper
-REM =====================================================
-
-echo.
 echo [1/4] Downloading Whisper...
-
-python -c "import whisper; whisper.load_model('large-v3-turbo', download_root=r'%MODELS%\whisper'); print('Whisper OK')"
-
+python scripts\download_helper.py whisper
 if %errorlevel% neq 0 (
     echo [ERROR] Whisper download failed.
     pause
     exit /b 1
 )
 
-REM =====================================================
-REM IndicTrans2 EN -> INDIC
-REM =====================================================
-
 echo.
 echo [2/4] Downloading IndicTrans2 en-indic...
-
-python -c "from transformers import AutoTokenizer,AutoModelForSeq2SeqLM; model='ai4bharat/indictrans2-en-indic-dist-200M'; tokenizer=AutoTokenizer.from_pretrained(model,trust_remote_code=True,token='%HF_TOKEN%'); model_obj=AutoModelForSeq2SeqLM.from_pretrained(model,trust_remote_code=True,token='%HF_TOKEN%'); model_obj.save_pretrained(r'%MODELS%\indictrans2-en-indic'); tokenizer.save_pretrained(r'%MODELS%\indictrans2-en-indic'); print('en-indic OK')"
-
+python scripts\download_helper.py en-indic
 if %errorlevel% neq 0 (
     echo [ERROR] IndicTrans2 en-indic download failed.
     pause
     exit /b 1
 )
 
-REM =====================================================
-REM IndicTrans2 INDIC -> EN
-REM =====================================================
-
 echo.
 echo [3/4] Downloading IndicTrans2 indic-en...
-
-python -c "from transformers import AutoTokenizer,AutoModelForSeq2SeqLM; model='ai4bharat/indictrans2-indic-en-dist-200M'; tokenizer=AutoTokenizer.from_pretrained(model,trust_remote_code=True,token='%HF_TOKEN%'); model_obj=AutoModelForSeq2SeqLM.from_pretrained(model,trust_remote_code=True,token='%HF_TOKEN%'); model_obj.save_pretrained(r'%MODELS%\indictrans2-indic-en'); tokenizer.save_pretrained(r'%MODELS%\indictrans2-indic-en'); print('indic-en OK')"
-
+python scripts\download_helper.py indic-en
 if %errorlevel% neq 0 (
     echo [ERROR] IndicTrans2 indic-en download failed.
     pause
     exit /b 1
 )
 
-REM =====================================================
-REM XTTS
-REM =====================================================
-
 echo.
-echo [4/4] Downloading XTTS...
-
-python -c "from TTS.utils.manage import ModelManager; mm = ModelManager(models_file=None, output_prefix=r'%MODELS%'); model_path, _, _ = mm.download_model('tts_models/multilingual/multi-dataset/xtts_v2'); mm.unpack_model(model_path); print('XTTS OK')"
-
-if %errorlevel% neq 0 (
-    echo [ERROR] XTTS download failed.
-    pause
-    exit /b 1
-)
+echo [4/4] Downloading Piper TTS & XTTS Voice Models...
+python scripts\download_helper.py piper
+python scripts\download_helper.py tts
 
 echo.
 echo ========================================
