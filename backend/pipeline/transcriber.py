@@ -40,12 +40,15 @@ def transcribe(
 
     logger.info(f"Transcribing {wav_path} with Whisper (lang={whisper_lang or 'auto'}) ...")
 
-    # OpenAI Whisper API
-    result = registry.whisper_model.transcribe(
-        wav_path,
-        language=whisper_lang,
-        task=task,
-    )
+    # One shared Whisper instance across concurrent jobs — serialize it.
+    # See backend/pipeline/locks.py.
+    from backend.pipeline.locks import TRANSCRIBE_LOCK
+    with TRANSCRIBE_LOCK:
+        result = registry.whisper_model.transcribe(
+            wav_path,
+            language=whisper_lang,
+            task=task,
+        )
 
     detected_language = result.get("language", whisper_lang or "en")
 

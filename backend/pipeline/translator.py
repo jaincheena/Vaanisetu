@@ -66,6 +66,58 @@ def _postprocess_text(text: str, protected_items: list[str]) -> str:
     return " ".join(processed_text.split()).strip()
 
 
+def _run_inference(tokenizer, model, pending_texts: list[str], src_code: str, target_lang_code: str, max_length: int = 256):
+    """
+    Tokenise → generate → decode on ONE model instance.
+    Caller owns exclusivity: holds replica from pool or holds TRANSLATE_LOCK.
+    """
+    import torch
+
+    formatted_texts = [
+        f"{src_code} {target_lang_code} {text}"
+        for text in pending_texts
+    ]
+
+    inputs = tokenizer(
+        formatted_texts,
+        return_tensors="pt",
+        padding=True,
+        truncation=True,
+        max_length=max_length,
+    )
+
+    bos_id = getattr(tokenizer, "lang_code_to_id", {}).get(target_lang_code)
+    gen_kwargs = {
+        "num_beams": 4,
+        "max_length": max_length,
+        "output_scores": True,
+        "return_dict_in_generate": True,
+        "use_cache": False,
+    }
+    if bos_id is not None:
+        gen_kwargs["forced_bos_token_id"] = bos_id
+
+    with torch.no_grad():
+        outputs = model.generate(
+            **inputs,
+            **gen_kwargs,
+        )
+
+    if hasattr(tokenizer, "_switch_to_target_mode"):
+        tokenizer._switch_to_target_mode()
+
+    decoded = tokenizer.batch_decode(
+        outputs.sequences,
+        skip_special_tokens=True,
+        clean_up_tokenization_spaces=False,
+    )
+
+    if hasattr(tokenizer, "_switch_to_input_mode"):
+        tokenizer._switch_to_input_mode()
+
+    return decoded, outputs
+
+
 def _fallback_translate_segments(segments: list[dict], target_lang_name: str) -> list[dict]:
     """Gracefully return source text when the IndicTrans2 model is unavailable."""
     return [
@@ -101,20 +153,24 @@ def translate_segments(
     Returns:
         list of dicts: {text, start, end, translated, confidence, level, from_cache}
     """
-    import torch
     from backend.models.registry import registry
+    from backend.models.pool import get_pool
     from backend.services.translation_memory import lookup, store
     from backend.services.confidence import batch_confidence, confidence_level
     from backend.config import BATCH_SIZE, ENGLISH_CODE, LANG_CODES, TRANSLATION_MAX_LENGTH
 
-    tokenizer, model = registry.get_indic_pair(source_lang)
-    if tokenizer is None or model is None:
-        logger.warning(
-            "IndicTrans2 model unavailable for %s -> %s; using source-text fallback",
-            source_lang,
-            target_lang_name,
-        )
-        return _fallback_translate_segments(segments, target_lang_name)
+    pool = get_pool("translate_en_indic") if source_lang == "English" else None
+    if pool is None:
+        tokenizer, model = registry.get_indic_pair(source_lang)
+        if tokenizer is None or model is None:
+            logger.warning(
+                "IndicTrans2 model unavailable for %s -> %s; using source-text fallback",
+                source_lang,
+                target_lang_name,
+            )
+            return _fallback_translate_segments(segments, target_lang_name)
+    else:
+        tokenizer, model = None, None
 
     src_code = ENGLISH_CODE if source_lang == "English" else LANG_CODES.get(source_lang, "hin_Deva")
 
@@ -160,47 +216,17 @@ def translate_segments(
                 pending_texts.append(processed_text)
                 replacements_map[i] = protected_items
 
-            logger.info(f"Tokenizer class: {tokenizer.__class__}")
-            logger.info(f"Tokenizer type: {type(tokenizer)}")
-            formatted_texts = [
-                f"{src_code} {target_lang_code} {text}"
-                for text in pending_texts
-            ]
-
-            inputs = tokenizer(
-                formatted_texts,
-                return_tensors="pt",
-                padding=True,
-                truncation=True,
-                max_length=TRANSLATION_MAX_LENGTH,
-            )
-
-            bos_id = getattr(tokenizer, "lang_code_to_id", {}).get(target_lang_code)
-            gen_kwargs = {
-                "num_beams": 4,
-                "max_length": TRANSLATION_MAX_LENGTH,
-                "output_scores": True,
-                "return_dict_in_generate": True,
-                "use_cache": False,
-            }
-            if bos_id is not None:
-                gen_kwargs["forced_bos_token_id"] = bos_id
-
-            with torch.no_grad():
-                outputs = model.generate(
-                    **inputs,
-                    **gen_kwargs,
-                )
-
-            tokenizer._switch_to_target_mode()
-
-            decoded = tokenizer.batch_decode(
-                outputs.sequences,
-                skip_special_tokens=True,
-                clean_up_tokenization_spaces=False,
-            )
-
-            tokenizer._switch_to_input_mode()
+            if pool is not None:
+                with pool.acquire() as (tok, mdl):
+                    decoded, outputs = _run_inference(
+                        tok, mdl, pending_texts, src_code, target_lang_code, TRANSLATION_MAX_LENGTH
+                    )
+            else:
+                from backend.pipeline.locks import TRANSLATE_LOCK
+                with TRANSLATE_LOCK:
+                    decoded, outputs = _run_inference(
+                        tokenizer, model, pending_texts, src_code, target_lang_code, TRANSLATION_MAX_LENGTH
+                    )
 
             scores_list = list(outputs.scores) if outputs.scores else []
             confs = batch_confidence(scores_list, outputs.sequences)

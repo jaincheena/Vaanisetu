@@ -179,14 +179,22 @@ class ModelRegistry:
         self._indic_en_loaded = False
         self._tts_loaded = False
 
+        # Guards on-demand indic→en load so concurrent Reverse Bridge jobs don't collide
+        self._load_lock = threading.Lock()
+
     # ------------------------------------------------------------------
     # Public load method (called once at FastAPI startup)
     # ------------------------------------------------------------------
     def load_all(self) -> None:
         """Load all models. Called from FastAPI lifespan."""
+        from backend.config import EAGER_LOAD_REVERSE_BRIDGE
+
         self._load_whisper()
         self._load_en_indic()
-        self._load_indic_en()
+        if EAGER_LOAD_REVERSE_BRIDGE:
+            self._load_indic_en()
+        else:
+            logger.info("Reverse Bridge (indic→en) deferred until first use")
         self._load_tts()
 
     # ------------------------------------------------------------------
@@ -331,6 +339,38 @@ class ModelRegistry:
             logger.warning(f"XTTS failed to load (will fallback to gTTS if needed): {e}")
 
     # ------------------------------------------------------------------
+    # Replica factories (see backend/models/pool.py)
+    # ------------------------------------------------------------------
+    def make_en_indic_replica(self):
+        """A fresh (tokenizer, model) pair for en→indic, or None on failure."""
+        from backend.config import INDIC_EN_INDIC_PATH, INDIC_EN_INDIC_HF
+        tokenizer, model = self._load_indic_model(
+            "en-indic replica", INDIC_EN_INDIC_PATH, INDIC_EN_INDIC_HF
+        )
+        return (tokenizer, model) if model is not None else None
+
+    def make_tts_replica(self):
+        """A fresh Coqui TTS instance, or None if TTS is unavailable."""
+        from backend.config import COQUI_TTS_MODEL_DIR, COQUI_TTS_MODEL_NAME
+        try:
+            from TTS.api import TTS
+            tts_dir = Path(COQUI_TTS_MODEL_DIR)
+            if tts_dir.exists():
+                return TTS(
+                    model_path=str(tts_dir),
+                    config_path=str(tts_dir / "config.json"),
+                    progress_bar=False,
+                    gpu=False,
+                )
+            return TTS(
+                model_name=COQUI_TTS_MODEL_NAME,
+                gpu=False,
+            )
+        except Exception as e:
+            logger.warning(f"TTS replica load failed: {e}")
+            return None
+
+    # ------------------------------------------------------------------
     # Status helpers
     # ------------------------------------------------------------------
     @property
@@ -344,9 +384,15 @@ class ModelRegistry:
 
     def get_indic_pair(self, source_lang: str):
         """Return (tokenizer, model) for correct direction."""
-        from backend.config import LANG_CODES
         if source_lang == "English":
             return self.en_indic_tokenizer, self.en_indic_model
+
+        if not self._indic_en_loaded:
+            with self._load_lock:
+                if not self._indic_en_loaded:
+                    logger.info("Reverse Bridge selected — loading indic→en now")
+                    self._load_indic_en()
+
         return self.indic_en_tokenizer, self.indic_en_model
 
 

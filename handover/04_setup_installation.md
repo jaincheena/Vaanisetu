@@ -22,28 +22,37 @@ Double-click `scripts\check_hardware.bat` and verify all items show `[PASS]`.
 Double-click `scripts\setup.bat`
 
 This will:
-1. Create `C:\VaaniSetu\` directories
-2. Install all Python packages (`pip install -r requirements.txt`)
-3. Install JS packages and build the React interface
+1. Create `C:\VaaniSetu\` base directories (`models`, `workspace`, `outputs`, `uploads`)
+2. Install all Python packages (`pip install -r requirements.txt`) including `bcrypt<4.1` pin
+3. Install JS packages and build the optimized React interface (`frontend\dist`)
 
 *Expected time: 15–30 minutes (PyTorch download is large)*
 
 ### Step 3 — Download AI Models
-Double-click `scripts\download_models.bat`
+Double-click `scripts\download_models.bat` (or use `python scripts/download_helper.py` with your HF Token if using gated checkpoints).
 
 This downloads approximately **6–8 GB**:
 - Whisper large-v3-turbo (~3 GB)
 - IndicTrans2 en-indic (~1.5 GB)
-- IndicTrans2 indic-en (~1.5 GB)
+- IndicTrans2 indic-en (~1.5 GB, loaded on-demand during Reverse Bridge)
+- Coqui XTTS v2 (~2.5 GB)
 
 *Keep internet connected until this completes. Do not close the window.*
+
+### Step 3.5 — Validate Installation (Optional)
+Run the automated validation suites:
+```cmd
+python tests_concurrency.py
+python tests_mock.py
+```
+Both should report `RESULT: PASS`.
 
 ### Step 4 — First Launch
 Double-click `scripts\start_vaanisetu.bat`
 
-The server will take **2–5 minutes** on first launch while models load into RAM. When ready, your browser will open automatically to the VaaniSetu interface.
+The server will take **1–3 minutes** on first launch while models load and replica pools are sized according to available RAM. When ready, your browser will open automatically to `http://localhost:8765`.
 
-**Verify:** The top banner shows "Models: Ready" in green.
+**Verify:** The top banner shows "Models: Ready" in green and display time is synchronized in IST.
 
 ---
 

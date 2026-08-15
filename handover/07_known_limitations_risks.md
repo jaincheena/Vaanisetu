@@ -6,14 +6,14 @@
 
 | Limitation | Detail | Workaround |
 |-----------|--------|-----------|
-| **Speed on long files** | A 60-minute video takes ~25–40 min on CPU | Schedule jobs overnight; shorter clips translate faster |
-| **One job at a time** | Only one file processes at a time; others queue | Plan submissions in advance; check queue depth in top banner |
-| **No image/PDF translation** | Cannot read text from scanned PDFs or images | Export text from PDF first, upload as .txt |
-| **Dialect support** | AI doesn't distinguish between dialects (e.g. Dakhni Urdu vs. standard Urdu) | Use standard form of language; reviewers can adjust |
-| **TTS quality varies** | AI voice sounds robotic for some languages (Manipuri, Dogri, Santhali) | Use TTS output as reference only; produce human voice-over for final content |
-| **RAM ceiling** | Cannot run on <16 GB RAM | Use **Resource Saver Mode** or close other applications during processing |
-| **No internet recovery** | Models cannot update automatically offline | Re-run `download_models.bat` on an internet-connected day if model quality is needed |
-| **SQLite concurrency** | Database has WAL mode enabled but single-writer bottleneck | Not an issue at NGO scale (<100 jobs/day); upgrade DB if volume increases |
+| **Speed on long video files** | A 60-minute video takes ~20–35 min on CPU | Stages 4 & 5 overlap to accelerate completion; schedule batch runs overnight |
+| **Concurrency bounded by RAM** | Low-memory PCs (4GB–8GB) run jobs serially | System dynamically allocates workers; on 16GB+ multiple jobs/stages run in parallel |
+| **Scanned/Image OCR** | Text-based PDFs, DOCX, CSV, TXT are supported; scanned image PDFs are not | For scanned documents, OCR into text/DOCX before uploading |
+| **Dialect support** | AI translates standard forms rather than local sub-dialects | Use standard regional language; reviewers adjust dialect nuances in Review Queue |
+| **TTS voice naturalness** | Rare languages without XTTS fall back to gTTS or standard vocoders | Use TTS output as rapid reference; produce human voice-over for broadcast if needed |
+| **Hardware ceiling on low RAM** | Needs at least 4GB RAM to run serially, 16GB for full replica pools | Use **Resource Saver Mode** or run on 16GB+ office desktops |
+| **Offline model updates** | Models cannot update automatically without internet | Re-run `scripts\download_models.bat` during internet maintenance windows |
+| **Database concurrency** | SQLite WAL mode with 30s timeout handles multi-worker traffic | Built-in WAL and 30s lock timeout prevents database lock issues |
 
 ---
 

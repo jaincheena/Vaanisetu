@@ -78,10 +78,8 @@ After training, the admin should be able to:
 
 ---
 
-## Things to Reinforce in First Month
-
 1. **Never skip the Review Queue** — amber segments must be reviewed before distribution
-2. **Check disk weekly** — it fills up faster than expected with video outputs
+2. **Check disk periodically** — automatic workspace cleanup is active, but outputs accumulate over time
 3. **The system gets smarter** — Translation Memory improves the more it is used and corrected
-4. **One job at a time is intentional** — submitting multiple files just queues them safely
+4. **Queue management is RAM-aware** — submitting multiple files schedules them safely across worker pools
 5. **No internet needed** — reassure staff that the system works entirely offline

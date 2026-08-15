@@ -35,22 +35,42 @@ def write_bilingual_docx(
     source_lang: str,
     target_lang: str,
     out_dir: Path,
+    farmer_context: Optional[str] = None,
+    mode: str = "translate",
 ) -> str:
     from docx import Document
-    from docx.shared import Pt, RGBColor
+    from docx.shared import Pt, RGBColor, Inches
     from docx.enum.text import WD_ALIGN_PARAGRAPH
 
     doc = Document()
-    title = doc.add_heading(f"VaaniSetu — {source_lang} ↔ {target_lang}", level=1)
-    title.runs[0].font.color.rgb = RGBColor(27, 67, 50)
-    doc.add_paragraph(f"Generated: {datetime.now().strftime('%d %b %Y, %H:%M')}")
-    doc.add_paragraph("")
+    
+    if mode == "reverse_bridge" or (farmer_context and farmer_context.strip()):
+        title = doc.add_heading("BAIF Development Research Foundation — Farmer Query Advisory", level=1)
+        title.runs[0].font.color.rgb = RGBColor(27, 67, 50)
+        
+        doc.add_paragraph(f"Operational Mode: Reverse Bridge (Field Recording Translation)")
+        doc.add_paragraph(f"Languages: {source_lang} (Farmer Voice) ➔ {target_lang} (HQ Translation)")
+        doc.add_paragraph(f"Generated on: {datetime.now().strftime('%d %b %Y, %H:%M')} (IST)")
+        
+        if farmer_context and farmer_context.strip():
+            doc.add_heading("Field Recording & Farmer Context", level=2)
+            ctx_p = doc.add_paragraph(farmer_context.strip())
+            ctx_p.paragraph_format.left_indent = Inches(0.2)
+            if ctx_p.runs:
+                ctx_p.runs[0].font.italic = True
+                
+        doc.add_heading("Spoken Query & Translation", level=2)
+    else:
+        title = doc.add_heading(f"VaaniSetu — {source_lang} ↔ {target_lang}", level=1)
+        title.runs[0].font.color.rgb = RGBColor(27, 67, 50)
+        doc.add_paragraph(f"Generated: {datetime.now().strftime('%d %b %Y, %H:%M')}")
+        doc.add_paragraph("")
 
     table = doc.add_table(rows=1, cols=2)
     table.style = "Light Grid"
     hdr = table.rows[0].cells
-    hdr[0].text = source_lang
-    hdr[1].text = target_lang
+    hdr[0].text = f"{source_lang} (Original)"
+    hdr[1].text = f"{target_lang} (Translation)"
     for cell in hdr:
         cell.paragraphs[0].runs[0].font.bold = True
         cell.paragraphs[0].runs[0].font.color.rgb = RGBColor(82, 183, 136)
@@ -59,6 +79,16 @@ def write_bilingual_docx(
         row = table.add_row().cells
         row[0].text = seg.get("text", "")
         row[1].text = seg.get("translated", "")
+
+    if mode == "reverse_bridge" or (farmer_context and farmer_context.strip()):
+        doc.add_paragraph("")
+        doc.add_heading("HQ Expert / Agronomist Advisory & Action Plan", level=2)
+        p = doc.add_paragraph(
+            "Diagnosis / Recommendation for Field Worker:\n\n"
+            "_________________________________________________________________________________\n\n"
+            "_________________________________________________________________________________\n\n"
+            "Signature / Reviewed By: ___________________________   Date: ____________________"
+        )
 
     path = str(out_dir / f"bilingual_{target_lang}.docx")
     doc.save(path)

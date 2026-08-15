@@ -167,23 +167,64 @@ VaaniSetu processes multimedia (video/audio) and document/text translations thro
 - **Why**: Ensures Windows File Explorer file picker shows `.mp4`, `.mkv`, `.avi`, `.mov`, `.webm` video files by default when browsing.
 
 #### 10. `requirements.txt`
-- **Changes Implemented**: Added `gTTS>=2.5.0` and specified `coqui-tts>=0.27.0; python_version < "3.12"`.
-- **Why**: Declares TTS fallback dependency.
+- **Changes Implemented**: Added `gTTS>=2.5.0`, `psutil>=5.9.0`, and pinned `bcrypt<4.1`.
+- **Why**: Supports TTS fallback, hardware resource discovery, and passlib compatibility.
+
+---
+
+### 📁 Category F: Parallel Processing & RAM-Aware Concurrency
+
+#### 1. `backend/utils/resources.py` (NEW)
+- **Functions Added**: `available_ram_gb()`, `physical_cores()`, `cpu_budget()`, `plan(kind, share, resource_saver)`, `preflight()`
+- **Purpose**: Dynamically calculates worker concurrency bounds based on available free RAM and physical CPU cores. Ensures low-RAM machines (4GB) run single-worker serial pipelines while high-RAM systems (16GB–128GB) spawn multiple jobs and parallel per-language generation threads.
+- **Resource Saver**: Instantly forces worker widths to 1 when enabled by the user.
+
+#### 2. `backend/pipeline/locks.py` (NEW)
+- **Mutexes Added**: `TRANSLATE_LOCK`, `TTS_LOCK`, `TRANSCRIBE_LOCK`
+- **Purpose**: Thread-safety locks ensuring single-instance AI models (Whisper, IndicTrans2 without replica pools, XTTS) are never concurrently invoked across OS threads, preventing PyTorch tensor corruption and segfaults.
+
+#### 3. `backend/models/pool.py` (NEW)
+- **Classes / Functions Added**: `ModelPool`, `plan_replicas()`, `init_pools()`, `get_pool()`
+- **Purpose**: Implements a checked-out replica pool using Python thread-safe `Queue` and context manager `with pool.acquire() as model:`. Allows multi-threaded translation and TTS generation when excess RAM allows multiple model replicas.
+
+#### 4. `backend/pipeline/processor.py`
+- **Functions Modified**: `_stage_translate_and_generate()`, `_generate_for_language()`, `run_pipeline()`
+- **Issue**: Stage 5 (output generation) previously waited for all 22 languages to finish translation before starting any audio/video rendering.
+- **Changes Implemented**:
+  Pipelined Stage 4 and Stage 5: As each language finishes translation, its full generation tasks (dubbed MP4, captioned MP4, TTS MP3, IVR WAV, WhatsApp chunks, DOCX) are immediately dispatched to a `ThreadPoolExecutor`. Translating language $N+1$ overlaps with encoding language $N$.
+
+#### 5. `backend/pipeline/job_queue.py` & `backend/pipeline/queue.py`
+- **Functions Added / Modified**: `start_workers()`, `get_current_jobs()`, `get_concurrency()`, `get_queue_depth()`
+- **Purpose**: Replaced static single-worker queue with dynamic RAM-sized worker pool. `queue.py` acts as backward-compatibility forwarder.
+
+#### 6. `backend/utils/sse.py`
+- **Functions Added**: `bind_loop()`, `publish_threadsafe()`
+- **Purpose**: Allows background thread pool workers to safely publish real-time SSE progress events into the FastAPI event loop using `asyncio.run_coroutine_threadsafe`.
+
+#### 7. `backend/database.py`
+- **Changes**: Added `timeout=30.0` and `PRAGMA busy_timeout=30000`.
+- **Why**: Prevents `sqlite3.OperationalError: database is locked` during concurrent multi-worker job execution and reviews.
 
 ---
 
 ## 🧪 3. Verification & Testing Tools
 
-### 1. Mock Pipeline Test (`tests_mock.py`)
+### 1. Concurrency & Sizing Test Suite (`tests_concurrency.py`)
+Runs 40 automated checks verifying stage pipelining, resource planning across machine tiers (4GB–128GB), replica checkout pools, and multi-worker job queues:
+```powershell
+.\venv\Scripts\python.exe tests_concurrency.py
+```
+
+### 2. Mock Pipeline Test (`tests_mock.py`)
 Runs an offline mock integration test in under 1 second without loading AI models or running long FFmpeg encodings:
 ```powershell
 .\venv\Scripts\python.exe tests_mock.py
 ```
 
-### 2. End-to-End Video Translation Test (`test_video.py`)
-Runs a full E2E video translation and dubbing test:
+### 3. Model Fallback Unit Test (`tests/test_translator_fallback.py`)
+Verifies graceful source-text fallback and red confidence rating when translation models are unavailable:
 ```powershell
-.\venv\Scripts\python.exe test_video.py
+.\venv\Scripts\python.exe tests/test_translator_fallback.py
 ```
 
 ---

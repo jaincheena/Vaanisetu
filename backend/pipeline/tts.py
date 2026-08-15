@@ -184,6 +184,9 @@ def _generate_coqui_tts_for_segments(
     output_path: str,
 ) -> Optional[str]:
     from backend.models.registry import registry
+    from backend.models.pool import get_pool
+
+    pool = get_pool("tts")
 
     temp_dir = None
     try:
@@ -197,23 +200,35 @@ def _generate_coqui_tts_for_segments(
             Path(__file__).resolve().parent.parent / "assets" / "default_speaker.wav"
         )
 
-        for i, seg in enumerate(segments):
-            text = seg.get("translated", "").strip()
-            if not text:
-                continue
+        def _synthesize_chunks(model_instance):
+            nonlocal failed_chunks
+            for i, seg in enumerate(segments):
+                text = seg.get("translated", "").strip()
+                if not text:
+                    continue
 
-            pieces = split_text(text)
-            for j, piece in enumerate(pieces):
-                chunk_path = os.path.join(temp_dir, f"chunk_{i:04d}_{j:02d}.wav")
-                try:
-                    registry.tts_model.tts_to_file(
-                        text=piece, language=lang_code,
-                        speaker_wav=str(speaker_wav), file_path=chunk_path,
-                    )
-                    chunk_wav_paths.append(chunk_path)
-                except Exception as e:
-                    logger.warning(f"Coqui TTS piece {j} of seg {i} failed: {e}")
-                    failed_chunks += 1
+                pieces = split_text(text)
+                for j, piece in enumerate(pieces):
+                    chunk_path = os.path.join(temp_dir, f"chunk_{i:04d}_{j:02d}.wav")
+                    try:
+                        model_instance.tts_to_file(
+                            text=piece, language=lang_code,
+                            speaker_wav=str(speaker_wav), file_path=chunk_path,
+                        )
+                        chunk_wav_paths.append(chunk_path)
+                    except Exception as e:
+                        logger.warning(f"Coqui TTS piece {j} of seg {i} failed: {e}")
+                        failed_chunks += 1
+
+        if pool is not None:
+            # Check out a replica — one per concurrent language, no waiting
+            with pool.acquire() as model:
+                _synthesize_chunks(model)
+        else:
+            # Single shared instance — serialize
+            from backend.pipeline.locks import TTS_LOCK
+            with TTS_LOCK:
+                _synthesize_chunks(registry.tts_model)
 
         if not chunk_wav_paths:
             return None
@@ -231,3 +246,15 @@ def _generate_coqui_tts_for_segments(
     finally:
         if temp_dir and os.path.exists(temp_dir):
             shutil.rmtree(temp_dir, ignore_errors=True)
+
+
+def generate_tts(
+    text: str,
+    language_name: str,
+    output_path: str,
+) -> Optional[str]:
+    """Single-text TTS helper for backward compatibility."""
+    return generate_tts_for_segments(
+        [{"translated": text}], language_name, output_path
+    )
+

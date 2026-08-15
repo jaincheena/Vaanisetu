@@ -58,11 +58,18 @@ async def submit_job(
     
     file_size = 0
     size_limits = {
-        ".mp3": 50 * 1024 * 1024,
-        ".ogg": 50 * 1024 * 1024,
-        ".wav": 150 * 1024 * 1024,
+        ".mp3": 100 * 1024 * 1024,
+        ".ogg": 100 * 1024 * 1024,
+        ".m4a": 100 * 1024 * 1024,
+        ".aac": 100 * 1024 * 1024,
+        ".opus": 100 * 1024 * 1024,
+        ".3gp": 100 * 1024 * 1024,
+        ".amr": 100 * 1024 * 1024,
+        ".caf": 100 * 1024 * 1024,
+        ".wma": 100 * 1024 * 1024,
+        ".wav": 200 * 1024 * 1024,
     }
-    max_allowed = size_limits.get(suffix, 200 * 1024 * 1024)
+    max_allowed = size_limits.get(suffix, 2048 * 1024 * 1024)
 
     with open(upload_path, "wb") as f_out:
         while chunk := await file.read(65536):
@@ -94,7 +101,7 @@ async def submit_job(
                         pass
 
     # --- Determine input type ---
-    input_type = "text" if suffix == ".txt" else (
+    input_type = "text" if suffix in {".txt", ".pdf", ".docx", ".csv"} else (
         "video" if suffix in {".mp4", ".mkv", ".avi", ".mov", ".webm"} else "audio"
     )
 
