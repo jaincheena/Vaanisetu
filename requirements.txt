@@ -9,6 +9,10 @@ aiofiles>=23.2.1
 sse-starlette>=2.1.0
 PyJWT>=2.8.0
 passlib[bcrypt]>=1.7.4
+# passlib 1.7.4 probes its bcrypt backend with a >72-byte password. bcrypt 4.1+
+# raises instead of truncating, so startup dies in seed_admin_user() with
+# "password cannot be longer than 72 bytes". Pin until passlib ships a fix.
+bcrypt<4.1
 
 # --- AI Models ---
 openai-whisper>=20240930
