@@ -1,16 +1,24 @@
 """
 VaaniSetu — Async Job Queue
-FIFO queue with a single background worker — one job at a time.
+FIFO queue drained by a RAM-sized pool of workers. Jobs beyond the pool's
+width wait their turn, so a batch of N runs together and the rest follow.
 """
 
 import asyncio
 import logging
+from concurrent.futures import ThreadPoolExecutor
 
 logger = logging.getLogger("vaanisetu.queue")
 
 _queue: asyncio.Queue = asyncio.Queue()
-_current_job_id: str | None = None
-_queue_lock = asyncio.Lock()
+
+# job_id → worker index, for /api/health. Dict ops are atomic under the GIL
+# and only the event loop mutates this, so no extra lock is needed.
+_running: dict[str, int] = {}
+
+_workers: list[asyncio.Task] = []
+_executor: ThreadPoolExecutor | None = None
+_concurrency: int = 1
 
 
 def get_queue_depth() -> int:
@@ -18,7 +26,16 @@ def get_queue_depth() -> int:
 
 
 def get_current_job() -> str | None:
-    return _current_job_id
+    """First running job — kept for backwards compatibility."""
+    return next(iter(_running), None)
+
+
+def get_current_jobs() -> list[str]:
+    return list(_running)
+
+
+def get_concurrency() -> int:
+    return _concurrency
 
 
 async def enqueue(job_id: str) -> None:
@@ -26,23 +43,49 @@ async def enqueue(job_id: str) -> None:
     logger.info(f"Job {job_id} enqueued. Queue depth: {_queue.qsize()}")
 
 
-async def worker() -> None:
-    """
-    Infinite loop consuming job IDs from the queue.
-    Called once at FastAPI startup as an asyncio background task.
-    """
-    global _current_job_id
-    logger.info("Job queue worker started")
+async def _worker(index: int) -> None:
+    """Consume job IDs forever. One of `_concurrency` such tasks."""
+    loop = asyncio.get_running_loop()
 
     while True:
         job_id = await _queue.get()
-        _current_job_id = job_id
-        logger.info(f"Processing job {job_id}")
+        _running[job_id] = index
+        logger.info(f"[worker {index}] processing job {job_id}")
         try:
             from backend.pipeline.processor import run_pipeline
-            await asyncio.get_event_loop().run_in_executor(None, run_pipeline, job_id)
+            await loop.run_in_executor(_executor, run_pipeline, job_id)
         except Exception as e:
-            logger.error(f"Job {job_id} failed with unhandled error: {e}", exc_info=True)
+            logger.error(
+                f"[worker {index}] job {job_id} failed with unhandled error: {e}",
+                exc_info=True,
+            )
         finally:
-            _current_job_id = None
+            _running.pop(job_id, None)
             _queue.task_done()
+
+
+async def start_workers() -> None:
+    """
+    Size the pool against free RAM and spawn the workers.
+
+    Called once at FastAPI startup. Sizing happens here — before any job has
+    allocated anything — so the reading reflects a genuinely idle machine.
+    """
+    global _executor, _concurrency
+
+    from backend.utils.resources import plan
+
+    _concurrency = plan("job")
+    _executor = ThreadPoolExecutor(
+        max_workers=_concurrency, thread_name_prefix="vaani-job"
+    )
+
+    for i in range(_concurrency):
+        _workers.append(asyncio.create_task(_worker(i)))
+
+    logger.info(f"Job queue started with {_concurrency} concurrent worker(s)")
+
+
+async def worker() -> None:
+    """Deprecated single-worker entry point — retained for older callers."""
+    await start_workers()

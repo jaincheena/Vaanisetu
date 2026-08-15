@@ -49,7 +49,7 @@ BAIF Staff                 VaaniSetu Server              Output
 Opens browser   ────────►  React UI (port 8765)
 Uploads file    ────────►  FastAPI validates it
                            ↓
-                           FIFO Queue (one job at a time)
+                           FIFO Queue (RAM-sized worker pool)
                            ↓
                      ┌─────────────────────┐
                      │  7-Stage Pipeline   │
@@ -106,7 +106,8 @@ Vaanisetu/
 │   │   └── schemas.py          ← Pydantic data models (request/response shapes)
 │   │
 │   ├── pipeline/               ← The core translation engine
-│   │   ├── queue.py            ← Async FIFO job queue (one job at a time)
+│   │   ├── queue.py            ← Async FIFO job queue (RAM-sized worker pool)
+│   │   ├── locks.py            ← Locks guarding the shared model singletons
 │   │   ├── processor.py        ← 7-stage orchestrator (the "main loop")
 │   │   ├── audio_extractor.py  ← FFmpeg wrapper (any format → 16kHz WAV)
 │   │   ├── transcriber.py      ← Whisper wrapper (WAV → text segments)
@@ -199,7 +200,7 @@ C:\VaaniSetu\
 ### Layer 2: Pipeline Engine
 **Location:** `backend/pipeline/` and `backend/services/`
 
-This is the brain. It processes one job at a time through 7 stages. The `processor.py` orchestrator calls each stage module in sequence. Stage results are communicated back to the browser via SSE events.
+This is the brain. It processes each job through 7 stages, with as many jobs in flight as free RAM allows. The `processor.py` orchestrator calls each stage module in order, except that translating and generating are overlapped (see Stage 4). Stage results are communicated back to the browser via SSE events.
 
 ### Layer 3: API Layer
 **Location:** `backend/routers/` and `backend/main.py`
@@ -258,10 +259,10 @@ For `.txt` inputs, lines are converted to fake segments (5-second intervals).
 
 ### Stage 4: Translating
 ```python
-# processor.py: _stage_translating()
+# processor.py: _stage_translate_and_generate()
 # Calls: translator.py: translate_segments()
 ```
-This is the most complex stage. For **each target language**:
+This is the most complex stage. Translation is serialized on the single shared IndicTrans2 instance, but each language's result is handed to the generation pool as soon as it lands — so Stage 5 for one language overlaps Stage 4 for the next. For **each target language**:
 
 1. **TM Cache Check** (Translation Memory): For every segment, compute `SHA-256("src_lang|tgt_lang|" + text.lower())` and look up in the `translation_memory` table. If found with confidence ≥ 0.85 and not flagged → use cached translation (score = 1.0).
 
@@ -286,10 +287,10 @@ This is the most complex stage. For **each target language**:
 
 ### Stage 5: Generating
 ```python
-# processor.py: _stage_generating()
+# processor.py: _generate_for_language()   ← runs in a RAM-sized thread pool
 # Calls: packager.py
 ```
-For each target language, generates all output formats in `workspace/{job_id}/`:
+For each target language, generates all output formats in `workspace/{job_id}/`. Languages are processed concurrently (pool width from `resources.plan("generate")`); all paths are per-language so workers never collide. A failure in one language is logged and skipped rather than sinking the job:
 
 | File | Function |
 |------|----------|
@@ -535,8 +536,18 @@ Server-Sent Events are **one-way** (server → browser only). Since we only need
 - Works over plain HTTP (no upgrade needed)
 - Fewer moving parts → easier to debug
 
-### Why one job at a time?
-Whisper large-v3-turbo uses ~4-6 GB RAM. IndicTrans2 uses ~2 GB. On 16 GB RAM, running two jobs simultaneously would cause memory swapping → 10× slowdown or crash. The FIFO queue ensures predictable performance.
+### How much runs at once?
+Nothing is fixed in code — every width is measured from the machine at startup. See `backend/utils/resources.py` and `backend/models/pool.py`.
+
+**Threads** (`plan()`): free RAM minus a 2 GB OS reserve, divided by the per-task cost, then clamped to the core count. On a small field laptop this yields 1 — the original one-job-at-a-time behaviour, and nothing swaps. Resource Saver Mode always forces 1.
+
+**Model replicas** (`plan_replicas()`): extra copies of a model let two jobs use it simultaneously instead of queueing. Bounded by three measured limits — what fits in RAM, physical core count (a replica with no core to run on is memory spent for nothing), and how many callers can even ask at once. Pools are built one after another, each reading free RAM after the previous has loaded, so budgets never double-count. Whisper is deliberately never replicated: ~5 GB a copy, and it runs once per job rather than once per language.
+
+Where replicas can't be afforded, the shared instance is used behind a lock (`backend/pipeline/locks.py`) — identical behaviour to a pool of one, so the same code path covers both.
+
+Override any of it with `VAANISETU_MAX_JOBS`, `VAANISETU_MAX_GENERATE`, `VAANISETU_TRANSLATE_POOL`, `VAANISETU_TTS_POOL`, `VAANISETU_RAM_HEADROOM_GB`. All unset by default.
+
+**Reverse Bridge is loaded lazily.** `indic→en` costs ~1.2 GB and an English-source deployment never touches it, so it loads on first use instead of at startup. Set `VAANISETU_EAGER_REVERSE_BRIDGE=1` to restore eager loading.
 
 ### What is the Reverse Bridge mode?
 Normal mode: `source = English` → translate to Indian languages (for BAIF content)  

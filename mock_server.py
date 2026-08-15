@@ -31,7 +31,11 @@ logger = logging.getLogger("mock_server")
 
 # ── Patch model loader so startup finishes instantly ─────────────────────────
 registry.load_all = MagicMock()
-registry.models_status = {"whisper": "mock", "indictrans2": "mock", "tts": "mock"}
+# models_status is a read-only property derived from these flags — set them directly
+registry._whisper_loaded = True
+registry._en_indic_loaded = True
+registry._indic_en_loaded = True
+registry._tts_loaded = True
 
 # ── Realistic 7-stage mock pipeline ──────────────────────────────────────────
 STAGES = [

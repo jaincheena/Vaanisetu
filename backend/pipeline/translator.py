@@ -10,6 +10,39 @@ from typing import Optional
 logger = logging.getLogger("vaanisetu.translator")
 
 
+def _run_inference(tokenizer, model, texts, src_code, tgt_code):
+    """
+    Tokenise → generate → decode on ONE model instance.
+
+    The caller owns exclusivity: either it holds a pool replica nobody else
+    can see, or it holds TRANSLATE_LOCK. Never call this on a shared instance
+    without one of the two.
+    """
+    import torch
+
+    inputs = tokenizer(
+        texts,
+        src_lang=src_code,
+        tgt_lang=tgt_code,
+        return_tensors="pt",
+        padding=True,
+        truncation=True,
+        max_length=256,
+    )
+
+    with torch.no_grad():
+        outputs = model.generate(
+            **inputs,
+            num_beams=4,
+            max_length=256,
+            output_scores=True,
+            return_dict_in_generate=True,
+        )
+
+    decoded = tokenizer.batch_decode(outputs.sequences, skip_special_tokens=True)
+    return decoded, outputs
+
+
 def translate_segments(
     segments: list[dict],
     source_lang: str,
@@ -38,9 +71,15 @@ def translate_segments(
         BATCH_SIZE, ENGLISH_CODE, LANG_CODES, CONFIDENCE_AMBER
     )
 
-    tokenizer, model = registry.get_indic_pair(source_lang)
-    if tokenizer is None or model is None:
-        raise RuntimeError("IndicTrans2 model not loaded for direction")
+    from backend.models.pool import get_pool
+
+    # English source is the hot path and has a replica pool; every other
+    # direction uses the single shared instance behind its lock.
+    pool = get_pool("translate_en_indic") if source_lang == "English" else None
+    if pool is None:
+        tokenizer, model = registry.get_indic_pair(source_lang)
+        if tokenizer is None or model is None:
+            raise RuntimeError("IndicTrans2 model not loaded for direction")
 
     src_code = ENGLISH_CODE if source_lang == "English" else LANG_CODES.get(source_lang, "hin_Deva")
 
@@ -79,28 +118,21 @@ def translate_segments(
         # ---------------------------------------------------------------
         if pending_idx:
             pending_texts = [texts[i] for i in pending_idx]
-            inputs = tokenizer(
-                pending_texts,
-                src_lang=src_code,
-                tgt_lang=target_lang_code,
-                return_tensors="pt",
-                padding=True,
-                truncation=True,
-                max_length=256,
-            )
 
-            with torch.no_grad():
-                outputs = model.generate(
-                    **inputs,
-                    num_beams=4,
-                    max_length=256,
-                    output_scores=True,
-                    return_dict_in_generate=True,
-                )
-
-            decoded = tokenizer.batch_decode(
-                outputs.sequences, skip_special_tokens=True
-            )
+            if pool is not None:
+                # Check out a replica — as many threads translate at once as
+                # there are copies, with no lock between them.
+                with pool.acquire() as (tok, mdl):
+                    decoded, outputs = _run_inference(
+                        tok, mdl, pending_texts, src_code, target_lang_code
+                    )
+            else:
+                # Single shared instance — serialize the whole call.
+                from backend.pipeline.locks import TRANSLATE_LOCK
+                with TRANSLATE_LOCK:
+                    decoded, outputs = _run_inference(
+                        tokenizer, model, pending_texts, src_code, target_lang_code
+                    )
 
             scores_list = list(outputs.scores) if outputs.scores else []
             confs = batch_confidence(scores_list, outputs.sequences)

@@ -35,13 +35,17 @@ def transcribe(
     whisper_lang = _display_to_whisper(source_lang) if source_lang else None
 
     logger.info(f"Transcribing {wav_path} (lang={whisper_lang or 'auto'}) ...")
-    result = registry.whisper_model.transcribe(
-        wav_path,
-        language=whisper_lang,
-        task=task,
-        word_timestamps=False,
-        verbose=False,
-    )
+    # One shared Whisper instance across concurrent jobs — serialize it.
+    # See backend/pipeline/locks.py.
+    from backend.pipeline.locks import TRANSCRIBE_LOCK
+    with TRANSCRIBE_LOCK:
+        result = registry.whisper_model.transcribe(
+            wav_path,
+            language=whisper_lang,
+            task=task,
+            word_timestamps=False,
+            verbose=False,
+        )
 
     segments = [
         {

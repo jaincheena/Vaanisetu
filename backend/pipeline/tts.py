@@ -46,14 +46,31 @@ def generate_tts(
 
     lang_code = _LANG_TO_COQUI.get(language_name, "hi")
 
+    from backend.models.pool import get_pool
+
+    pool = get_pool("tts")
+
     try:
         logger.info(f"TTS generating: {language_name} → {output_path}")
-        registry.tts_model.tts_to_file(
-            text=text,
-            language=lang_code,
-            file_path=output_path,
-        )
-        # Convert wav to mp3 via ffmpeg if needed
+        if pool is not None:
+            # Check out a replica — one per concurrent language, no waiting.
+            with pool.acquire() as model:
+                model.tts_to_file(
+                    text=text,
+                    language=lang_code,
+                    file_path=output_path,
+                )
+        else:
+            # Single shared instance — serialize. See backend/pipeline/locks.py.
+            from backend.pipeline.locks import TTS_LOCK
+            with TTS_LOCK:
+                registry.tts_model.tts_to_file(
+                    text=text,
+                    language=lang_code,
+                    file_path=output_path,
+                )
+        # Convert wav to mp3 via ffmpeg if needed (outside the lock — ffmpeg
+        # is a subprocess and parallelizes fine).
         if output_path.endswith(".wav"):
             mp3_path = output_path.replace(".wav", ".mp3")
             _wav_to_mp3(output_path, mp3_path)

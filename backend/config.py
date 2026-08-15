@@ -50,6 +50,68 @@ BATCH_SIZE = 8            # IndicTrans2 segments per batch
 AUDIO_SAMPLE_RATE = 16000 # Whisper expects 16 kHz mono WAV
 
 # ---------------------------------------------------------------------------
+# Concurrency (see backend/utils/resources.py)
+# ---------------------------------------------------------------------------
+# RAM left to the OS before we allocate any worker.
+CONCURRENCY_HEADROOM_GB = float(os.getenv("VAANISETU_RAM_HEADROOM_GB", "2.0"))
+
+# Peak additional RSS one unit of work needs. "job" covers a whole pipeline
+# (Whisper activations + ffmpeg + buffers); "generate" is one language's
+# output set, dominated by the ffmpeg subtitle burn.
+CONCURRENCY_TASK_COST_GB = {
+    "job":      float(os.getenv("VAANISETU_JOB_COST_GB", "1.5")),
+    "generate": float(os.getenv("VAANISETU_GEN_COST_GB", "0.6")),
+}
+
+def _optional_int(name: str):
+    """An env-var ceiling, or None meaning 'let the hardware decide'."""
+    raw = os.getenv(name)
+    return int(raw) if raw else None
+
+
+# No fixed ceiling — width comes from free RAM and the machine's core count.
+# Set these only to pin a deployment to a known number.
+CONCURRENCY_MAX = {
+    "job":      _optional_int("VAANISETU_MAX_JOBS"),
+    "generate": _optional_int("VAANISETU_MAX_GENERATE"),
+}
+
+# ---------------------------------------------------------------------------
+# Model replica pools (see backend/models/pool.py)
+# ---------------------------------------------------------------------------
+# Extra copies of a model let two jobs use it at once instead of queueing.
+# Cost is per additional replica, measured as loaded weights + inference
+# activations. Whisper is deliberately absent — at ~5 GB a copy it is far too
+# expensive to duplicate, and it runs once per job rather than once per language.
+MODEL_REPLICA_COST_GB = {
+    "translate": float(os.getenv("VAANISETU_TRANSLATE_REPLICA_GB", "1.2")),
+    "tts":       float(os.getenv("VAANISETU_TTS_REPLICA_GB", "2.5")),
+}
+
+# Again no fixed number — replica count is free RAM divided by replica cost.
+MODEL_POOL_MAX = {
+    "translate": _optional_int("VAANISETU_TRANSLATE_POOL"),
+    "tts":       _optional_int("VAANISETU_TTS_POOL"),
+}
+
+# Resident size of each model once loaded. Used by the startup preflight to
+# tell a user their machine is too small BEFORE it spends ten minutes swapping.
+MODEL_FOOTPRINT_GB = {
+    "whisper":  float(os.getenv("VAANISETU_WHISPER_GB", "5.0")),
+    "en_indic": float(os.getenv("VAANISETU_EN_INDIC_GB", "1.2")),
+    "indic_en": float(os.getenv("VAANISETU_INDIC_EN_GB", "1.2")),
+    "tts":      float(os.getenv("VAANISETU_TTS_GB", "2.5")),
+}
+
+# Python + torch + FastAPI before any model is loaded.
+RUNTIME_OVERHEAD_GB = float(os.getenv("VAANISETU_RUNTIME_GB", "1.5"))
+
+# Reverse Bridge (Indian language → English) loads a second IndicTrans2 set.
+# English-source deployments never touch it, so it loads on first use instead
+# of at startup — saving ~1.2 GB for the common case without losing the mode.
+EAGER_LOAD_REVERSE_BRIDGE = os.getenv("VAANISETU_EAGER_REVERSE_BRIDGE", "0") == "1"
+
+# ---------------------------------------------------------------------------
 # Confidence thresholds
 # ---------------------------------------------------------------------------
 CONFIDENCE_GREEN  = 0.85

@@ -134,9 +134,14 @@ def _seed_impact_config(conn: sqlite3.Connection) -> None:
 @contextmanager
 def get_db():
     """Context manager yielding a sqlite3 connection with row_factory."""
-    conn = sqlite3.connect(str(DB_PATH), check_same_thread=False)
+    # timeout: concurrent jobs and their generation pools all write here
+    # (status updates, TM stores, review-queue inserts). WAL lets readers run
+    # during a write, but writers still serialize — 30s of patience beats
+    # sqlite3's 5s default raising "database is locked" under a full pool.
+    conn = sqlite3.connect(str(DB_PATH), check_same_thread=False, timeout=30.0)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA busy_timeout=30000")
     conn.execute("PRAGMA foreign_keys=ON")
     try:
         yield conn

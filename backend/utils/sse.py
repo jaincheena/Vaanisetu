@@ -79,3 +79,38 @@ class SSEManager:
 
 # Global singleton
 sse_manager = SSEManager()
+
+
+# ---------------------------------------------------------------------------
+# Cross-thread publishing
+# ---------------------------------------------------------------------------
+# Subscriber queues are asyncio.Queues owned by the FastAPI event loop, but
+# publishes originate in pipeline worker threads. Driving them from a fresh
+# asyncio.run() loop puts items on a queue whose waiters live on a different
+# loop, so the SSE consumer may never wake. Hand the coroutine to the loop
+# that owns the queues instead.
+_main_loop: asyncio.AbstractEventLoop | None = None
+
+
+def bind_loop(loop: asyncio.AbstractEventLoop) -> None:
+    """Called once at startup with the loop serving the app."""
+    global _main_loop
+    _main_loop = loop
+
+
+def publish_threadsafe(
+    job_id: str,
+    stage: str,
+    message: str = "",
+    extra: dict | None = None,
+) -> None:
+    """Publish from any thread. Never raises — SSE must not break a pipeline."""
+    loop = _main_loop
+    if loop is None or not loop.is_running():
+        return
+    try:
+        asyncio.run_coroutine_threadsafe(
+            sse_manager.publish(job_id, stage, message, extra), loop
+        )
+    except Exception:
+        pass
