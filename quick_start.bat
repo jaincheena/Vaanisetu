@@ -7,6 +7,11 @@ cd /d "%~dp0"
 title VaaniSetu - AI Translation Platform for BAIF
 color 0A
 
+REM --- Clean up any stale process occupying port 8765 ---
+for /f "tokens=5" %%p in ('netstat -ano ^| findstr ":8765 " 2^>nul') do (
+    taskkill /F /PID %%p >nul 2>&1
+)
+
 where python >nul 2>&1
 if %errorlevel% neq 0 goto :no_python
 

@@ -22,6 +22,26 @@ def print_banner():
     print("  Interactive Onboarding & Startup Wizard")
     print("=" * 80 + "\n")
 
+def free_port(port=8765):
+    """Ensure port 8765 is not occupied by an old stale background process."""
+    if sys.platform == "win32":
+        try:
+            cmd = f'netstat -ano | findstr ":{port} "'
+            res = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+            for line in res.stdout.strip().splitlines():
+                parts = line.strip().split()
+                if len(parts) >= 5 and f":{port}" in parts[1]:
+                    pid = parts[-1]
+                    if pid and pid != str(os.getpid()):
+                        try:
+                            subprocess.run(f'taskkill /F /PID {pid}', shell=True, capture_output=True)
+                            print(f"      [INFO] Cleaned up stale background process (PID {pid}) on port {port}.")
+                        except Exception:
+                            pass
+            time.sleep(0.5)
+        except Exception:
+            pass
+
 def check_directories():
     print("[1/4] Verifying local storage directories on C:\\VaaniSetu...")
     dirs = [
@@ -96,14 +116,14 @@ def open_browser_when_ready(url="http://localhost:8765", max_wait=30):
         start_t = time.time()
         while time.time() - start_t < max_wait:
             try:
-                with urllib.request.urlopen(f"{url}/api/health", timeout=0.8) as resp:
+                req = urllib.request.Request(f"{url}/api/health", headers={"User-Agent": "Mozilla/5.0"})
+                with urllib.request.urlopen(req, timeout=1.0) as resp:
                     if resp.status == 200:
                         print(f"\n[OK] Server is ready! Opening web browser at {url} ...\n")
                         webbrowser.open(url)
                         return
             except Exception:
-                time.sleep(0.3)
-        webbrowser.open(url)
+                time.sleep(0.4)
 
     th = threading.Thread(target=_wait_and_open, daemon=True)
     th.start()
@@ -118,6 +138,9 @@ def start_server():
     print("  Server is starting... Web browser will open automatically once live.")
     print("  Press Ctrl+C in this window at any time to stop the server.")
     print("=" * 80 + "\n")
+
+    # Clean port before binding
+    free_port(8765)
 
     open_browser_when_ready("http://localhost:8765")
 
