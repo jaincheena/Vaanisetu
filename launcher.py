@@ -63,31 +63,18 @@ def check_dependencies():
             print("      Proceeding with existing packages.\n")
 
 def check_models():
-    print("[3/4] Checking AI model assets...")
+    print("[3/4] Checking AI model assets in C:\\VaaniSetu\\models...")
     whisper_dir = BASE_DIR / "models" / "whisper"
     indic_dir = BASE_DIR / "models" / "indictrans2-en-indic"
     piper_dir = BASE_DIR / "models" / "piper"
 
     has_whisper = whisper_dir.exists() and any(whisper_dir.iterdir())
     has_indic = indic_dir.exists() and any(indic_dir.iterdir())
-    has_piper = piper_dir.exists() and any(piper_dir.iterdir())
 
     if not (has_whisper and has_indic):
-        print("      [INFO] Offline model weights (~5GB) not fully detected.")
-        print("      Options:")
-        print("        1. Download lightweight Piper TTS voices (~100MB, fast CPU default) [Recommended]")
-        print("        2. Download full offline model suite (Whisper + IndicTrans2 + Piper, ~5GB)")
-        print("        3. Skip download (Use existing weights or test/mock pipeline) [Default]")
-        choice = input("      Enter choice (1, 2, or 3) [Default: 3]: ").strip()
-        if choice == "1":
-            print("      Downloading Piper TTS voices...")
-            subprocess.run([sys.executable, "scripts/download_piper_voices.py"], cwd=str(REPO_ROOT))
-        elif choice == "2":
-            print("      Downloading model suite...")
-            subprocess.run(["scripts/download_models.bat"], cwd=str(REPO_ROOT), shell=True)
-            subprocess.run([sys.executable, "scripts/download_piper_voices.py"], cwd=str(REPO_ROOT))
-        else:
-            print("      Skipping model download.")
+        print("      [INFO] Offline model weights not fully downloaded yet.")
+        print("      Server will start in fallback / lightweight mode.")
+        print("      To download complete 5GB offline weights, run: scripts\\download_models.bat")
     else:
         print("      AI Model weights detected: PASS")
     print()
