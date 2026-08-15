@@ -549,9 +549,16 @@ The pipeline is identical. Only the model direction flips (`en-indic` ↔ `indic
 
 ## 11. Getting the App Running Locally
 
-### ⚡ 1-Click Instant Launch (Fastest)
-Double-click **`quick_start.bat`** in the repository root.
-The launcher automatically checks Python, initializes `C:\VaaniSetu`, builds the UI bundle, starts the server on port `8765`, and opens `http://localhost:8765` in your browser.
+### ⚡ 1-Click Interactive Onboarding Wizard (`quick_start.bat`)
+For any fresh laptop, new user, or hackathon evaluator:
+1. Double-click **`quick_start.bat`** in the repository root.
+2. The interactive onboarding wizard automatically:
+   - **Prerequisite Detection:** Checks for Python 3.10+; if missing, offers to automatically download and launch the official Windows installer with setup instructions.
+   - **Environment Setup:** Creates all local storage and log directories (`C:\VaaniSetu\models`, `workspace`, `outputs`, `uploads`, `logs`).
+   - **Dependency Auto-Install:** Detects missing packages and prompts to install `requirements.txt`.
+   - **Model Asset Management:** Detects offline model weights and offers 1-click downloads for Piper TTS voices (~100MB) or full model checkpoints.
+   - **Web UI Verification:** Ensures the pre-compiled React distribution bundle is ready.
+   - **Zero-Friction Launch:** Starts the FastAPI ASGI server on port `8765` and **automatically opens your web browser to `http://localhost:8765`**.
 
 ---
 
