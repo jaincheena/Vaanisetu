@@ -69,7 +69,23 @@ except Exception as e:
 # ---------------------------------------------------------------------------
 # Model paths
 # ---------------------------------------------------------------------------
-WHISPER_MODEL        = os.getenv("WHISPER_MODEL", "large-v3-turbo")
+def _get_default_whisper_model() -> str:
+    user_set = os.getenv("WHISPER_MODEL")
+    if user_set:
+        return user_set
+    try:
+        import psutil
+        free_gb = psutil.virtual_memory().available / (1024 ** 3)
+        if free_gb < 4.0:
+            return "base"
+        elif free_gb < 7.0:
+            return "small"
+        else:
+            return "large-v3-turbo"
+    except Exception:
+        return "base" if DEVICE == "cpu" else "large-v3-turbo"
+
+WHISPER_MODEL        = _get_default_whisper_model()
 WHISPER_MODEL_DIR    = MODEL_DIR / "whisper"
 WHISPER_COMPUTE_TYPE = os.getenv("WHISPER_COMPUTE_TYPE",
                                   "float16" if DEVICE == "cuda" else "int8")
