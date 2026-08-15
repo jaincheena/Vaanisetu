@@ -14,7 +14,7 @@ from fastapi.responses import FileResponse, StreamingResponse
 
 from backend.config import UPLOADS_DIR, ALLOWED_EXTENSIONS, LANG_CODES
 from backend.database import get_db, rows_to_list
-from backend.pipeline.queue import enqueue
+from backend.pipeline.job_queue import enqueue
 from backend.utils.file_utils import sha256_file, new_job_id, job_zip_path, safe_filename
 from backend.utils.sse import sse_manager
 from backend.services.auth_service import get_current_user
@@ -58,11 +58,18 @@ async def submit_job(
     
     file_size = 0
     size_limits = {
-        ".mp3": 50 * 1024 * 1024,
-        ".ogg": 50 * 1024 * 1024,
-        ".wav": 150 * 1024 * 1024,
+        ".mp3": 100 * 1024 * 1024,
+        ".ogg": 100 * 1024 * 1024,
+        ".m4a": 100 * 1024 * 1024,
+        ".aac": 100 * 1024 * 1024,
+        ".opus": 100 * 1024 * 1024,
+        ".3gp": 100 * 1024 * 1024,
+        ".amr": 100 * 1024 * 1024,
+        ".caf": 100 * 1024 * 1024,
+        ".wma": 100 * 1024 * 1024,
+        ".wav": 200 * 1024 * 1024,
     }
-    max_allowed = size_limits.get(suffix, 200 * 1024 * 1024)
+    max_allowed = size_limits.get(suffix, 2048 * 1024 * 1024)
 
     with open(upload_path, "wb") as f_out:
         while chunk := await file.read(65536):
@@ -88,12 +95,13 @@ async def submit_job(
                         cached_langs = json.loads(row["target_langs"] or "[]")
                         if set(langs).issubset(set(cached_langs)):
                             logger.info(f"Dedup hit: {file_hash} → job {row['id']}")
+                            await sse_manager.publish(row["id"], "completed", "Done! ✅ Cached result ready!")
                             return {"job_id": row["id"], "message": "Duplicate — returning cached result"}
                     except Exception:
                         pass
 
     # --- Determine input type ---
-    input_type = "text" if suffix == ".txt" else (
+    input_type = "text" if suffix in {".txt", ".pdf", ".docx", ".csv"} else (
         "video" if suffix in {".mp4", ".mkv", ".avi", ".mov", ".webm"} else "audio"
     )
 
@@ -118,9 +126,17 @@ async def submit_job(
 async def stream_job(job_id: str, current_user: dict = Depends(get_current_user)):
     """Server-Sent Events — streams pipeline progress."""
     with get_db() as conn:
-        row = conn.execute("SELECT id FROM jobs WHERE id=?", (job_id,)).fetchone()
+        row = conn.execute("SELECT id, status FROM jobs WHERE id=?", (job_id,)).fetchone()
     if not row:
         raise HTTPException(404, "Job not found")
+
+    # If job is already completed or failed in DB, seed last event if missing
+    if row["status"] in ("completed", "failed") and job_id not in sse_manager._last_event:
+        await sse_manager.publish(
+            job_id,
+            row["status"],
+            "Done! ✅" if row["status"] == "completed" else "Job failed"
+        )
 
     return StreamingResponse(
         sse_manager.event_stream(job_id),

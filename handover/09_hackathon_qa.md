@@ -52,12 +52,12 @@ BAIF operates extensively in remote rural and tribal areas — Nandurbar in Maha
 
 VaaniSetu has four layers:
 
-1. **User Interface** — React 18 web app. No app installation needed; any device on the office WiFi opens it in a browser.
-2. **API Layer** — FastAPI (Python) on port 8765. Handles file uploads, streams progress, serves downloads.
-3. **Pipeline Engine** — The core AI chain: FFmpeg → Whisper → IndicTrans2 → output generators. Processes one job at a time from a FIFO queue.
-4. **Data Layer** — SQLite database + local file storage under `C:\VaaniSetu\`. Everything stays on one machine.
+1. **User Interface** — React 18 web app with live SSE streaming and IST timestamps. No app installation needed; any device on the office WiFi opens it in a browser.
+2. **API Layer** — FastAPI (Python) on port 8765. Handles chunked file streaming, thread-safe SSE event broadcasting, and REST endpoints.
+3. **Pipeline Engine** — The core AI chain: FFmpeg / Document parser → Whisper → IndicTrans2 → Coqui XTTS → Output packager. Uses a RAM-aware dynamic worker pool with pipelined translation and generation overlap, model replica checkout pools, and mutex locking for thread safety.
+4. **Data Layer** — SQLite database with WAL mode and 30s timeout + local file storage under `C:\VaaniSetu\`. Everything stays on one machine.
 
-A file uploaded by a BAIF trainer triggers a 7-stage pipeline: validate → extract audio → transcribe → translate → generate outputs → package ZIP → notify browser via real-time progress events.
+A file uploaded by a BAIF trainer triggers a 7-stage pipelined workflow: validate → extract/parse → transcribe → translate (with immediate background generation per language) → package ZIP → notify browser via real-time progress events.
 
 ---
 
@@ -534,13 +534,13 @@ We want to be completely transparent:
 
 | Limitation | Impact | Mitigation |
 |----------|--------|-----------|
-| Speed on long videos | 60-min video takes ~25-40 min on CPU | Schedule overnight; shorter clips faster |
+| Speed on long video files | 60-min video takes ~20-35 min on CPU | Stages 4 & 5 overlap to accelerate output; schedule batch jobs |
 | Low-resource language accuracy (Bodo, Santhali) | More Amber/Red segments | Review Queue + TM building over time |
-| No dialect support | Can't distinguish Awadhi from standard Hindi | Reviewers adjust |
-| TTS sounds robotic for some languages | MP3 output less natural | Use as reference; human voice-over for final |
-| No scanned PDF / image OCR | Can't translate text in images | Export text first, upload as .txt |
-| Whisper doesn't recognise names/places | "KVK Ratnagiri" may be transcribed incorrectly | Reviewers can fix in Review Queue |
-| One job at a time | Can't process two files simultaneously | Queue design ensures predictability |
+| No dialect support | Can't distinguish Awadhi from standard Hindi | Reviewers adjust in Review Queue |
+| TTS sounds less natural for rare languages | Audio output less expressive | Use as rapid reference; human voice-over for final broadcast |
+| Scanned image OCR | Only text PDFs/DOCX/CSV/TXT parsed directly | OCR scanned images prior to upload |
+| Proper nouns & rare acronyms | Domain terms might transcribe with minor phonetic variation | Entity shield placeholders + Review Queue corrections |
+| Concurrency memory bounds | Low-memory PCs (4GB) run serially | Hardware-aware worker planning scales to available RAM (up to multi-worker on 16GB+) |
 
 ---
 

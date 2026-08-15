@@ -12,38 +12,38 @@
                      │ HTTP / SSE on port 8765
 ┌────────────────────▼────────────────────────────────┐
 │  API LAYER (FastAPI + JWT Authentication)           │
-│  REST endpoints + SSE stream                        │
+│  REST endpoints + SSE stream (publish_threadsafe)   │
 │  Role-Based Access Control (Admin vs User)          │
 └────────────────────┬────────────────────────────────┘
-                     │ Python function calls
+                     │ Python function calls / Thread Pools
 ┌────────────────────▼────────────────────────────────┐
 │  LAYER 2: PIPELINE ENGINE                           │
-│  7-Stage Processor → FIFO Async Queue               │
-│  FFmpeg · Whisper · IndicTrans2 · Coqui TTS         │
+│  RAM-Aware Job Queue · Concurrency Planner          │
+│  Model Replica Pools · Shared Locks (Whisper/TTS/IT2)│
+│  Pipelined Processor (Translate ↔ Generate Overlap) │
+│  FFmpeg 8.1.2 · Whisper · IndicTrans2 · Coqui XTTS  │
 │  Translation Memory · Confidence Scorer             │
 └────────────────────┬────────────────────────────────┘
-                     │ SQLite reads/writes · File I/O
+                     │ SQLite WAL (30s timeout) · File I/O
 ┌────────────────────▼────────────────────────────────┐
 │  LAYER 1: DATA LAYER                                │
-│  SQLite (4 tables) · C:\VaaniSetu\                  │
+│  SQLite WAL (4 tables) · C:\VaaniSetu\              │
 │  workspace/{job_id}/ · outputs/{job_id}.zip         │
-│  models/ (Whisper, IndicTrans2, Coqui TTS)          │
+│  models/ (Whisper, IndicTrans2, Coqui XTTS)         │
 └─────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 6-Stage Processing Pipeline
+## The 7-Stage Pipelined Engine
 
-### 2. The 7-Stage Pipeline
-
-Located in `backend/pipeline/processor.py`. Only **one job processes at a time** using an async FIFO queue (`asyncio.Queue`) to prevent memory exhaustion (Whisper + IndicTrans2 uses ~12GB RAM combined).
+Located in `backend/pipeline/processor.py`. Jobs are scheduled dynamically by the **RAM-Aware Concurrency Planner** (`backend/utils/resources.py`), allocating job workers and generation threads based on free memory and physical CPU cores.
 
 #### Stage 0: Upload & Deduplication (Edge Case Optimized)
 - File is received via `multipart/form-data`.
 - **Edge Case Protection:** It is *chunk-streamed* to disk (64KB at a time), ensuring RAM doesn't spike when a 2GB video is uploaded.
-- **Smart Deduplication:** The SHA-256 hash of the file is checked against the database. If it matches a completed job, the backend verifies if the *requested target languages* are a subset of the cached job's languages. If yes, it returns the cached ZIP instantly, bypassing the pipeline.
-- **Force Re-run (Bypass Cache):** If the user checks "Force Re-run" in the UI, the deduplication cache check is bypassed. The file goes through the pipeline again. Since any manual corrections are stored in the Translation Memory, the engine pulls them on the second run, generating a corrected ZIP (new audio/video captions) in less than a minute.
+- **Smart Deduplication:** The SHA-256 hash of the file is checked against the database. If it matches a completed job and the requested languages are already present, the cached ZIP is returned instantly.
+- **Force Re-run (Bypass Cache):** Bypasses cache check and re-runs the pipeline pulling recent Translation Memory corrections in under 1 minute.
 
 ```
 User uploads file
@@ -52,27 +52,28 @@ User uploads file
 [1] VALIDATING ──── Check file type, size, SHA-256 dedup
        │
        ▼
-[2] EXTRACTING ──── FFmpeg: any format → 16 kHz mono WAV
+[2] EXTRACTING ──── FFmpeg: audio normalization → 16 kHz mono WAV
+       │            (OR DocumentParser: PDF / DOCX / CSV / TXT)
+       ▼
+[3] TRANSCRIBING ── Whisper (with TRANSCRIBE_LOCK) → text segments
+       │            with timestamps + language detection code
+       ▼
+[4 & 5] PIPELINED TRANSLATION & GENERATION (Overlapped)
+       │
+       ├─► Language 1 Translation (IndicTrans2 / TM / Pivot)
+       │     └─► [ThreadPool] Language 1 Generation (TTS, Dubbed MP4,
+       │                      Captioned MP4, SRT, DOCX, IVR, WhatsApp)
+       │
+       ├─► Language 2 Translation (while Lang 1 generates!)
+       │     └─► [ThreadPool] Language 2 Generation
+       │
+       └─► Language N Translation ...
        │
        ▼
-[3] TRANSCRIBING ── Whisper large-v3-turbo → text segments
-       │               with timestamps {text, start_s, end_s}
-       │               + Empty segment sanitization (filters out silence/noise)
-       ▼
-[4] TRANSLATING ──── For each target language:
-       │               1. Check Translation Memory (SHA-256 key)
-       │               2. Cache hit? → use cached (confidence=1.0)
-       │               3. Miss? → IndicTrans2 batch(8) → score
-       │               4. Confidence < 0.65 → Review Queue
-       │               5. Store to TM if confidence ≥ 0.70
-       ▼
-[5] GENERATING ───── Per language: .txt, bilingual .docx,
-       │               .srt, .vtt, TTS .mp3, captioned .mp4
-       ▼
-[6] PACKAGING ────── manifest.json + all files → .zip
-       │            - All outputs are bundled into a standard `.zip` file stored in `C:\VaaniSetu\outputs\`.
-       │            - **Auto-Disk Recovery:** The 1GB+ original upload and all heavy intermediate `workspace/` files (like the uncompressed `.wav`) are immediately permanently deleted from the disk. This edge-case optimization prevents the NGO server from running out of hard drive space.
-       │
+[6] PACKAGING ────── manifest.json + all language outputs → .zip
+       │            - Outputs bundled into `C:\VaaniSetu\outputs\{job_id}.zip`
+       │            - **Auto-Disk Recovery:** Raw uploads and intermediate
+       │              `workspace/` files are wiped automatically.
        ▼
 COMPLETE — distribution_clearance = cleared | pending_review
 ```

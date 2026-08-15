@@ -7,8 +7,12 @@ import psutil
 from fastapi import APIRouter
 
 from backend.models.registry import registry
-from backend.pipeline.queue import get_queue_depth, get_current_job
+from backend.pipeline.job_queue import (
+    get_queue_depth, get_current_job, get_current_jobs, get_concurrency
+)
 from backend.database import get_db
+from backend.utils.resources import plan
+from backend.models.pool import snapshot as pool_snapshot
 from backend.config import BASE_DIR
 
 router = APIRouter(prefix="/api", tags=["health"])
@@ -30,8 +34,14 @@ async def health():
         "disk_gb":        round(du.total / 1e9, 1),
         "disk_free_gb":   round(du.free / 1e9, 1),
         "queue_depth":    get_queue_depth(),
-        "current_job":    get_current_job(),   # job currently being processed
+        "current_job":    get_current_job(),    # first running job (legacy field)
+        "current_jobs":   get_current_jobs(),   # all jobs running right now
         "review_pending": review_pending,
         "models_loaded":  registry.models_status,
+        "concurrency": {
+            "jobs":     get_concurrency(),      # fixed at startup
+            "generate": plan("generate"),       # re-sized per job from free RAM
+            "replicas": pool_snapshot(),        # model copies actually loaded
+        },
         "status": "ok",
     }

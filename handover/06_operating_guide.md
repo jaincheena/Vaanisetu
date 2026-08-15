@@ -69,11 +69,13 @@ Each ZIP download contains:
 | `bilingual_Hindi.docx` | Word document with source + translation side by side |
 | `subtitles_Hindi.srt` | Subtitle file (for video players) |
 | `subtitles_Hindi.vtt` | Web subtitle file (for online players) |
-| `audio_Hindi.mp3` | AI-spoken version in the target language |
-| `ivr_audio_Hindi.wav` | 8kHz mono audio for feature phones & IVR |
-| `captioned_Hindi.mp4` | Original video with burned Hindi subtitles |
-| `whatsapp_part00_Hindi.mp4` | Video chunked for WhatsApp (<15MB) |
-| `manifest.json` | Job details and file list |
+| `audio_Hindi.mp3` | AI-spoken version in the target language (Coqui XTTS v2) |
+| `ivr_audio_Hindi.wav` | 8kHz mono audio for feature phones & IVR broadcasts |
+| `dubbed_Hindi.mp4` | Video with translated audio replacing the original audio track |
+| `captioned_Hindi.mp4` | Video with burned-in subtitles and synchronized translated audio |
+| `translated_Hindi.csv` | Translated CSV document (for structured data uploads) |
+| `whatsapp_part00_Hindi.mp4` | Video chunked for WhatsApp (<15MB each) |
+| `manifest.json` | Job metadata, timestamp (IST), confidence, and file list |
 
 ---
 

@@ -51,10 +51,19 @@ def store(
     tgt_lang: str,
     source_text: str,
     translated_text: str,
-    confidence: float,
+    confidence: Optional[float] = None,
     domain: str = "agriculture",
 ) -> None:
     """Store a translation in TM if confidence ≥ TM_STORE_MIN."""
+    
+    # 1. Force confidence to a valid float immediately (handling None, NaN, Inf, or invalid types)
+    import math
+    if confidence is None or not isinstance(confidence, (int, float)) or math.isnan(confidence) or math.isinf(confidence):
+        confidence = 0.85
+    else:
+        confidence = max(0.0, min(1.0, float(confidence)))
+
+    # 2. Now safe to compare
     if confidence < TM_STORE_MIN:
         return
 
@@ -89,7 +98,6 @@ def store(
                 (key, source_text, src_lang, tgt_lang, translated_text,
                  confidence, now, now, domain),
             )
-
 
 def store_approved(
     src_lang: str,

@@ -30,29 +30,31 @@ VaaniSetu eliminates this barrier by bringing AI translation directly into the B
 
 ---
 
-## Seven Innovations
+## Eight Core Innovations
 
 | # | Innovation | What It Does |
 |---|-----------|--------------|
-| 1 | **Job Pipeline** | Automatically processes uploaded files through 7 stages: validate → extract audio → transcribe → translate → generate outputs → package ZIP |
-| 2 | **Translation Memory** | Remembers past translations so the same sentence is never translated twice — gets faster and more accurate over time |
-| 3 | **Confidence Gate** | AI assigns a confidence score to every translated sentence. Green = ready to distribute, Amber = review first, Red = manual retranslation needed |
-| 4 | **Reverse Bridge** | Field officers can upload farmer audio in any regional language; VaaniSetu transcribes and translates it to English for HQ experts |
-| 5 | **Impact Ledger** | Automatically tracks hours translated, money saved vs. professional translation, and number of farmers reached — with PDF export for donor reports |
-| 6 | **IVR / Feature Phone Export** | Auto-generates 8kHz mono audio for direct telecom broadcast to basic phones |
-| 7 | **WhatsApp Auto-Splitter** | Slices translated videos into <15MB chunks to bypass WhatsApp limits |
+| 1 | **Pipelined Job Engine** | Automatically processes files through 7 stages. Overlaps Stage 4 (translation) & Stage 5 (generation) so audio/video rendering begins the moment a language finishes translating |
+| 2 | **RAM-Aware Resource Planner** | Dynamically sizes concurrent jobs and generation workers based on available RAM and physical CPU cores; includes single-worker Resource Saver Mode |
+| 3 | **Translation Memory & Entity Shield** | Caches verified translations and shields agricultural acronyms, URLs, and brand names with protected placeholder tokens |
+| 4 | **Confidence Gate & Review Queue** | AI computes token log-probability confidence (Green/Amber/Red) and routes uncertain translations to reviewers before distribution |
+| 5 | **Reverse Bridge & Multilingual Pivot** | Transcribes regional farmer audio to English for HQ, and enables Indic $\rightarrow$ Indic translation (e.g., Marathi $\rightarrow$ Telugu) via an English pivot |
+| 6 | **Video Dubbing & Subtitling** | Generates dubbed MP4s (voice replacement), captioned MP4s, WebVTT, and SRT subtitles synced to sentence boundaries |
+| 7 | **IVR / Feature Phone Export** | Auto-generates 8kHz mono audio for direct telecom broadcast to basic phones |
+| 8 | **WhatsApp Auto-Splitter** | Slices translated videos into <15MB chunks to bypass WhatsApp media size limits |
 
 ![Last Mile Delivery via WhatsApp and IVR Feature Phones](assets/whatsapp_farmers.png)
 
 ---
 
 ## Production-Ready Edge Case Handling
-Hackathon projects often break in the real world. VaaniSetu was built to survive BAIF's actual IT constraints:
-- **RAM Spike Protection:** Uploads are chunk-streamed to disk in 64KB blocks, preventing memory crashes even if a 2GB video is uploaded to a cheap 16GB laptop.
-- **Smart Target Deduplication:** The cache intelligently checks not just the file hash, but the exact target languages requested, ensuring partial cache hits don't cause missing translations.
-- **AI Hallucination Guards:** Whisper STT silence/noise (empty strings) is intercepted and sanitized before hitting IndicTrans2, preventing tensor crashes and hallucinated text loops.
-- **Auto-Disk Recovery:** Intermediate gigabyte-heavy workspace files are automatically purged after every successful run, preventing the NGO server from running out of disk space over time.
-- **Force Re-run (Bypass Cache):** If a user corrects a translation in the Review Queue, they can re-run the job with "Force Re-run" checked. This bypasses the deduplication check, applies the updated Translation Memory corrections, and generates a fresh ZIP with corrected captions and audio in under 1 minute.
+Built to survive BAIF's actual IT constraints:
+- **RAM Spike Protection:** Uploads are chunk-streamed to disk in 64KB blocks, preventing memory crashes even if a 2GB video is uploaded to a 16GB laptop.
+- **Hardware-Aware Concurrency:** Automatically runs serially on low-memory 4GB laptops and scales to multi-worker pools on 16GB–32GB machines.
+- **Smart Target Deduplication:** The cache intelligently checks both the file hash and the requested target languages.
+- **AI Hallucination Guards:** Whisper silence/noise segments are sanitized before hitting IndicTrans2 to prevent tensor crashes and loops.
+- **Auto-Disk Recovery:** Intermediate gigabyte-heavy workspace files are purged after every run to prevent server disk exhaustion.
+- **Force Re-run (Bypass Cache):** Re-translates with updated human review corrections in under 1 minute.
 
 ---
 
@@ -61,10 +63,10 @@ Hackathon projects often break in the real world. VaaniSetu was built to survive
 | Metric | Target |
 |--------|--------|
 | Languages supported | 22 official Indian languages |
-| Formats accepted | Video (.mp4, .mkv), Audio (.mp3, .wav), Documents (.txt, .pdf, .docx, .csv) |
-| Output formats per job | .txt, bilingual .docx, .srt, .vtt, TTS .mp3, captioned .mp4, .zip |
-| Internet required at runtime | **None** |
+| Formats accepted | Video (.mp4, .mkv, .avi, .mov), Audio (.mp3, .wav, .m4a, .flac), Documents (.txt, .pdf, .docx, .csv) |
+| Output formats per job | .txt, bilingual .docx, .srt, .vtt, TTS .mp3, dubbed .mp4, captioned .mp4, IVR .wav, WhatsApp chunks, .zip |
+| Internet required at runtime | **None (100% Offline)** |
 | Maximum file size | 2 GB |
-| Concurrent jobs | 1 (FIFO queue, preserves RAM) |
-| LAN accessibility | All devices on office WiFi |
-| Data storage | Local SQLite — never leaves the building |
+| Concurrent jobs | Dynamically planned by available RAM & CPU cores (e.g. 1 on 4GB, up to 4+ on 16GB/32GB) |
+| LAN accessibility | All devices on office WiFi / Ethernet |
+| Data storage | Local SQLite WAL with 30s timeout — never leaves the building |

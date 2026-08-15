@@ -1,3 +1,4 @@
+import os
 import jwt
 import logging
 from datetime import datetime, timedelta
@@ -44,6 +45,11 @@ def seed_admin_user():
 
 def get_current_user(request: Request):
     """Dependency to validate JWT from header or query param and return current user."""
+    # Dev mode: skip auth if env var is set
+    if os.getenv("VAANISETU_SKIP_AUTH") == "1":
+        logger.warning("⚠️  DEV MODE: Auth bypassed (VAANISETU_SKIP_AUTH=1)")
+        return {"username": "dev", "role": "admin"}
+    
     token = None
     
     # Check Auth header

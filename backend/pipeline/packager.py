@@ -35,22 +35,42 @@ def write_bilingual_docx(
     source_lang: str,
     target_lang: str,
     out_dir: Path,
+    farmer_context: Optional[str] = None,
+    mode: str = "translate",
 ) -> str:
     from docx import Document
-    from docx.shared import Pt, RGBColor
+    from docx.shared import Pt, RGBColor, Inches
     from docx.enum.text import WD_ALIGN_PARAGRAPH
 
     doc = Document()
-    title = doc.add_heading(f"VaaniSetu — {source_lang} ↔ {target_lang}", level=1)
-    title.runs[0].font.color.rgb = RGBColor(27, 67, 50)
-    doc.add_paragraph(f"Generated: {datetime.now().strftime('%d %b %Y, %H:%M')}")
-    doc.add_paragraph("")
+    
+    if mode == "reverse_bridge" or (farmer_context and farmer_context.strip()):
+        title = doc.add_heading("BAIF Development Research Foundation — Farmer Query Advisory", level=1)
+        title.runs[0].font.color.rgb = RGBColor(27, 67, 50)
+        
+        doc.add_paragraph(f"Operational Mode: Reverse Bridge (Field Recording Translation)")
+        doc.add_paragraph(f"Languages: {source_lang} (Farmer Voice) ➔ {target_lang} (HQ Translation)")
+        doc.add_paragraph(f"Generated on: {datetime.now().strftime('%d %b %Y, %H:%M')} (IST)")
+        
+        if farmer_context and farmer_context.strip():
+            doc.add_heading("Field Recording & Farmer Context", level=2)
+            ctx_p = doc.add_paragraph(farmer_context.strip())
+            ctx_p.paragraph_format.left_indent = Inches(0.2)
+            if ctx_p.runs:
+                ctx_p.runs[0].font.italic = True
+                
+        doc.add_heading("Spoken Query & Translation", level=2)
+    else:
+        title = doc.add_heading(f"VaaniSetu — {source_lang} ↔ {target_lang}", level=1)
+        title.runs[0].font.color.rgb = RGBColor(27, 67, 50)
+        doc.add_paragraph(f"Generated: {datetime.now().strftime('%d %b %Y, %H:%M')}")
+        doc.add_paragraph("")
 
     table = doc.add_table(rows=1, cols=2)
     table.style = "Light Grid"
     hdr = table.rows[0].cells
-    hdr[0].text = source_lang
-    hdr[1].text = target_lang
+    hdr[0].text = f"{source_lang} (Original)"
+    hdr[1].text = f"{target_lang} (Translation)"
     for cell in hdr:
         cell.paragraphs[0].runs[0].font.bold = True
         cell.paragraphs[0].runs[0].font.color.rgb = RGBColor(82, 183, 136)
@@ -59,6 +79,16 @@ def write_bilingual_docx(
         row = table.add_row().cells
         row[0].text = seg.get("text", "")
         row[1].text = seg.get("translated", "")
+
+    if mode == "reverse_bridge" or (farmer_context and farmer_context.strip()):
+        doc.add_paragraph("")
+        doc.add_heading("HQ Expert / Agronomist Advisory & Action Plan", level=2)
+        p = doc.add_paragraph(
+            "Diagnosis / Recommendation for Field Worker:\n\n"
+            "_________________________________________________________________________________\n\n"
+            "_________________________________________________________________________________\n\n"
+            "Signature / Reviewed By: ___________________________   Date: ____________________"
+        )
 
     path = str(out_dir / f"bilingual_{target_lang}.docx")
     doc.save(path)
@@ -140,20 +170,43 @@ def write_tts_mp3(
 
 
 # ---------------------------------------------------------------------------
-# Captioned MP4
+# Dubbed MP4 (Video with Translated Audio)
+# ---------------------------------------------------------------------------
+def write_dubbed_mp4(
+    original_video_path: Optional[str],
+    audio_path: Optional[str],
+    lang_name: str,
+    out_dir: Path,
+) -> Optional[str]:
+    if not original_video_path or not os.path.exists(original_video_path):
+        return None
+    if not audio_path or not os.path.exists(audio_path):
+        return None
+    from backend.pipeline.audio_extractor import replace_video_audio
+    out_path = str(out_dir / f"dubbed_{lang_name}.mp4")
+    try:
+        return replace_video_audio(original_video_path, audio_path, out_path)
+    except Exception as e:
+        logger.warning(f"Dubbed MP4 generation failed: {e}")
+        return None
+
+
+# ---------------------------------------------------------------------------
+# Captioned & Dubbed MP4
 # ---------------------------------------------------------------------------
 def write_captioned_mp4(
     original_video_path: Optional[str],
     srt_path: str,
     lang_name: str,
     out_dir: Path,
+    audio_path: Optional[str] = None,
 ) -> Optional[str]:
     if not original_video_path or not os.path.exists(original_video_path):
         return None
     from backend.pipeline.audio_extractor import burn_subtitles
     out_path = str(out_dir / f"captioned_{lang_name}.mp4")
     try:
-        return burn_subtitles(original_video_path, srt_path, out_path)
+        return burn_subtitles(original_video_path, srt_path, out_path, audio_path=audio_path)
     except Exception as e:
         logger.warning(f"Captioned MP4 generation failed: {e}")
         return None
@@ -173,7 +226,9 @@ def write_ivr_wav(
     wav_path = str(out_dir / f"ivr_audio_{lang_name}.wav")
     try:
         # Downsample to 8kHz mono for IVR / feature phone compatibility
-        cmd = ["ffmpeg", "-y", "-i", mp3_path, "-ar", "8000", "-ac", "1", wav_path]
+        from backend.utils.ffmpeg import ffmpeg_executable
+
+        cmd = [ffmpeg_executable(), "-y", "-i", mp3_path, "-ar", "8000", "-ac", "1", wav_path]
         subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         return wav_path
     except Exception as e:
@@ -201,11 +256,13 @@ def write_whatsapp_chunks(
     chunk_pattern = str(out_dir / f"whatsapp_part%02d_{lang_name}.mp4")
     try:
         # Split into 60-second segments (safest cross-platform way without re-encoding)
+        from backend.utils.ffmpeg import ffmpeg_executable
+
         cmd = [
-            "ffmpeg", "-y", "-i", mp4_path, 
-            "-c", "copy", "-f", "segment", 
-            "-segment_time", "60", 
-            "-reset_timestamps", "1", 
+            ffmpeg_executable(), "-y", "-i", mp4_path,
+            "-c", "copy", "-f", "segment",
+            "-segment_time", "60",
+            "-reset_timestamps", "1",
             chunk_pattern
         ]
         subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)

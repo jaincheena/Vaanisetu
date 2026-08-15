@@ -47,23 +47,25 @@ Everything runs **100% offline** — after a one-time internet-connected setup, 
 BAIF Staff                 VaaniSetu Server              Output
 ──────────                 ─────────────────              ──────
 Opens browser   ────────►  React UI (port 8765)
-Uploads file    ────────►  FastAPI validates it
+Uploads file    ────────►  FastAPI validates & streams to disk
                            ↓
-                           FIFO Queue (one job at a time)
+                           RAM-Aware Job Queue (concurrent workers)
                            ↓
-                     ┌─────────────────────┐
-                     │  7-Stage Pipeline   │
-                     │  1. Validate file   │
-                     │  2. FFmpeg → WAV    │
-                     │  3. Whisper → text  │
-                     │  4. IndicTrans2     │──── Review Queue
-                     │  5. Generate files  │     (amber segs)
-                     │  6. Package ZIP     │
-                     └─────────────────────┘
+                     ┌───────────────────────────────────────────────┐
+                     │ 7-Stage Pipelined Engine                      │
+                     │ 1. Validate file (type & smart hash dedup)    │
+                     │ 2. FFmpeg audio / Document Parser             │
+                     │ 3. Whisper STT (serialized with locks)        │
+                     │ 4. IndicTrans2 Translation (pool/pivot)       │
+                     │    ↓ (Pipelined Overlap)                      │
+                     │ 5. Generation Pool (Dubbed MP4, Subtitled MP4,│
+                     │    TTS MP3, IVR WAV, WhatsApp chunks, DOCX)   │
+                     │ 6. ZIP Packaging & Auto-Disk Cleanup          │
+                     └───────────────────────────────────────────────┘
                            ↓
                      SSE progress pushed    ────► Browser progress bar
                            ↓
-Staff downloads ZIP ◄──── Output: .txt .docx .srt .vtt .mp3 .mp4
+Staff downloads ZIP ◄──── Output: .txt .docx .srt .vtt .mp3 .mp4 .csv
 ```
 
 ---
@@ -72,21 +74,20 @@ Staff downloads ZIP ◄──── Output: .txt .docx .srt .vtt .mp3 .mp4
 
 | Tool | Role | Why this tool? |
 |------|------|----------------|
-| **FastAPI** | Backend API framework | Async-native, auto-generates docs at `/docs`, very fast |
+| **FastAPI** | Backend API framework | Async-native, auto-generates docs at `/docs`, high throughput |
 | **Uvicorn** | ASGI web server | Production-grade, handles async perfectly, simple to start |
-| **SQLite** | Database | Zero-config, no separate DB server, perfect for single-machine deployment |
-| **OpenAI Whisper** | Speech-to-text | Best open-source STT in existence, supports 100+ languages, runs CPU-only |
-| **AI4Bharat IndicTrans2** | Translation | Best open-source model for Indian languages, 22-language support |
-| **Coqui TTS** | Text-to-speech | Open-source multilingual TTS, can generate Indian language audio |
-| **FFmpeg** | Audio/video processing | Industry standard, handles every media format, free |
-| **React 18** | Frontend framework | Component-based UI, excellent for real-time updates (SSE) |
+| **SQLite (WAL Mode)** | Database | Zero-config, thread-safe with 30s busy timeout, WAL mode for concurrent writes |
+| **OpenAI Whisper** | Speech-to-text | Best open-source STT in existence, auto-detects source language, CPU-optimized |
+| **AI4Bharat IndicTrans2** | Translation | State-of-the-art for 22 Indian languages, distilled 200M architecture |
+| **Coqui XTTS v2 / gTTS** | Text-to-speech | Multilingual neural voice synthesis with sentence chunking & speaker reference cloning |
+| **FFmpeg 8.1.2** | Audio/video processing | Bundled locally for zero-dependency video dubbing, subtitle burning, IVR 8kHz WAV, and WhatsApp auto-splitting |
+| **React 18** | Frontend framework | Component-based UI, real-time SSE updates, responsive design |
 | **Vite** | Build tool | Lightning-fast dev server + optimised production builds |
-| **PyJWT & passlib** | Authentication | Lightweight JWT token generation and password hashing |
-| **pypdf** | PDF Extraction | Standard library for reading PDF documents |
-| **langdetect** | Language Detection | Offline heuristic-based language sniffing |
-| **fpdf2** | PDF generation | Pure Python, no external dependencies, good for reports |
-| **python-docx** | Word doc generation | Native DOCX creation, tables, formatting |
-| **Server-Sent Events (SSE)** | Progress streaming | One-way server→browser stream, simpler than WebSockets for this use case |
+| **PyJWT & passlib (bcrypt)** | Authentication | Lightweight JWT token generation and secure password hashing |
+| **pypdf & python-docx** | Document extraction & export | Parses PDF/DOCX/CSV/TXT inputs; generates bilingual DOCX tables and PDF reports |
+| **langdetect** | Language Detection | Offline heuristic-based language identification fallback |
+| **psutil** | Hardware Resource Sizing | Dynamic RAM & CPU core estimation for worker concurrency planning |
+| **Server-Sent Events (SSE)** | Progress streaming | Cross-thread non-blocking pub/sub for real-time progress |
 
 ---
 
@@ -97,85 +98,73 @@ Vaanisetu/
 │
 ├── backend/                    ← Python backend (FastAPI)
 │   ├── __init__.py
-│   ├── main.py                 ← App entry point (start here!)
-│   ├── config.py               ← ALL paths, constants, language codes
-│   ├── database.py             ← SQLite table creation + helper functions
+│   ├── main.py                 ← App entry point & lifespan management
+│   ├── config.py               ← Central paths, constants, FLORES codes, concurrency configs
+│   ├── database.py             ← SQLite WAL database connection + seeding
 │   │
-│   ├── models/                 ← AI model management
-│   │   ├── registry.py         ← Singleton: loads Whisper + IndicTrans2 + TTS once
+│   ├── models/                 ← AI model management & replica pools
+│   │   ├── registry.py         ← Singleton: model loader, on-demand reverse bridge, replica factories
+│   │   ├── pool.py             ← Model replica checkout pools (translation & TTS)
 │   │   └── schemas.py          ← Pydantic data models (request/response shapes)
 │   │
-│   ├── pipeline/               ← The core translation engine
-│   │   ├── queue.py            ← Async FIFO job queue (one job at a time)
-│   │   ├── processor.py        ← 7-stage orchestrator (the "main loop")
-│   │   ├── audio_extractor.py  ← FFmpeg wrapper (any format → 16kHz WAV)
-│   │   ├── transcriber.py      ← Whisper wrapper (WAV → text segments)
-│   │   ├── translator.py       ← IndicTrans2 wrapper + TM cache + confidence
-│   │   ├── tts.py              ← Coqui TTS wrapper (text → MP3)
-│   │   └── packager.py         ← Writes .txt .docx .srt .vtt .mp3 .mp4 .zip
+│   ├── pipeline/               ← Core pipelined translation engine
+│   │   ├── job_queue.py        ← RAM-sized concurrent async worker queue
+│   │   ├── queue.py            ← Backward-compatibility alias for job_queue
+│   │   ├── locks.py            ← Shared model thread-safety locks (Whisper, IndicTrans2, XTTS)
+│   │   ├── processor.py        ← 7-stage orchestrator (pipelined translation & parallel generation)
+│   │   ├── audio_extractor.py  ← FFmpeg audio extraction, video dubbing, subtitle burning
+│   │   ├── transcriber.py      ← Whisper wrapper with language detection
+│   │   ├── translator.py       ← IndicTrans2 translation, pivot handling, TM cache, entity protection
+│   │   ├── tts.py              ← Coqui XTTS v2 / gTTS with sentence chunking & speaker cloning
+│   │   ├── document_parser.py  ← PDF, DOCX, CSV, and TXT document extractor
+│   │   └── packager.py         ← Writes .txt, .docx, .srt, .vtt, .mp3, .mp4, IVR .wav, WhatsApp chunks, .zip
 │   │
-│   ├── services/               ← Business logic (no HTTP knowledge here)
-│   │   ├── translation_memory.py ← TM cache: lookup, store, glossary
-│   │   ├── confidence.py         ← Confidence score formula
-│   │   ├── impact_ledger.py      ← Impact metric calculations
+│   ├── services/               ← Business logic
+│   │   ├── translation_memory.py ← TM cache: lookup, store, glossary promotion
+│   │   ├── confidence.py         ← Token log-probability confidence formula
+│   │   ├── impact_ledger.py      ← Agricultural impact & financial savings metrics
+│   │   ├── auth_service.py       ← JWT authentication and password hashing
 │   │   └── export.py             ← PDF + DOCX export generation
 │   │
-│   ├── routers/                ← HTTP endpoint handlers (one file per feature)
+│   ├── routers/                ← HTTP API endpoints
 │   │   ├── jobs.py             ← POST /api/jobs/submit, GET /api/jobs/...
 │   │   ├── review.py           ← GET/POST /api/review/...
 │   │   ├── impact.py           ← GET /api/impact, POST /api/impact/config
 │   │   ├── glossary.py         ← GET /api/glossary, GET /api/glossary/export/docx
-│   │   └── health.py           ← GET /api/health
+│   │   ├── auth.py             ← POST /api/auth/login, GET /api/auth/me
+│   │   └── health.py           ← GET /api/health (system resources & concurrency metrics)
 │   │
-│   └── utils/                  ← Shared utilities (no business logic)
-│       ├── file_utils.py       ← SHA-256 hashing, file paths, job IDs
-│       └── sse.py              ← Server-Sent Events pub/sub manager
+│   └── utils/                  ← Utilities & helpers
+│       ├── file_utils.py       ← SHA-256 hashing, workspace paths, job IDs
+│       ├── ffmpeg.py           ← Bundled FFmpeg path discovery & validation
+│       ├── resources.py        ← RAM-aware worker & replica concurrency planner
+│       └── sse.py              ← Cross-thread thread-safe SSE pub/sub manager
 │
 ├── frontend/                   ← React 18 + Vite frontend
 │   ├── package.json
 │   ├── vite.config.js          ← Dev proxy to port 8765
 │   ├── index.html
 │   └── src/
-│       ├── main.jsx            ← React app bootstrap
-│       ├── App.jsx             ← Router + layout shell
-│       ├── index.css           ← ENTIRE design system (tokens, components, utilities)
-│       ├── components/         ← Reusable UI pieces
-│       │   ├── Sidebar.jsx         ← Navigation + review badge count
-│       │   ├── TopBanner.jsx       ← LAN IP, RAM, disk, model status
-│       │   ├── ProgressBar.jsx     ← 7-stage animated progress bar
-│       │   ├── ConfidenceBadge.jsx ← 🟢🟡🔴 confidence label
-│       │   ├── LangChipGrid.jsx    ← 22-language multi-select chip grid
-│       │   └── DragDropZone.jsx    ← File drag-drop + browse
-│       └── pages/              ← Full pages (one per sidebar item)
-│           ├── Upload.jsx          ← Main job submission form + SSE progress
-│           ├── History.jsx         ← Job table with filters
-│           ├── ReviewQueue.jsx     ← Bilingual review cards
-│           ├── ImpactLedger.jsx    ← Stat tiles + bar chart + config table
-│           └── Glossary.jsx        ← Term table + DOCX export
+│       ├── main.jsx            ← React bootstrap
+│       ├── App.jsx             ← Router + layout shell + IST time display
+│       ├── index.css           ← Comprehensive design system (tokens, components, utilities)
+│       ├── components/         ← Reusable UI components
+│       └── pages/              ← Upload, History, ReviewQueue, ImpactLedger, Glossary, Login
 │
-├── scripts/                    ← Windows batch scripts
-│   ├── check_hardware.bat      ← Verify prerequisites before setup
+├── scripts/                    ← Windows batch & python automation scripts
+│   ├── check_hardware.bat      ← Verify system prerequisites
 │   ├── setup.bat               ← Install deps + build frontend
 │   ├── download_models.bat     ← Download AI models (~6-8 GB)
+│   ├── download_helper.py      ← Hugging Face gated repo download assistant
 │   ├── start_vaanisetu.bat     ← Launch server + open browser
 │   ├── stop_vaanisetu.bat      ← Graceful shutdown
-│   ├── backup.bat              ← DB + outputs to external drive
-│   └── install_from_usb.bat    ← Full offline install from USB
+│   └── backup.bat              ← DB + outputs backup
 │
-├── handover/                   ← Non-technical documentation for NGO staff
-│   ├── 01_solution_overview.md
-│   ├── 02_assumptions_scope.md
-│   ├── 03_architecture_flow.md
-│   ├── 04_setup_installation.md
-│   ├── 05_access_dependencies.md
-│   ├── 06_operating_guide.md
-│   ├── 07_known_limitations_risks.md
-│   ├── 08_training_plan.md
-│   └── vaanisetu_documentation.html  ← All 8 docs in one offline HTML file
-│
-├── requirements.txt            ← Python dependencies
-├── .gitignore
-└── README.md                   ← You are here
+├── handover/                   ← Technical & operational handover guides
+├── tests_concurrency.py        ← 40-check Concurrency, replica pool, and resource sizing test suite
+├── tests_mock.py               ← End-to-end 7-stage mock pipeline verification
+├── requirements.txt            ← Python dependencies (with bcrypt pin)
+└── README.md                   ← Root documentation
 ```
 
 ---
@@ -232,82 +221,61 @@ File arrives at `POST /api/jobs/submit`. The router:
 ```
 Re-confirms the file exists on disk, extension is valid. Updates DB: `status='validating'`.
 
-### Stage 2: Extracting
+### Stage 2: Extracting / Document Parsing
 ```python
 # processor.py: _stage_extracting()
-# Calls: audio_extractor.py: extract_audio()
+# Calls: audio_extractor.py: extract_audio() OR document_parser.py: parse_document()
 ```
-Uses FFmpeg to convert the input to **16 kHz mono WAV** — which is the format Whisper requires. For `.txt` files, this stage is skipped (file is copied to `workspace/original.txt` instead).
-
-**Why 16 kHz?** Whisper was trained on 16 kHz audio. Other sample rates waste computation or reduce accuracy.
+- For **video / audio**: Uses FFmpeg to convert the input to **16 kHz mono WAV** (normalized).
+- For **documents** (`.pdf`, `.docx`, `.csv`, `.txt`): Directly parses paragraphs/rows into structured text segments with timestamp bounds.
 
 ### Stage 3: Transcribing
 ```python
 # processor.py: _stage_transcribing()
 # Calls: transcriber.py: transcribe()
 ```
-Whisper processes the WAV and returns a list of **segments**:
+- Whisper processes the WAV with `with TRANSCRIBE_LOCK:` (ensuring thread safety across concurrent jobs) and returns timestamped segments:
 ```python
 [
   {"text": "Hello farmers", "start": 0.0, "end": 2.5},
   {"text": "Today we discuss irrigation", "start": 2.5, "end": 5.8},
-  ...
 ]
 ```
-For `.txt` inputs, lines are converted to fake segments (5-second intervals).
+- **Language Detection**: Transcriber detects the spoken language (e.g. `mr`, `hi`, `te`) and returns `(segments, detected_code)`.
 
-### Stage 4: Translating
+### Stage 4 & 5: Pipelined Translation & Parallel Generation
 ```python
-# processor.py: _stage_translating()
-# Calls: translator.py: translate_segments()
+# processor.py: _stage_translating() & _generate_for_language()
+# Calls: translator.py, packager.py, tts.py
 ```
-This is the most complex stage. For **each target language**:
+Instead of waiting for all 22 languages to finish translating, **Stage 4 and Stage 5 are pipelined**:
+1. **Dynamic Sizing**: Generation worker count is planned dynamically: `workers = plan("generate", share=current_jobs)`.
+2. **Translation per Language**:
+   - **Auto-Detect Resolution**: Resolves source language via Whisper detected code or `langdetect`.
+   - **Pivot Routing**: Direct translation for English $\rightarrow$ Indic or Indic $\rightarrow$ English; 2-step pivot (`Indic -> English -> Target Indic`) for Indic $\rightarrow$ Indic pairs (e.g. Marathi $\rightarrow$ Telugu).
+   - **Entity Protection**: Placeholders (`<VSP0>`) protect technical terms, agricultural acronyms (SRI), URLs, and brand names.
+   - **TM Cache & Confidence**: Cached segments resolve instantly ($conf=1.0$). Uncached segments run IndicTrans2 inference with `TRANSLATE_LOCK` or model replica pool checkout.
+3. **Immediate Asynchronous Generation**: As soon as Language $i$ finishes translation, its full generation set is immediately submitted to the `ThreadPoolExecutor`:
 
-1. **TM Cache Check** (Translation Memory): For every segment, compute `SHA-256("src_lang|tgt_lang|" + text.lower())` and look up in the `translation_memory` table. If found with confidence ≥ 0.85 and not flagged → use cached translation (score = 1.0).
+| File | Function | Details |
+|------|----------|---------|
+| `translation_Hindi.txt` | `write_txt()` | Plain translated text |
+| `bilingual_Hindi.docx` | `write_bilingual_docx()` | Formatted bilingual table for print/review |
+| `subtitles_Hindi.srt` | `write_srt()` | SubRip subtitle format |
+| `subtitles_Hindi.vtt` | `write_vtt()` | WebVTT subtitle format |
+| `audio_Hindi.mp3` | `write_tts_mp3()` | Coqui XTTS v2 neural audio with chunking & speaker reference |
+| `ivr_audio_Hindi.wav` | `write_ivr_wav()` | 8 kHz mono downsampled for IVR & basic phones |
+| `dubbed_Hindi.mp4` | `write_dubbed_mp4()` | Video with translated audio replacing the original track |
+| `captioned_Hindi.mp4` | `write_captioned_mp4()` | Subtitle-burned video with synced translated audio |
+| `translated_Hindi.csv` | `write_translated_csv()` | Bilingual CSV (for CSV document uploads) |
+| `whatsapp_part00_Hindi.mp4` | `write_whatsapp_chunks()` | Auto-split <15MB segments for low-bandwidth WhatsApp |
 
-2. **IndicTrans2 Inference** (for uncached segments):
-   - Group into batches of 8 (controlled by `BATCH_SIZE` in config)
-   - Tokenize with the model's tokenizer (specifying source + target FLORES codes)
-   - Run `model.generate(output_scores=True, return_dict_in_generate=True)` — the `output_scores=True` flag is critical for confidence computation
-   - Decode output sequences back to text
-
-3. **Confidence Scoring**: Uses the raw token probability scores from the generator:
-   ```
-   confidence = exp( max( mean(log_softmax(token_scores)), -5.0 ) )
-   ```
-   Result is 0–1. The `-5.0` floor prevents extreme low-probability tokens from crashing the exponential.
-
-4. **Routing**: 
-   - Confidence ≥ 0.85 → Green → store to TM (if ≥ 0.70)
-   - Confidence 0.65–0.84 → Amber → store to TM + add to `review_queue`
-   - Confidence < 0.65 → Red → add to `review_queue`
-
-5. **Direction logic**: English as source → use `en-indic` model. Any other language as source → use `indic-en` model. This is why we have two separate IndicTrans2 checkpoints.
-
-### Stage 5: Generating
+### Stage 6: Packaging & Disk Recovery
 ```python
-# processor.py: _stage_generating()
-# Calls: packager.py
+# processor.py: _stage_packaging() & _cleanup_job()
 ```
-For each target language, generates all output formats in `workspace/{job_id}/`:
-
-| File | Function |
-|------|----------|
-| `translation_Hindi.txt` | `write_txt()` — plain concatenation |
-| `bilingual_Hindi.docx` | `write_bilingual_docx()` — python-docx table |
-| `subtitles_Hindi.srt` | `write_srt()` — SRT format with `HH:MM:SS,ms` timestamps |
-| `subtitles_Hindi.vtt` | `write_vtt()` — WebVTT format (same but `.` not `,`) |
-| `audio_Hindi.mp3` | `write_tts_mp3()` → `tts.py: generate_tts_for_segments()` |
-| `ivr_audio_Hindi.wav` | `write_ivr_wav()` → FFmpeg downsamples to 8kHz mono |
-| `captioned_Hindi.mp4` | `write_captioned_mp4()` → FFmpeg subtitle burn |
-| `whatsapp_part00_Hindi.mp4` | `write_whatsapp_chunks()` → FFmpeg slices video into <15MB chunks |
-
-### Stage 6: Packaging
-```python
-# processor.py: _stage_packaging()
-# Calls: packager.py: create_zip()
-```
-Creates a ZIP at `outputs/{job_id}.zip` containing all generated files + `manifest.json`.
+- Bundles all generated language files and `manifest.json` into `outputs/{job_id}.zip`.
+- **Auto-Disk Recovery**: Intermediate gigabyte-heavy workspace files and raw uploads are cleared immediately to prevent server disk exhaustion.
 
 ### Finish
 Updates `jobs` row: `status='completed'`, stores `avg_confidence`, `confidence_level`, and sets `distribution_clearance` to either `'cleared'` (no pending review items) or `'pending_review'`.
@@ -551,6 +519,8 @@ The pipeline is identical. Only the model direction flips (`en-indic` ↔ `indic
 - Python 3.11+
 - Node.js 18+
 - FFmpeg (add to PATH)
+- **Microsoft C++ Build Tools**: Required for compiling a dependency of the `TTS` package.
+  - **Recommended Fix**: To avoid a large download, you can often install a pre-compiled version first by running `pip install monotonic-align` before running `setup.bat`.
 - 16 GB RAM
 - 200 GB free disk (for models)
 
@@ -700,7 +670,7 @@ with open(upload_path, "wb") as f:
     f.write(content)
 
 # Better — stream in chunks:
-async with aiofiles.open(upload_path, "wb") as f:
+async with aiofiles.open(upload_path, "wb") as f: h
     while chunk := await file.read(65536):  # 64 KB chunks
         await f.write(chunk)
 file_hash = sha256_file(upload_path)  # hash after writing

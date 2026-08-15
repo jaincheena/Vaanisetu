@@ -114,7 +114,7 @@ If the progress bar has been stuck on the same stage for more than 30 minutes, c
 
 **Q: Can two people submit jobs at the same time?**
 
-Yes — both jobs are accepted and queued. They process one at a time (the server handles one job at a time to ensure quality). You can see your queue position in the top banner.
+Yes — both jobs are accepted and queued. The server dynamically allocates background workers based on computer RAM and physical CPU cores (running jobs concurrently on 16GB+ systems, or processing serially on low-memory laptops). You can see the active jobs and queue position in the top banner.
 
 ---
 
@@ -136,7 +136,7 @@ A job shows the **overall** badge based on the average across all sentences.
 
 ---
 
-**Q: The job completed but shows Amber. Can I still distribute the content?**
+**Q: Can I share an Amber-confidence translation immediately?**
 
 **Not yet.** When a job has Amber segments, you will see:
 > ⚠ Pending Review — hold distribution
@@ -149,17 +149,21 @@ Go to the **Review Queue**, check the flagged sentences, approve or correct them
 
 **Q: What's inside the ZIP file I download?**
 
-When you download the ZIP for a job, it contains one set of files per target language:
+When you download the ZIP for a job, it contains a comprehensive set of files for each target language:
 
 | File | What it is | How to use it |
 |------|-----------|--------------|
-| `translation_Hindi.txt` | Plain Hindi text | SMS, feature phone messaging, BAIF app |
-| `bilingual_Hindi.docx` | Word document with original + Hindi side-by-side | Print as handout for field officers |
-| `subtitles_Hindi.srt` | Subtitle file | Add to video in any video editor |
-| `subtitles_Hindi.vtt` | Web subtitle file | Upload with video to YouTube/BAIF website |
-| `audio_Hindi.mp3` | AI-spoken Hindi audio | Community radio, WhatsApp audio message, IVR |
-| `captioned_Hindi.mp4` | Video with Hindi text burned in | WhatsApp groups, gram panchayat TV screen |
-| `manifest.json` | Job details (ignore this file) | For IT reference only |
+| `translation_Hindi.txt` | Plain Hindi text | SMS, feature phone messaging, BAIF mobile app |
+| `bilingual_Hindi.docx` | Word document with original + Hindi side-by-side | Print as handout for field officers & local trainers |
+| `subtitles_Hindi.srt` | Subtitle file | Add to video in VLC, YouTube, or editing software |
+| `subtitles_Hindi.vtt` | Web subtitle file | Upload with video to BAIF website or web portal |
+| `audio_Hindi.mp3` | AI-spoken Hindi audio (Coqui XTTS v2) | Community radio, WhatsApp voice broadcast |
+| `ivr_audio_Hindi.wav` | 8kHz mono telephone audio | Interactive Voice Response (IVR) phone calls to farmers |
+| `dubbed_Hindi.mp4` | Video with translated audio voice-over | Gram panchayat video screenings, farmer workshops |
+| `captioned_Hindi.mp4` | Video with burned-in subtitles | Social media, WhatsApp groups, TV displays |
+| `translated_Hindi.csv` | Translated spreadsheet table | Tabular survey data & field reporting |
+| `whatsapp_part00_Hindi.mp4` | Video auto-split into <15MB parts | Direct delivery to rural farmers on low-bandwidth WhatsApp |
+| `manifest.json` | Job details and IST timestamp | System and audit record |
 
 ---
 

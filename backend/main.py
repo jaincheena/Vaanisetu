@@ -13,10 +13,14 @@ from fastapi.staticfiles import StaticFiles
 
 from backend.database import init_db
 from backend.models.registry import registry
-from backend.pipeline.queue import worker as queue_worker
+from backend.models.pool import init_pools
+from backend.pipeline.job_queue import start_workers
 from backend.routers import jobs, review, impact, glossary, health, auth
 from backend.services.auth_service import seed_admin_user
+from backend.utils.sse import bind_loop
+from backend.utils.resources import preflight
 from backend.config import HOST, PORT
+from backend.utils.ffmpeg import ensure_ffmpeg_on_path
 
 logging.basicConfig(
     level=logging.INFO,
@@ -35,12 +39,26 @@ async def lifespan(app: FastAPI):
     seed_admin_user()
     logger.info("Database and default admin initialised")
 
+    ensure_ffmpeg_on_path()
+    logger.info("FFmpeg PATH setup complete")
+
+    # Let pipeline threads publish SSE onto this loop (see backend/utils/sse.py)
+    loop = asyncio.get_running_loop()
+    bind_loop(loop)
+
+    # Tell the operator up front if this machine is too small, rather than
+    # letting it discover that by swapping for ten minutes.
+    fits, msg = preflight()
+    (logger.info if fits else logger.warning)(msg)
+
     # Load models in a thread-pool executor to avoid blocking event loop
-    loop = asyncio.get_event_loop()
     await loop.run_in_executor(None, registry.load_all)
 
-    # Start background job queue worker
-    asyncio.create_task(queue_worker())
+    # Build replica pools from whatever RAM is left once the models are in
+    await loop.run_in_executor(None, init_pools)
+
+    # Start the RAM-sized pool of job workers
+    await start_workers()
     logger.info(f"Server ready at http://{HOST}:{PORT}")
 
     yield

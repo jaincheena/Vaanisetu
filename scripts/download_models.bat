@@ -1,56 +1,95 @@
 @echo off
-REM ============================================================
-REM VaaniSetu — Model Download Script
-REM Downloads Whisper + IndicTrans2 models (~6-8 GB total).
-REM Requires internet. Run once before going offline.
-REM ============================================================
 setlocal
+
 set MODELS=C:\VaaniSetu\models
 
 echo.
 echo ========================================
-echo   VaaniSetu — Download AI Models
+echo   VaaniSetu - Download AI Models
 echo ========================================
 echo   This will download approximately 6-8 GB.
-echo   Ensure stable internet. Do NOT interrupt.
 echo ========================================
 echo.
-pause
 
-REM --- Whisper large-v3-turbo ---
-echo [1/3] Downloading Whisper large-v3-turbo (~3 GB)...
+REM =====================================================
+REM Hugging Face Token (replace with your actual token)
+REM =====================================================
+set HF_TOKEN=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
+set HUGGING_FACE_HUB_TOKEN=%HF_TOKEN%
+
+
+
+if %errorlevel% neq 0 (
+    echo.
+    echo [ERROR] Hugging Face login failed.
+    pause
+    exit /b 1
+)
+
+REM =====================================================
+REM Whisper
+REM =====================================================
+
+echo.
+echo [1/4] Downloading Whisper...
+
 python -c "import whisper; whisper.load_model('large-v3-turbo', download_root=r'%MODELS%\whisper'); print('Whisper OK')"
+
 if %errorlevel% neq 0 (
     echo [ERROR] Whisper download failed.
     pause
     exit /b 1
 )
 
-REM --- IndicTrans2 en-indic ---
+REM =====================================================
+REM IndicTrans2 EN -> INDIC
+REM =====================================================
+
 echo.
-echo [2/3] Downloading IndicTrans2 en-indic (~1.5 GB)...
-python -c "from transformers import AutoModelForSeq2SeqLM, AutoTokenizer; m=AutoModelForSeq2SeqLM.from_pretrained('ai4bharat/indictrans2-en-indic-dist-200M',trust_remote_code=True); t=AutoTokenizer.from_pretrained('ai4bharat/indictrans2-en-indic-dist-200M',trust_remote_code=True); m.save_pretrained(r'%MODELS%\indictrans2-en-indic'); t.save_pretrained(r'%MODELS%\indictrans2-en-indic'); print('en-indic OK')"
+echo [2/4] Downloading IndicTrans2 en-indic...
+
+python -c "from transformers import AutoTokenizer,AutoModelForSeq2SeqLM; model='ai4bharat/indictrans2-en-indic-dist-200M'; tokenizer=AutoTokenizer.from_pretrained(model,trust_remote_code=True,token='%HF_TOKEN%'); model_obj=AutoModelForSeq2SeqLM.from_pretrained(model,trust_remote_code=True,token='%HF_TOKEN%'); model_obj.save_pretrained(r'%MODELS%\indictrans2-en-indic'); tokenizer.save_pretrained(r'%MODELS%\indictrans2-en-indic'); print('en-indic OK')"
+
 if %errorlevel% neq 0 (
     echo [ERROR] IndicTrans2 en-indic download failed.
     pause
     exit /b 1
 )
 
-REM --- IndicTrans2 indic-en ---
+REM =====================================================
+REM IndicTrans2 INDIC -> EN
+REM =====================================================
+
 echo.
-echo [3/3] Downloading IndicTrans2 indic-en (~1.5 GB)...
-python -c "from transformers import AutoModelForSeq2SeqLM, AutoTokenizer; m=AutoModelForSeq2SeqLM.from_pretrained('ai4bharat/indictrans2-indic-en-dist-200M',trust_remote_code=True); t=AutoTokenizer.from_pretrained('ai4bharat/indictrans2-indic-en-dist-200M',trust_remote_code=True); m.save_pretrained(r'%MODELS%\indictrans2-indic-en'); t.save_pretrained(r'%MODELS%\indictrans2-indic-en'); print('indic-en OK')"
+echo [3/4] Downloading IndicTrans2 indic-en...
+
+python -c "from transformers import AutoTokenizer,AutoModelForSeq2SeqLM; model='ai4bharat/indictrans2-indic-en-dist-200M'; tokenizer=AutoTokenizer.from_pretrained(model,trust_remote_code=True,token='%HF_TOKEN%'); model_obj=AutoModelForSeq2SeqLM.from_pretrained(model,trust_remote_code=True,token='%HF_TOKEN%'); model_obj.save_pretrained(r'%MODELS%\indictrans2-indic-en'); tokenizer.save_pretrained(r'%MODELS%\indictrans2-indic-en'); print('indic-en OK')"
+
 if %errorlevel% neq 0 (
     echo [ERROR] IndicTrans2 indic-en download failed.
     pause
     exit /b 1
 )
 
+REM =====================================================
+REM XTTS
+REM =====================================================
+
+echo.
+echo [4/4] Downloading XTTS...
+
+python -c "from TTS.utils.manage import ModelManager; mm = ModelManager(models_file=None, output_prefix=r'%MODELS%'); model_path, _, _ = mm.download_model('tts_models/multilingual/multi-dataset/xtts_v2'); mm.unpack_model(model_path); print('XTTS OK')"
+
+if %errorlevel% neq 0 (
+    echo [ERROR] XTTS download failed.
+    pause
+    exit /b 1
+)
+
 echo.
 echo ========================================
-echo   All models downloaded successfully!
-echo   Total size: check C:\VaaniSetu\models
-echo   Next: run start_vaanisetu.bat
+echo All models downloaded successfully!
+echo Models saved under:
+echo %MODELS%
 echo ========================================
-echo.
 pause

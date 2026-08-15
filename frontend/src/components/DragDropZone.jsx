@@ -1,19 +1,18 @@
-import React, { useRef, useState } from 'react'
-
-const ACCEPT = '.mp4,.mkv,.avi,.mov,.webm,.mp3,.wav,.ogg,.m4a,.flac,.txt,.pdf,.docx,.csv'
-const ICONS   = { video: '🎬', audio: '🎵', text: '📄' }
+const DEFAULT_ACCEPT = 'video/*,audio/*,video/mp4,video/x-matroska,video/quicktime,video/x-msvideo,video/webm,.mp4,.mkv,.avi,.mov,.webm,.mp3,.wav,.ogg,.m4a,.flac,.aac,.opus,.3gp,.amr,.caf,.wma,.txt,.pdf,.docx,.csv'
+const ICONS   = { video: '🎬', audio: '🎙️', text: '📄' }
 
 function detectType(name) {
   const s = name.split('.').pop().toLowerCase()
   if (['mp4','mkv','avi','mov','webm'].includes(s)) return 'video'
-  if (['mp3','wav','ogg','m4a','flac'].includes(s)) return 'audio'
+  if (['mp3','wav','ogg','m4a','flac','aac','opus','3gp','amr','caf','wma'].includes(s)) return 'audio'
   return 'text'
 }
 
-export default function DragDropZone({ onFile }) {
+export default function DragDropZone({ onFile, accept }) {
   const inputRef = useRef()
   const [dragging, setDragging] = useState(false)
   const [selected, setSelected] = useState(null)
+  const acceptTypes = accept || DEFAULT_ACCEPT
 
   const handle = (file) => {
     setSelected(file)
@@ -44,7 +43,7 @@ export default function DragDropZone({ onFile }) {
       <input
         ref={inputRef}
         type="file"
-        accept={ACCEPT}
+        accept={acceptTypes}
         style={{ display: 'none' }}
         onChange={e => e.target.files[0] && handle(e.target.files[0])}
         id="file-input"

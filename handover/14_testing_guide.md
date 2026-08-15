@@ -50,12 +50,42 @@ Hackathons are won by proving your system doesn't break when users do unexpected
 
 ---
 
-## 4. How to Generate Automated API Test Scripts
+## 4. Built-in Automated Test Suites
 
-If the judges ask if you have automated testing, you can show them this Python script. It uses `requests` to test the API layer directly without the UI.
+VaaniSetu includes production-grade test suites that validate orchestration, memory scaling, pipeline execution, and model fallbacks without requiring GPU execution:
 
-1. Create a file named `test_api.py` in your project root.
-2. Paste the following code:
+### A. Concurrency & Resource Sizing Test Suite
+```cmd
+python tests_concurrency.py
+```
+**Validates 40 checks across core orchestration modules:**
+1. **Pipeline Stage Overlap:** Verifies Stage 5 generation starts immediately while Stage 4 translation is still running for subsequent languages (demonstrating speedup vs. serial).
+2. **Resource Saver Mode:** Confirms strict single-thread serial fallback when enabled.
+3. **Model Replica Pool:** Tests dynamic checkout (`ModelPool.acquire()`) and confirms concurrency never over-subscribes.
+4. **Job Queue Draining:** Validates multi-worker queue execution scaled to available memory.
+5. **Multi-Tier Machine Sizing:** Tests memory and thread allocation across 4GB netbook, 8GB field laptop, 16GB desktop, 32GB laptop, 64GB workstation, and 128GB server tiers.
+
+### B. End-to-End Mock Pipeline Test
+```cmd
+python tests_mock.py
+```
+**Validates the complete 7-stage execution lifecycle:**
+- Job submission and status transitions (`queued` $\rightarrow$ `validating` $\rightarrow$ `extracting` $\rightarrow$ `transcribing` $\rightarrow$ `translating` $\rightarrow$ `generating` $\rightarrow$ `packaging` $\rightarrow$ `completed`).
+- ZIP archive integrity and output file generation.
+- Confidence scoring and Amber/Red review queue population.
+- Automatic disk workspace cleanup.
+
+### C. Translation Model Fallback Unit Test
+```cmd
+python tests/test_translator_fallback.py
+```
+**Validates graceful fallback** to source text with red confidence flag when models are temporarily unavailable or loading.
+
+---
+
+## 5. Automated API Integration Script
+
+For end-to-end integration testing against a running FastAPI backend:
 
 ```python
 import requests
@@ -68,7 +98,7 @@ def test_pipeline():
     print("--- Starting VaaniSetu Automated API Test ---")
     
     # 1. Create a dummy text file to test document translation
-    with open("test_agri.txt", "w") as f:
+    with open("test_agri.txt", "w", encoding="utf-8") as f:
         f.write("Drip irrigation saves up to 50% of water usage for tomato crops.")
     
     # 2. Submit the job targeting Marathi
@@ -81,7 +111,6 @@ def test_pipeline():
             "mode": "translate",
             "resource_saver": "false"
         }
-        # Assuming dev mode / no auth needed for local testing, or add headers if JWT is enforced
         response = requests.post(f"{BASE_URL}/submit", files=files, data=data)
         
     assert response.status_code == 200, f"Submit failed: {response.text}"
@@ -108,7 +137,3 @@ def test_pipeline():
 if __name__ == "__main__":
     test_pipeline()
 ```
-
-3. Run it from your terminal: `python test_api.py`
-
-This proves to the BAIF IT panel that the backend API is robust, testable, and scriptable for future integrations.
