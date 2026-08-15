@@ -47,12 +47,24 @@ MODEL_DIR      = BASE_DIR / "models"
 WORKSPACE_DIR  = BASE_DIR / "workspace"
 OUTPUTS_DIR    = BASE_DIR / "outputs"
 UPLOADS_DIR    = BASE_DIR / "uploads"
+LOGS_DIR       = BASE_DIR / "logs"
 DB_PATH        = BASE_DIR / "vaanisetu.db"
 FONTS_DIR      = Path(__file__).parent.parent / "fonts"
 
 # Create dirs at import time (setup.bat also does this, belt-and-suspenders)
-for _d in [MODEL_DIR, WORKSPACE_DIR, OUTPUTS_DIR, UPLOADS_DIR]:
+for _d in [MODEL_DIR, WORKSPACE_DIR, OUTPUTS_DIR, UPLOADS_DIR, LOGS_DIR]:
     _d.mkdir(parents=True, exist_ok=True)
+
+# Configure rotating file logging for operational readiness
+try:
+    from logging.handlers import RotatingFileHandler
+    log_file = str(LOGS_DIR / "vaanisetu.log")
+    file_handler = RotatingFileHandler(log_file, maxBytes=10*1024*1024, backupCount=5, encoding="utf-8")
+    file_handler.setFormatter(logging.Formatter("[%(asctime)s] [%(levelname)s] [%(name)s] %(message)s"))
+    logging.getLogger("vaanisetu").addHandler(file_handler)
+    logging.getLogger("vaanisetu").setLevel(logging.INFO)
+except Exception as e:
+    logger.warning(f"Could not initialize rotating file log handler: {e}")
 
 # ---------------------------------------------------------------------------
 # Model paths
