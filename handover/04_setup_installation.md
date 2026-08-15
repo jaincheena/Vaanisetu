@@ -17,15 +17,13 @@
 
 ---
 
-## Hardware Compatibility & Memory Profiles
+## Hardware Compatibility & AI Model Selection Guide
 
-VaaniSetu automatically adapts its pipeline to the host PC's available memory:
-
-| Hardware Tier | Target Device | Whisper Model | Peak RAM | Mode & Worker Sizing |
-| :--- | :--- | :--- | :--- | :--- |
-| **Low-Memory Tier** | Basic Field Laptop (4–8 GB RAM) | `tiny` or `base` | **< 650 MB** | JIT Lazy Loading + Auto Resource Saver |
-| **Standard Tier** | Office Desktop (8–16 GB RAM) | `small` or `base` | **~1.2 GB** | Balanced Pipelined Execution |
-| **High-Performance Tier** | Workstation / Dedicated Server (16+ GB RAM / GPU) | `large-v3-turbo` | **~3.5 GB** | Full Precision + XTTS Voice Cloning |
+| Model Suite | Recommended Environment | Included Weights | Download Size | Peak RAM | Accuracy & Performance |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **⚡ Lightweight Fast Suite** | **Recommended for SIT, Testing & Field Laptops** | Whisper Base (INT8) + Piper Indic ONNX Voices | **~350 MB** (1–2 min) | **< 650 MB** | 5×–10× real-time on CPU, native Indic voices |
+| **🎬 Full High-Precision Suite** | **Recommended for Production & Regional HQ Servers** | Whisper Large-v3 + IndicTrans2 + Coqui XTTS | **~5.5 GB** (5–10 min) | **~3.5–5.0 GB** | Maximum translation accuracy + Zero-shot voice cloning |
+| **🚀 Instant JIT Mode** | **Jury Demos & Air-Gapped USB Pre-loads** | JIT on-demand fetching | **0 MB** upfront | **< 60 MB** idle | Instant start; compiles per job |
 
 ---
 

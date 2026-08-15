@@ -156,22 +156,26 @@ def check_models():
 
     if not (has_whisper and has_indic and has_piper):
         print(f"\n       {SAFFRON}[!] Offline AI model weights not fully downloaded yet in C:\\VaaniSetu\\models.{RESET}")
-        print(f"       {WHITE_BOLD}Options:{RESET}")
-        print(f"         {WHITE_BOLD}1. [RECOMMENDED]{RESET} Download Lightweight Offline Models (~350 MB, ~1-2 min)")
-        print(f"            {SLATE}Includes: Whisper Base + Piper Indic Voices (Hindi, Marathi, Bengali, Tamil, etc.){RESET}")
-        print(f"         {WHITE_BOLD}2.{RESET} Download Full Offline Model Weights (~5.5 GB, ~5-10 min)")
-        print(f"            {SLATE}Includes: Complete IndicTrans2 + Whisper + Piper + Coqui XTTS{RESET}")
-        print(f"         {WHITE_BOLD}3.{RESET} Start Immediately (Instant JIT Mode — downloads on first job)")
+        print(f"       {WHITE_BOLD}Select AI Model Suite:{RESET}")
+        print(f"         {EMERALD_BOLD}1. [RECOMMENDED FOR SIT & FIELD TESTING]{RESET} Lightweight Fast Models (~350 MB, ~1-2 min)")
+        print(f"            {SLATE}• Optimized for: Testing, SIT, developers, and basic field laptops (<650MB RAM){RESET}")
+        print(f"            {SLATE}• Includes: Whisper Base (INT8) + Piper Indic ONNX Voices (Hindi, Marathi, Telugu, etc.){RESET}")
+        print(f"            {SLATE}• Speed: 5x-10x real-time on CPU with native Indic pronunciation{RESET}")
+        print(f"         {SAFFRON_BOLD}2. [RECOMMENDED FOR PRODUCTION & HQ SERVERS]{RESET} Full High-Precision Suite (~5.5 GB, ~5-10 min)")
+        print(f"            {SLATE}• Optimized for: Maximum translation BLEU accuracy, studio HD dubbing, and voice cloning{RESET}")
+        print(f"            {SLATE}• Includes: Whisper Large-v3 + IndicTrans2 Full Precision + Coqui XTTS Voice Cloning{RESET}")
+        print(f"            {SLATE}• Requirements: 16 GB RAM PC or NVIDIA GPU (Air-gapped production setup){RESET}")
+        print(f"         {INDIGO_BOLD}3. [FOR INSTANT DEMO / AIR-GAPPED USB]{RESET} Start Immediately (JIT Mode — loads on first job)")
         
         try:
-            choice = input(f"\n       Enter choice (1, 2, or 3) [Default: 3]: ").strip()
-            if choice == "1":
-                download_lightweight_models()
-            elif choice == "2":
-                print(f"       {SLATE}Running full model downloader...{RESET}")
+            choice = input(f"\n       Enter choice (1, 2, or 3) [Default: 1]: ").strip()
+            if choice == "2":
+                print(f"       {SLATE}Running full production model downloader (~5.5 GB)...{RESET}")
                 subprocess.run(["cmd", "/c", str(REPO_ROOT / "scripts" / "download_models.bat")])
-            else:
+            elif choice == "3":
                 print(f"       {EMERALD_BOLD}[READY]{RESET} {SLATE}Instant JIT mode active. Models will load on-demand per job.{RESET}\n")
+            else:
+                download_lightweight_models()
         except (KeyboardInterrupt, EOFError):
             print(f"\n       {EMERALD_BOLD}[READY]{RESET} {SLATE}Instant JIT mode active.{RESET}\n")
     else:
