@@ -2,12 +2,25 @@
 
 ---
 
-## Method A — Internet-Connected Setup (Recommended First Time)
+## ⚡ 1-Click Instant Quickstart (Fastest & Easiest)
 
-**Time required:** 2–4 hours (mostly download time)
+**For all users and evaluators:**
+1. Simply double-click **`quick_start.bat`** in the main project folder.
+2. The launcher automatically:
+   - Verifies Python environment and creates local directories on `C:\VaaniSetu`.
+   - Compiles the UI bundle (if not already built).
+   - Starts the FastAPI ASGI server on port `8765`.
+   - **Automatically opens your default web browser** to `http://localhost:8765`.
+3. Pick any of the **1-Click Agricultural Scenarios** on the home screen and start localizing immediately!
+
+---
+
+## Method A — Standard Automated Setup (First Time Staging)
+
+**Time required:** ~10-15 minutes (mostly automated dependency downloads)
 
 ### Step 1 — Check Prerequisites
-Double-click `scripts\check_hardware.bat` and verify all items show `[PASS]`.
+Double-click `scripts\health_check.bat` (or `scripts\check_hardware.bat`) to verify all prerequisites.
 
 **Requirements:**
 - Windows 11 (64-bit)

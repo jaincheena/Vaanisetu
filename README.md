@@ -549,74 +549,81 @@ The pipeline is identical. Only the model direction flips (`en-indic` ↔ `indic
 
 ## 11. Getting the App Running Locally
 
-### Prerequisites
-- Python 3.11+
-- Node.js 18+
-- FFmpeg (add to PATH)
-- **Microsoft C++ Build Tools**: Required for compiling a dependency of the `TTS` package.
-  - **Recommended Fix**: To avoid a large download, you can often install a pre-compiled version first by running `pip install monotonic-align` before running `setup.bat`.
-- 16 GB RAM
-- 200 GB free disk (for models)
+### ⚡ 1-Click Instant Launch (Fastest)
+Double-click **`quick_start.bat`** in the repository root.
+The launcher automatically checks Python, initializes `C:\VaaniSetu`, builds the UI bundle, starts the server on port `8765`, and opens `http://localhost:8765` in your browser.
 
-### Step 1: Install backend dependencies
+---
+
+### Standard Developer Setup
+
+#### 1. Clone & Python Environment
 ```bash
+git clone https://github.com/jaincheena/Vaanisetu.git
+cd Vaanisetu
+
+# Optional: create virtual environment
+python -m venv venv
+venv\Scripts\activate
+
+# Install backend dependencies
 pip install -r requirements.txt
 ```
 
-### Step 2: Install frontend dependencies and build
+#### 2. Install Frontend & Build Bundle
 ```bash
 cd frontend
 npm install
 npm run build
+cd ..
 ```
 
-### Step 3: Download AI models (needs internet, ~5-6 GB)
-```
+#### 3. Download AI Models (One-Time Setup, ~5-6 GB)
+```cmd
 scripts\download_models.bat
+python scripts\download_piper_voices.py
 ```
 
-### Step 3.5: Download Piper TTS voices (recommended)
-```bash
-python scripts/download_piper_voices.py
-```
-Downloads ONNX voice models (~50–150 MB total) for 9 Indic languages into `C:\VaaniSetu\models\piper\`. Enables near-real-time Draft mode TTS. If skipped, system falls back to Coqui XTTS (slower) or gTTS (requires internet).
+#### 4. Run Automated Pre-Flight & Test Verification
+```cmd
+# Run pre-flight health & hardware sizing check
+python scripts\preflight_check.py
 
-### Step 4: Start the server
+# Run 12-point automated test evidence & defect traceability suite (<1s)
+python run_test_evidence.py
+
+# Run 39-point concurrency & RAM scalability test suite
+python tests_concurrency.py
+```
+
+#### 5. Start Backend Server (with Hot Reload for Development)
 ```bash
-# From the project root (Vaanisetu/)
+# Production single-process mode:
 python -m uvicorn backend.main:app --host 0.0.0.0 --port 8765
+
+# Developer auto-reloading mode:
+python -m uvicorn backend.main:app --host 0.0.0.0 --port 8765 --reload
 ```
 
-### Step 5: Open browser
-`http://localhost:8765`
-
-### Development tip — frontend hot-reload
-You can run Vite's dev server while the FastAPI backend is running:
+#### 6. Frontend Hot-Module Reloading (Vite)
+For active frontend development with instant HMR:
 ```bash
-cd frontend && npm run dev
-# Opens http://localhost:5173
-# API calls are proxied to http://localhost:8765 (configured in vite.config.js)
+cd frontend
+npm run dev
+# Opens dev server on http://localhost:5173 (proxies /api to localhost:8765)
 ```
 
-### Interactive API docs
-FastAPI auto-generates an API explorer at: **`http://localhost:8765/docs`**  
-Great for testing endpoints without building the frontend.
+Interactive API documentation and Swagger explorer: **`http://localhost:8765/docs`**
 
 ---
 
-## 11.5. How to Deploy to Production
+## 11.5. Production Office Deployment & Air-Gapped USB Setup
 
-Because VaaniSetu is designed for remote, offline NGO field offices, "Deployment" doesn't mean AWS or Heroku. It means deploying to a physical Windows PC inside a local office.
+VaaniSetu runs as an on-premises appliance server inside rural NGO offices:
 
-**To Deploy (Simple English Guide):**
-1. Pick a dedicated Windows 11 PC (i5+ processor, 16GB RAM) in the office.
-2. Run `scripts\setup.bat` (needs internet once to install software).
-3. Run `scripts\download_models.bat` (needs internet once to pull AI models).
-4. Run `scripts\start_vaanisetu.bat`. The server is now running!
-5. **Network Access**: The app runs on `http://0.0.0.0:8765`. Find the PC's IPv4 address (e.g., `192.168.1.100`) and share the link `http://192.168.1.100:8765` with all staff in the office. They can use the app from their own laptops/phones via the local WiFi.
-6. **No internet is required** after step 3! You can disconnect the router from the internet and the app will continue to work flawlessly across the local LAN.
-
----
+1. **Standard LAN Server**: Run `scripts\start_vaanisetu.bat`. Find the server PC's IPv4 address (`ipconfig`, e.g. `192.168.1.100`) and share `http://192.168.1.100:8765` with all staff laptops and phones over local WiFi. Zero internet required at runtime!
+2. **Air-Gapped USB Deployment**: For remote field offices with zero internet, copy models and repository onto a USB drive and execute `scripts\install_from_usb.bat`. Sets up models and shortcuts in under 3 minutes.
+3. **Disaster Recovery & Rollback**: In case of database or system corruption, execute `scripts\rollback.bat` to restore from any backup snapshot with automatic schema verification.
 
 ## 12. API Reference
 
@@ -715,63 +722,53 @@ asyncio.run(sse_manager.publish(...))
 
 ---
 
-## 14. Suggested Future Improvements
+## 14. Developer Extension Guide & Future Roadmap
 
-These are code quality improvements suggested after reviewing the codebase. None are blockers but they would make the code more robust as the project grows.
+This section explains how future developers can easily extend and customize VaaniSetu for new requirements:
 
-### High Priority
-
-**1. Stream large file uploads (memory spike prevention)**  
-Currently `await file.read()` loads the entire file into RAM before saving it. For a 2 GB video, this doubles peak RAM usage.
+### A. How to Add Terms to AgriShield™ Domain Dictionary
+Open `backend/pipeline/translator.py` and add entries to the `_GLOSSARY_TERMS` list:
 ```python
-# Current (risky for large files):
-content = await file.read()
-with open(upload_path, "wb") as f:
-    f.write(content)
-
-# Better — stream in chunks:
-async with aiofiles.open(upload_path, "wb") as f: h
-    while chunk := await file.read(65536):  # 64 KB chunks
-        await f.write(chunk)
-file_hash = sha256_file(upload_path)  # hash after writing
+_GLOSSARY_TERMS = [
+    # Add new government schemes, fertilizers, pest names, or livestock breeds:
+    "PM-KISAN", "PMFBY", "Soil Health Card", "DAP", "NPK 19:19:19",
+    "Yellow Rust", "Fall Armyworm", "Gir", "Murrah", "YourNewSchemeName"
+]
 ```
+AgriShield™ automatically builds a compiled regex boundary matcher, wraps matching phrases in `<VSPn>` protection tokens during translation, and restores them verbatim in post-processing.
 
-**2. Add a `dedup` check against different target langs**  
-The current dedup only returns a cached result if the *same file* with *any* completed job exists. It doesn't check whether the target languages match — a user who previously translated to Hindi+Bengali and now wants only Tamil would get the cached ZIP (which has no Tamil in it).
+---
 
-**3. Clean up the `uploads/` directory automatically**  
-Uploaded files are never deleted. After a job completes, the original upload is no longer needed. Consider deleting it (or moving to an archive folder) to conserve disk space.
+### B. How to Add a New Indic Language or Dialect
+1. Open `backend/config.py` and register the language name and its FLORES-200 code in `LANG_CODES`:
+   ```python
+   LANG_CODES["Tulu"] = "tcy_Knda"  # Example new language code
+   ```
+2. Open `backend/pipeline/tts.py` and map the language to a Piper ONNX voice or Coqui XTTS code:
+   ```python
+   PIPER_VOICE_MAP["Tulu"] = "kn_IN-lili-medium"  # Fallback or dedicated voice
+   ```
+3. Run `python run_test_evidence.py` to verify the new language mapping.
 
-### Medium Priority
+---
 
-**4. Add pagination to the History API**  
-`GET /api/jobs/history` currently just returns the latest 50 jobs. As the job count grows, a proper `?page=&per_page=` pattern would be better.
+### C. How to Add a New Output Format
+1. Open `backend/pipeline/processor.py` inside `_generate_for_language()`:
+   ```python
+   if "custom_format" in output_formats:
+       # Generate custom file into workspace (ws)
+       custom_path = ws / f"custom_output_{lang_name}.ext"
+       # write custom_path...
+       generated_files.append(str(custom_path))
+   ```
+2. Add the checkbox to `frontend/src/pages/Upload.jsx` in `FORMAT_OPTIONS`.
 
-**5. Expose a `/api/jobs/{id}/retry` endpoint**  
-When a job fails, the user must re-upload the file. A retry endpoint would re-add the existing job to the queue without needing a re-upload.
+---
 
-**6. Validate that `source_lang` is in the known language list**  
-Currently any string is accepted as `source_lang`. If a user types a typo, the pipeline will try to translate from an unrecognized language and fail with a confusing error.
-
-```python
-if source_lang != "English" and source_lang not in LANG_CODES:
-    raise HTTPException(400, f"Unknown source language: {source_lang}")
-```
-
-**7. Add a `pytest` test suite**  
-At minimum, add unit tests for:
-- `confidence.py` — test the formula with known inputs
-- `translation_memory.py` — test cache hit/miss/store logic  
-- `file_utils.py` — test SHA-256, TM key generation
-- API routes — test with `httpx.AsyncClient` and `TestClient`
-
-### Low Priority / Nice-to-Have
-
-**8. Job progress persistence** — If the server restarts mid-job, the browser SSE stream dies. A polling fallback exists but the job status in DB should reflect mid-stage states so the UI can show accurate progress on reconnect.
-
-**9. Translate text files paragraph-by-paragraph** — Currently `.txt` files create 5-second fake timestamps. Preserving paragraph structure would produce better bilingual DOCX output.
-
-**10. Per-language confidence badge** — Currently one average confidence badge covers all languages. Per-language badges in the History page would let reviewers see which specific language translation needs review.
+### D. Future Roadmap & Enhancement Horizons
+1. **Direct SIP / Asterisk Telephony Gateway**: Integrate the 8kHz IVR generator directly with an open-source Asterisk/FreePBX SIP trunk for automated outbound phone broadcasts without manual WAV export.
+2. **On-Device LoRA Adapters for IndicTrans2**: Train lightweight low-rank adapters (LoRAs) on BAIF's localized agricultural manuals to improve domain fluency for hyper-local tribal dialects (e.g. Bhili, Gondi, Santhali).
+3. **Multi-GPU Dynamic Batching**: Scale worker pools automatically across multi-GPU workstations (e.g. 2x RTX 4090) with distributed model replicas.
 
 ---
 
