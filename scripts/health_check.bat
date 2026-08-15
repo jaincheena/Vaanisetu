@@ -1,13 +1,13 @@
 @echo off
 REM ============================================================
-REM VaaniSetu — Operational Health & Pre-Flight Check Script
+REM VaaniSetu — Operational Health and Pre-Flight Check Script
 REM ============================================================
 setlocal
 set REPO=%~dp0..
 
 echo.
 echo ============================================================
-echo   VaaniSetu — Operational Readiness & Health Check
+echo   VaaniSetu — Operational Readiness and Health Check
 echo ============================================================
 echo.
 

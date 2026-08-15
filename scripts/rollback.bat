@@ -9,7 +9,7 @@ set REPO=%~dp0..
 
 echo.
 echo ============================================================
-echo   VaaniSetu — Disaster Recovery & Rollback Tool
+echo   VaaniSetu — Disaster Recovery and Rollback Tool
 echo ============================================================
 echo.
 

@@ -62,7 +62,7 @@ REM --- Verify ---
 echo.
 echo [4/4] Verifying setup...
 cd /d "%REPO%"
-python -c "import fastapi, whisper, transformers, torch; print('Core packages OK')"
+python -c "import fastapi, transformers, torch; print('Core packages OK')"
 if %errorlevel% neq 0 (
     echo [WARN] Some packages not verified — check manually.
 )
