@@ -85,19 +85,19 @@ export default function TopBanner() {
               color: '#fff',
               border: 'none',
               borderRadius: 20,
-              padding: '5px 14px',
+              padding: '6px 14px',
               fontSize: 12,
               fontWeight: 700,
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               gap: 6,
-              boxShadow: '0 2px 8px rgba(232, 109, 31, 0.4)',
+              boxShadow: '0 2px 8px rgba(232, 146, 74, 0.3)',
               transition: 'transform 0.15s'
             }}
           >
-            <span>🏆</span>
-            <span>3-Min Demo Tour</span>
+            <span>💡</span>
+            <span>BAIF User Guide & Tour</span>
           </button>
         </div>
       </div>

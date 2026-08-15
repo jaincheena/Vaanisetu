@@ -93,6 +93,8 @@ export default function Upload() {
   const [activePreviewTab, setActivePreviewTab] = useState('bilingual') // 'bilingual' | 'audio' | 'whatsapp' | 'ivr' | 'files'
   const [previewLang, setPreviewLang] = useState('Hindi')
   const [error, setError] = useState(null)
+  const [showVisualTour, setShowVisualTour] = useState(false)
+  const [showAdvancedSettings, setShowAdvancedSettings] = useState(false)
   const esRef = useRef(null)
 
   useEffect(() => {
@@ -248,17 +250,78 @@ export default function Upload() {
         </div>
       </div>
 
+      {/* ── 30-Second Visual Feature Guide & Video Walkthrough Banner ── */}
+      {!result && !submitting && (
+        <div className="card mb-4" style={{
+          background: 'linear-gradient(135deg, rgba(82, 196, 135, 0.08) 0%, rgba(30, 41, 59, 0.5) 100%)',
+          borderColor: 'rgba(82, 196, 135, 0.3)',
+          padding: '14px 18px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: 24 }}>🎥</span>
+              <div>
+                <strong style={{ fontSize: 14, color: 'var(--text)' }}>
+                  How to Use VaaniSetu — 30-Second Visual Guide
+                </strong>
+                <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted)' }}>
+                  Translate videos, voice notes, and advisories for rural farmers in 3 easy steps
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              className="btn btn-sm btn-secondary"
+              onClick={() => setShowVisualTour(v => !v)}
+              style={{ fontSize: 12, fontWeight: 600 }}
+            >
+              {showVisualTour ? '▲ Hide Guide' : '▼ View Visual Guide'}
+            </button>
+          </div>
+
+          {showVisualTour && (
+            <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
+                <div style={{ background: 'var(--bg-input)', padding: '12px 14px', borderRadius: 8, border: '1px solid var(--border)' }}>
+                  <div style={{ fontSize: 20, marginBottom: 4 }}>1️⃣ Choose Input</div>
+                  <strong style={{ fontSize: 13, color: 'var(--text)' }}>Upload or Pick Preset</strong>
+                  <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '4px 0 0 0', lineHeight: 1.4 }}>
+                    Click a 1-Click Scenario Preset below, drop an MP4 video / MP3 audio, or type your advisory text.
+                  </p>
+                </div>
+
+                <div style={{ background: 'var(--bg-input)', padding: '12px 14px', borderRadius: 8, border: '1px solid var(--border)' }}>
+                  <div style={{ fontSize: 20, marginBottom: 4 }}>2️⃣ Select Languages</div>
+                  <strong style={{ fontSize: 13, color: 'var(--text)' }}>Pick Regional Target</strong>
+                  <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '4px 0 0 0', lineHeight: 1.4 }}>
+                    Select Hindi, Marathi, Gujarati, Bengali, Telugu, Kannada, etc. with native Indic voices.
+                  </p>
+                </div>
+
+                <div style={{ background: 'var(--bg-input)', padding: '12px 14px', borderRadius: 8, border: '1px solid var(--border)' }}>
+                  <div style={{ fontSize: 20, marginBottom: 4 }}>3️⃣ Localize & Export</div>
+                  <strong style={{ fontSize: 13, color: 'var(--text)' }}>Listen, Review & Share</strong>
+                  <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '4px 0 0 0', lineHeight: 1.4 }}>
+                    Click "Start AI Localization". Play audio, preview WhatsApp/IVR formats, and download 1-click ZIP!
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* ── 1-Click Realistic BAIF Agricultural Presets ── */}
       {!result && !submitting && (
         <div className="card mb-4" style={{
-          background: 'linear-gradient(135deg, rgba(232, 109, 31, 0.08) 0%, rgba(30, 41, 59, 0.4) 100%)',
-          borderColor: 'rgba(232, 109, 31, 0.3)'
+          background: 'linear-gradient(135deg, rgba(232, 146, 74, 0.08) 0%, rgba(30, 41, 59, 0.4) 100%)',
+          borderColor: 'rgba(232, 146, 74, 0.3)'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ fontSize: 20 }}>🌾</span>
               <strong style={{ fontSize: 14, color: 'var(--accent)' }}>
-                1-Click Realistic Agricultural Scenarios (Hackathon Demo Presets)
+                1-Click Agricultural Scenarios (BAIF Field Presets)
               </strong>
             </div>
             <span style={{ fontSize: 11, color: 'var(--text-dim)' }}>
@@ -274,7 +337,7 @@ export default function Upload() {
                   key={s.id}
                   onClick={() => loadScenario(s)}
                   style={{
-                    background: isSelected ? 'rgba(232,109,31,0.18)' : 'var(--bg-input)',
+                    background: isSelected ? 'rgba(232,146,74,0.18)' : 'var(--bg-input)',
                     border: `1px solid ${isSelected ? 'var(--accent)' : 'var(--border)'}`,
                     borderRadius: 'var(--radius-sm)',
                     padding: '10px 12px',
@@ -482,87 +545,95 @@ export default function Upload() {
             </div>
           </div>
 
-          {/* ── Output Format Selector ── */}
+          {/* ── Optional Advanced Settings Accordion ── */}
           <div className="card mb-4">
             <div
-              className="collapsible-header"
-              onClick={() => setShowFormats(v => !v)}
-              style={{ cursor: 'pointer' }}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}
+              onClick={() => setShowAdvancedSettings(s => !s)}
             >
-              <div className="card-title" style={{ marginBottom: 0 }}>
-                <span className="card-title-icon">📦</span>
-                Output Formats
-                <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-dim)', marginLeft: 6 }}>
-                  ({effectiveFormats.length} selected)
-                </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 18 }}>⚙️</span>
+                <div>
+                  <strong style={{ fontSize: 14, color: 'var(--text)' }}>
+                    Optional Advanced Settings (Output Formats & Hardware Throttling)
+                  </strong>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                    {showAdvancedSettings ? 'Click to collapse' : 'Click to customize WhatsApp video clips, 8kHz IVR audio, or CPU throttle'}
+                  </div>
+                </div>
               </div>
-              <span className={`collapsible-arrow ${showFormats ? 'open' : ''}`}>▾</span>
+              <span style={{ fontSize: 14, color: 'var(--text-muted)' }}>
+                {showAdvancedSettings ? '▲' : '▼'}
+              </span>
             </div>
 
-            {showFormats && (
-              <div style={{ marginTop: 16 }}>
-                {['text', 'audio', 'video'].map(group => {
-                  const groupFormats = OUTPUT_FORMATS.filter(f => f.group === group)
-                  const groupLabels = { text: '📝 Text & Subtitles', audio: '🔊 Audio & Telecom', video: '🎥 Video (Full Quality only)' }
-                  return (
-                    <div key={group} style={{ marginBottom: 16 }}>
-                      <div className="section-label">{groupLabels[group]}</div>
-                      <div className="format-grid">
-                        {groupFormats.map(fmt => {
-                          const isDisabledByMode = fmt.fullOnly && qualityMode === 'draft'
-                          const isSelected = selectedFormats.includes(fmt.key) && !isDisabledByMode
-                          return (
-                            <label
-                              key={fmt.key}
-                              className={`format-item ${isSelected ? 'selected' : ''} ${isDisabledByMode ? 'disabled' : ''}`}
-                              style={{ opacity: isDisabledByMode ? 0.4 : 1, cursor: isDisabledByMode ? 'not-allowed' : 'pointer' }}
-                            >
-                              <input
-                                type="checkbox"
-                                checked={isSelected}
-                                disabled={isDisabledByMode}
-                                onChange={() => !isDisabledByMode && toggleFormat(fmt.key)}
-                              />
-                              <div className="format-item-info">
-                                <div className="format-item-name">{fmt.label}</div>
-                                <div className="format-item-desc">{fmt.desc}</div>
-                              </div>
-                              <span className={`format-size-badge ${fmt.size}`}>
-                                {SIZE_LABELS[fmt.size]}
-                              </span>
-                            </label>
-                          )
-                        })}
+            {showAdvancedSettings && (
+              <div style={{ marginTop: 18, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
+                {/* Format Grid */}
+                <div style={{ marginBottom: 16 }}>
+                  <strong style={{ fontSize: 13, color: 'var(--text)', display: 'block', marginBottom: 10 }}>
+                    📦 Output Formats ({effectiveFormats.length} selected)
+                  </strong>
+                  {['text', 'audio', 'video'].map(group => {
+                    const groupFormats = OUTPUT_FORMATS.filter(f => f.group === group)
+                    const groupLabels = { text: '📝 Text & Subtitles', audio: '🔊 Audio & Telecom', video: '🎥 Video (Full Quality only)' }
+                    return (
+                      <div key={group} style={{ marginBottom: 14 }}>
+                        <div className="section-label" style={{ fontSize: 11, marginBottom: 6 }}>{groupLabels[group]}</div>
+                        <div className="format-grid">
+                          {groupFormats.map(fmt => {
+                            const isDisabledByMode = fmt.fullOnly && qualityMode === 'draft'
+                            const isSelected = selectedFormats.includes(fmt.key) && !isDisabledByMode
+                            return (
+                              <label
+                                key={fmt.key}
+                                className={`format-item ${isSelected ? 'selected' : ''} ${isDisabledByMode ? 'disabled' : ''}`}
+                                style={{ opacity: isDisabledByMode ? 0.4 : 1, cursor: isDisabledByMode ? 'not-allowed' : 'pointer' }}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  disabled={isDisabledByMode}
+                                  onChange={() => !isDisabledByMode && toggleFormat(fmt.key)}
+                                />
+                                <div className="format-item-info">
+                                  <div className="format-item-name">{fmt.label}</div>
+                                  <div className="format-item-desc">{fmt.desc}</div>
+                                </div>
+                                <span className={`format-size-badge ${fmt.size}`}>
+                                  {SIZE_LABELS[fmt.size]}
+                                </span>
+                              </label>
+                            )
+                          })}
+                        </div>
                       </div>
+                    )
+                  })}
+                </div>
+
+                {/* Resource Controls */}
+                <div style={{ borderTop: '1px dashed var(--border)', paddingTop: 14 }}>
+                  <strong style={{ fontSize: 13, color: 'var(--text)', display: 'block', marginBottom: 10 }}>
+                    🛠️ Hardware & Execution Controls
+                  </strong>
+                  <div className="toggle-row">
+                    <div className="toggle-row-info">
+                      <strong>🐢 Resource Saver Mode</strong>
+                      <p>Throttles CPU threads so low-RAM NGO laptops never freeze during heavy AI workloads.</p>
                     </div>
-                  )
-                })}
-                <p style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 4 }}>
-                  ✦ Deselecting heavy video outputs speeds up processing significantly on low-end NGO laptops.
-                </p>
+                    <Toggle checked={resourceSaver} onChange={setResourceSaver} />
+                  </div>
+                  <div className="toggle-row" style={{ marginTop: 10 }}>
+                    <div className="toggle-row-info">
+                      <strong>🔄 Force Re-run (Bypass Cache)</strong>
+                      <p>Ignore cached translations and re-run with latest Translation Memory corrections.</p>
+                    </div>
+                    <Toggle checked={bypassCache} onChange={setBypassCache} />
+                  </div>
+                </div>
               </div>
             )}
-          </div>
-
-          {/* ── Advanced Options ── */}
-          <div className="card mb-4">
-            <div className="card-title">
-              <span className="card-title-icon">🛠️</span> Advanced Options
-            </div>
-            <div className="toggle-row">
-              <div className="toggle-row-info">
-                <strong>🐢 Resource Saver Mode</strong>
-                <p>Throttles CPU threads so low-RAM NGO laptops never freeze during heavy AI workloads.</p>
-              </div>
-              <Toggle checked={resourceSaver} onChange={setResourceSaver} />
-            </div>
-            <div className="toggle-row">
-              <div className="toggle-row-info">
-                <strong>🔄 Force Re-run (Bypass Cache)</strong>
-                <p>Ignore cached translations and re-run with latest Translation Memory corrections.</p>
-              </div>
-              <Toggle checked={bypassCache} onChange={setBypassCache} />
-            </div>
           </div>
 
           {error && (

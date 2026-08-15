@@ -1,37 +1,37 @@
 import React, { useState } from 'react'
 
 export default function DemoTourModal({ onClose, onSelectScenario }) {
-  const [activeTab, setActiveTab] = useState('tour') // 'tour' | 'benchmark' | 'economics'
+  const [activeTab, setActiveTab] = useState('tour') // 'tour' | 'agrishield' | 'formats'
   const [step, setStep] = useState(1)
 
   const steps = [
     {
       num: 1,
-      title: 'The Grassroots Problem',
-      icon: '🌾',
-      desc: 'BAIF produces high-yield agricultural training videos in English & Marathi, but 1.3+ billion rural farmers speak 22 regional languages. Commercial translation agencies charge ₹850/min ($10/min) with 2-week turnaround and zero offline access in remote tribal villages.',
-      highlight: 'VaaniSetu delivers 100% offline, air-gapped, zero-cost localization in minutes.'
+      title: 'Step 1: Select Input Media or Advisory Script',
+      icon: '📁',
+      desc: 'Drag & drop any BAIF training video (.mp4), audio voice note (.mp3/.wav), field document (.docx/.pdf), or type directly into the text box. You can also click any 1-Click Realistic Agricultural Scenario on the dashboard.',
+      highlight: 'Works 100% offline — zero cloud upload required.'
     },
     {
       num: 2,
-      title: 'Full Pipeline Architecture & Voice Match',
-      icon: '⚡',
-      desc: '7-Stage pipelined engine with faster-Whisper (INT8 + Silero VAD) -> IndicTrans2 -> AgriShield™ Domain Dictionary -> Gender-Aware Pitch Analysis -> Piper/XTTS Voice Cloning. Target languages translate concurrently with cached English pivot.',
-      highlight: '4-8x faster on basic CPU laptops, automatic CUDA GPU acceleration, and 100% private.'
+      title: 'Step 2: Choose Target Regional Languages',
+      icon: '🌐',
+      desc: 'Select one or more regional Indian languages (Hindi, Marathi, Gujarati, Bengali, Telugu, Kannada, etc.). VaaniSetu translates across all languages concurrently with cached English pivot processing.',
+      highlight: 'Ultra-fast INT8 pipeline optimized for basic field laptops (<650MB RAM).'
     },
     {
       num: 3,
-      title: 'Last-Mile Multiformat Delivery',
-      icon: '📦',
-      desc: 'One upload generates WhatsApp auto-split video chunks (<15MB), 8kHz IVR mono audio for ₹1,000 basic feature phones, synced SRT/VTT subtitles, and bilingual Word documentation for village field workers.',
-      highlight: 'Every farmer reached regardless of smartphone ownership or 2G/3G connectivity.'
+      title: 'Step 3: AI Translation with AgriShield™ Protection',
+      icon: '🛡️',
+      desc: 'The AI pipeline transcribes with Whisper, shields 120+ agricultural entities (schemes, chemical dosages, cattle breeds), and generates synthetic audio with natural Indian pronunciation using Piper ONNX.',
+      highlight: 'Critical terms like PM-KISAN, DAP, and Urea are guaranteed never to be mistranslated.'
     },
     {
       num: 4,
-      title: 'Human-in-the-Loop & Self-Learning TM',
-      icon: '🧠',
-      desc: 'Token log-probability confidence scores automatically route uncertain translations (Amber/Red) to bilingual extension officers. Approved edits dynamically update the persistent Translation Memory database.',
-      highlight: 'System becomes smarter and more accurate with every agricultural season.'
+      title: 'Step 4: Interactive Review & Multi-Format Export',
+      icon: '📦',
+      desc: 'Listen to the audio directly in your browser, compare bilingual transcripts side-by-side, verify confidence badges (🟢/🟡), and download ready-to-share packages for WhatsApp, IVR keypad phones, and village handouts.',
+      highlight: 'One click generates WhatsApp video chunks (<15MB), 8kHz IVR audio, Word docs, and subtitles.'
     }
   ]
 
@@ -39,7 +39,7 @@ export default function DemoTourModal({ onClose, onSelectScenario }) {
     <div style={{
       position: 'fixed',
       inset: 0,
-      background: 'rgba(0,0,0,0.8)',
+      background: 'rgba(0,0,0,0.82)',
       backdropFilter: 'blur(8px)',
       display: 'flex',
       alignItems: 'center',
@@ -51,7 +51,7 @@ export default function DemoTourModal({ onClose, onSelectScenario }) {
         background: 'var(--bg-card)',
         border: '1px solid var(--border)',
         borderRadius: 'var(--radius)',
-        maxWidth: 780,
+        maxWidth: 760,
         width: '100%',
         maxHeight: '90vh',
         overflowY: 'auto',
@@ -69,13 +69,13 @@ export default function DemoTourModal({ onClose, onSelectScenario }) {
           background: 'var(--bg-card-hover)'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontSize: 24 }}>🏆</span>
+            <span style={{ fontSize: 24 }}>🌱</span>
             <div>
               <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'var(--text)' }}>
-                VaaniSetu — Hackathon Presentation & Architecture Hub
+                VaaniSetu — Field Officer & Trainer Platform Guide
               </h3>
               <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted)' }}>
-                3-Minute Jury Guide · BAIF Agricultural Localization Platform
+                Interactive Walkthrough · Bharatiya Agro Industries Foundation (BAIF)
               </p>
             </div>
           </div>
@@ -100,9 +100,9 @@ export default function DemoTourModal({ onClose, onSelectScenario }) {
           background: 'var(--bg-input)'
         }}>
           {[
-            ['tour', '🎬 4-Step Solution Tour'],
-            ['benchmark', '📊 Why VaaniSetu Wins (Benchmark)'],
-            ['economics', '💰 BAIF Financial ROI']
+            ['tour', '🎬 4-Step Field Walkthrough'],
+            ['agrishield', '🛡️ AgriShield™ & Quality Control'],
+            ['formats', '📦 Multiformat Delivery Formats']
           ].map(([tab, label]) => (
             <button
               key={tab}
@@ -139,7 +139,7 @@ export default function DemoTourModal({ onClose, onSelectScenario }) {
                       textAlign: 'center',
                       padding: '8px 4px',
                       borderRadius: 'var(--radius-sm)',
-                      background: step === s.num ? 'rgba(232,109,31,0.15)' : 'var(--bg-input)',
+                      background: step === s.num ? 'rgba(232,146,74,0.15)' : 'var(--bg-input)',
                       border: `1px solid ${step === s.num ? 'var(--accent)' : 'var(--border)'}`,
                       cursor: 'pointer',
                       transition: 'all 0.2s'
@@ -167,22 +167,22 @@ export default function DemoTourModal({ onClose, onSelectScenario }) {
                       <span style={{ fontSize: 28 }}>{cur.icon}</span>
                       <div>
                         <h4 style={{ margin: 0, fontSize: 17, color: 'var(--text)' }}>{cur.title}</h4>
-                        <span style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 600 }}>Phase {cur.num} of 4</span>
+                        <span style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 600 }}>Step {cur.num} of 4</span>
                       </div>
                     </div>
                     <p style={{ fontSize: 14, lineHeight: 1.6, color: 'var(--text-muted)', marginBottom: 16 }}>
                       {cur.desc}
                     </p>
                     <div style={{
-                      background: 'rgba(34, 197, 94, 0.1)',
-                      border: '1px solid rgba(34, 197, 94, 0.3)',
+                      background: 'rgba(82, 196, 135, 0.1)',
+                      border: '1px solid rgba(82, 196, 135, 0.3)',
                       borderRadius: 6,
                       padding: '10px 14px',
-                      color: '#4ade80',
+                      color: '#52C487',
                       fontSize: 13,
                       fontWeight: 600
                     }}>
-                      ✓ Unfair Advantage: {cur.highlight}
+                      ✓ Field Benefit: {cur.highlight}
                     </div>
                   </div>
                 )
@@ -211,97 +211,90 @@ export default function DemoTourModal({ onClose, onSelectScenario }) {
                       if (onSelectScenario) onSelectScenario('scenario_wheat_rust')
                     }}
                   >
-                    🚀 Launch Live Scenario 1 (Crop Alert)
+                    🚀 Try Scenario 1 (Crop Alert)
                   </button>
                 )}
               </div>
             </div>
           )}
 
-          {activeTab === 'benchmark' && (
+          {activeTab === 'agrishield' && (
             <div>
-              <h4 style={{ margin: '0 0 12px 0', fontSize: 15 }}>
-                Competitive Technical Benchmark (VaaniSetu vs Alternatives)
+              <h4 style={{ margin: '0 0 12px 0', fontSize: 16, color: 'var(--text)' }}>
+                🛡️ AgriShield™ Domain Entity Preservation
               </h4>
-              <div style={{ overflowX: 'auto' }}>
-                <table className="data-table" style={{ fontSize: 12 }}>
-                  <thead>
-                    <tr>
-                      <th>Capability / Metric</th>
-                      <th style={{ color: 'var(--accent)', fontWeight: 'bold' }}>🌱 VaaniSetu (Our Solution)</th>
-                      <th>Cloud APIs (Google/Azure)</th>
-                      <th>Vanilla Whisper + gTTS</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td><strong>Runtime Internet Requirement</strong></td>
-                      <td><span style={{ color: '#4ade80' }}>✓ 100% Offline (Air-gapped)</span></td>
-                      <td><span style={{ color: '#f87171' }}>✗ High Bandwidth Required</span></td>
-                      <td><span style={{ color: '#fbbf24' }}>⚠️ gTTS Requires Internet</span></td>
-                    </tr>
-                    <tr>
-                      <td><strong>Cost per Hour of Audio</strong></td>
-                      <td><span style={{ color: '#4ade80' }}>✓ ₹0 (Zero Operating Cost)</span></td>
-                      <td><span style={{ color: '#f87171' }}>✗ ₹1,200 - ₹2,500 / hr</span></td>
-                      <td><span style={{ color: '#4ade80' }}>✓ ₹0</span></td>
-                    </tr>
-                    <tr>
-                      <td><strong>Specialized Agri Domain Shield</strong></td>
-                      <td><span style={{ color: '#4ade80' }}>✓ AgriShield™ (120+ entities)</span></td>
-                      <td><span style={{ color: '#f87171' }}>✗ Generic (Mistranslates terms)</span></td>
-                      <td><span style={{ color: '#f87171' }}>✗ Zero entity protection</span></td>
-                    </tr>
-                    <tr>
-                      <td><strong>Voice Gender & Cloning</strong></td>
-                      <td><span style={{ color: '#4ade80' }}>✓ Librosa pitch analysis + XTTS/Piper</span></td>
-                      <td><span style={{ color: '#fbbf24' }}>⚠️ Generic robotic voices</span></td>
-                      <td><span style={{ color: '#f87171' }}>✗ Female only hardcoded</span></td>
-                    </tr>
-                    <tr>
-                      <td><strong>Feature Phone IVR Support</strong></td>
-                      <td><span style={{ color: '#4ade80' }}>✓ Auto 8kHz Mono WAV generation</span></td>
-                      <td><span style={{ color: '#f87171' }}>✗ Manual downsampling needed</span></td>
-                      <td><span style={{ color: '#f87171' }}>✗ Not supported</span></td>
-                    </tr>
-                    <tr>
-                      <td><strong>WhatsApp Delivery Splitter</strong></td>
-                      <td><span style={{ color: '#4ade80' }}>✓ Auto-chunks &lt;15MB MP4 videos</span></td>
-                      <td><span style={{ color: '#f87171' }}>✗ Manual video slicing needed</span></td>
-                      <td><span style={{ color: '#f87171' }}>✗ Not supported</span></td>
-                    </tr>
-                    <tr>
-                      <td><strong>Hardware Resilience</strong></td>
-                      <td><span style={{ color: '#4ade80' }}>✓ Resource Saver + INT8 Quant</span></td>
-                      <td><span style={{ color: '#8696a0' }}>N/A (Cloud)</span></td>
-                      <td><span style={{ color: '#f87171' }}>✗ Freezes 16GB laptops</span></td>
-                    </tr>
-                  </tbody>
-                </table>
+              <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: 16 }}>
+                In agriculture, mistranslating chemical dosages, crop diseases, or government scheme names can cause severe crop loss. AgriShield™ uses automated token wrapping to guarantee accuracy.
+              </p>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+                <div style={{ background: 'var(--bg-input)', padding: 14, borderRadius: 8, border: '1px solid var(--border)' }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent)', marginBottom: 6 }}>1. Protected Scheme Names</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                    PM-KISAN, PMFBY, Soil Health Card, KCC, NABARD are never altered into incorrect literal translations.
+                  </div>
+                </div>
+                <div style={{ background: 'var(--bg-input)', padding: 14, borderRadius: 8, border: '1px solid var(--border)' }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent)', marginBottom: 6 }}>2. Chemical & Dosage Safeguards</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                    DAP, Urea, Propiconazole 25% EC, 1ml/L dosages remain exact across all regional scripts.
+                  </div>
+                </div>
+                <div style={{ background: 'var(--bg-input)', padding: 14, borderRadius: 8, border: '1px solid var(--border)' }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent)', marginBottom: 6 }}>3. Cattle & Crop Varieties</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                    Gir, Sahiwal, Murrah, HD-2967, Desi Cotton varieties are preserved verbatim.
+                  </div>
+                </div>
+                <div style={{ background: 'var(--bg-input)', padding: 14, borderRadius: 8, border: '1px solid var(--border)' }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent)', marginBottom: 6 }}>4. Confidence Review Gate</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                    Any sentence with confidence &lt;80% is flagged 🟡 Amber for quick 1-click review by field staff.
+                  </div>
+                </div>
               </div>
             </div>
           )}
 
-          {activeTab === 'economics' && (
+          {activeTab === 'formats' && (
             <div>
-              <h4 style={{ margin: '0 0 12px 0', fontSize: 15 }}>
-                BAIF Real-World Social & Financial Impact
+              <h4 style={{ margin: '0 0 12px 0', fontSize: 16, color: 'var(--text)' }}>
+                📦 Multiformat Field Distribution Matrix
               </h4>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
-                <div style={{ background: 'var(--bg-input)', padding: 16, borderRadius: 8, border: '1px solid var(--border)' }}>
-                  <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Commercial Translation Cost</div>
-                  <div style={{ fontSize: 24, fontWeight: 700, color: '#f87171', margin: '4px 0' }}>₹850 / minute</div>
-                  <div style={{ fontSize: 11, color: 'var(--text-dim)' }}>Standard rate charged by human translation agencies</div>
+              <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: 16 }}>
+                Every farmer is reached regardless of smartphone ownership or 2G/3G connectivity:
+              </p>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ background: 'var(--bg-input)', padding: 12, borderRadius: 8, border: '1px solid var(--border)', display: 'flex', gap: 12, alignItems: 'center' }}>
+                  <span style={{ fontSize: 24 }}>💬</span>
+                  <div>
+                    <strong style={{ fontSize: 13, color: 'var(--text)' }}>WhatsApp Video Chunks (&lt;15 MB)</strong>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Automatically splits videos into compressed clips for easy forwarding across rural 2G/3G groups.</div>
+                  </div>
                 </div>
-                <div style={{ background: 'var(--bg-input)', padding: 16, borderRadius: 8, border: '1px solid var(--border)' }}>
-                  <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>VaaniSetu Cost per 100 Hours</div>
-                  <div style={{ fontSize: 24, fontWeight: 700, color: '#4ade80', margin: '4px 0' }}>₹0 Runtime</div>
-                  <div style={{ fontSize: 11, color: 'var(--text-dim)' }}>Saves ₹51,00,000 (₹51 Lakhs) per 100 hrs of video</div>
+                <div style={{ background: 'var(--bg-input)', padding: 12, borderRadius: 8, border: '1px solid var(--border)', display: 'flex', gap: 12, alignItems: 'center' }}>
+                  <span style={{ fontSize: 24 }}>📞</span>
+                  <div>
+                    <strong style={{ fontSize: 13, color: 'var(--text)' }}>8kHz Keypad Phone IVR (.wav)</strong>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Optimized downsampled audio for automated voice broadcast calls to ₹1,000 basic feature phones.</div>
+                  </div>
+                </div>
+                <div style={{ background: 'var(--bg-input)', padding: 12, borderRadius: 8, border: '1px solid var(--border)', display: 'flex', gap: 12, alignItems: 'center' }}>
+                  <span style={{ fontSize: 24 }}>📄</span>
+                  <div>
+                    <strong style={{ fontSize: 13, color: 'var(--text)' }}>Bilingual Word Handouts (.docx)</strong>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Printable side-by-side advisory sheets for village panchayat meetings and farmer group discussions.</div>
+                  </div>
+                </div>
+                <div style={{ background: 'var(--bg-input)', padding: 12, borderRadius: 8, border: '1px solid var(--border)', display: 'flex', gap: 12, alignItems: 'center' }}>
+                  <span style={{ fontSize: 24 }}>📝</span>
+                  <div>
+                    <strong style={{ fontSize: 13, color: 'var(--text)' }}>Subtitle Tracks (.srt / .vtt)</strong>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Synchronized subtitles for BAIF video portal, YouTube, and field training projectors.</div>
+                  </div>
                 </div>
               </div>
-              <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6 }}>
-                By deploying on standard office PCs across BAIF's 12 state offices, VaaniSetu expands outreach to over <strong>4,50,000+ smallholder and tribal farmers</strong> across Maharashtra, Gujarat, Odisha, Bihar, and Karnataka at zero ongoing cloud expenditure.
-              </p>
             </div>
           )}
         </div>
@@ -315,7 +308,7 @@ export default function DemoTourModal({ onClose, onSelectScenario }) {
           background: 'var(--bg-card-hover)'
         }}>
           <button className="btn btn-secondary" onClick={onClose}>
-            Close Tour
+            Close Guide
           </button>
         </div>
       </div>
