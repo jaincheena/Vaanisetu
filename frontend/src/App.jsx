@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { Component } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import Sidebar from './components/Sidebar'
 import TopBanner from './components/TopBanner'
@@ -8,58 +8,95 @@ import ReviewQueue from './pages/ReviewQueue'
 import ImpactLedger from './pages/ImpactLedger'
 import Glossary from './pages/Glossary'
 import TrainingHub from './pages/TrainingHub'
-
 import { AuthProvider, useAuth } from './context/AuthContext'
 
-// Global fetch interceptor to inject JWT token
-const originalFetch = window.fetch;
-window.fetch = async (url, options = {}) => {
-  const token = localStorage.getItem('vaani_token');
-  if (token && (typeof url === 'string' && url.startsWith('/api'))) {
-    options.headers = {
-      ...options.headers,
-      'Authorization': `Bearer ${token}`
-    };
+// Safe fetch interceptor with proper window binding
+if (typeof window !== 'undefined' && window.fetch) {
+  const nativeFetch = window.fetch.bind(window);
+  window.fetch = async (url, options = {}) => {
+    try {
+      const token = localStorage.getItem('vaani_token');
+      if (token && typeof url === 'string' && url.startsWith('/api')) {
+        const headers = new Headers(options.headers || {});
+        if (!headers.has('Authorization')) {
+          headers.set('Authorization', `Bearer ${token}`);
+        }
+        options = { ...options, headers };
+      }
+    } catch (e) {
+      // Ignore localStorage access errors
+    }
+    return nativeFetch(url, options);
+  };
+}
+
+class ErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
   }
-  return originalFetch(url, options);
-};
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, errorInfo) {
+    console.error("UI Render Error:", error, errorInfo);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: 40, color: '#f87171', background: '#0C0E14', minHeight: '100vh', fontFamily: 'sans-serif' }}>
+          <h2>⚠️ Interface Initialization Notice</h2>
+          <p style={{ color: '#94a3b8' }}>{this.state.error?.toString()}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            style={{ padding: '8px 16px', background: '#e8924a', border: 'none', borderRadius: 6, color: '#fff', cursor: 'pointer', marginTop: 12 }}
+          >
+            Reload Interface
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 function ProtectedRoute({ children, adminOnly = false }) {
-  const { role } = useAuth();
-  if (adminOnly && role !== 'admin') return <Navigate to="/" replace />;
+  const auth = useAuth();
+  if (adminOnly && auth?.role !== 'admin') return <Navigate to="/" replace />;
   return children;
 }
 
 export default function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <AppContent />
-      </BrowserRouter>
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <BrowserRouter>
+          <AppContent />
+        </BrowserRouter>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
 
 function AppContent() {
-  // Login temporarily disabled — render the app shell regardless of auth state
-
   return (
     <div className="app-shell">
-        <Sidebar />
-        <div className="main-area">
-          <TopBanner />
-          <main className="page-content">
-            <Routes>
-              <Route path="/" element={<Navigate to="/upload" replace />} />
-              <Route path="/upload" element={<ProtectedRoute><Upload /></ProtectedRoute>} />
-              <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
-              <Route path="/review" element={<ProtectedRoute><ReviewQueue /></ProtectedRoute>} />
-              <Route path="/impact" element={<ProtectedRoute adminOnly><ImpactLedger /></ProtectedRoute>} />
-              <Route path="/glossary" element={<ProtectedRoute><Glossary /></ProtectedRoute>} />
-              <Route path="/training" element={<ProtectedRoute><TrainingHub /></ProtectedRoute>} />
-            </Routes>
-          </main>
-        </div>
+      <Sidebar />
+      <div className="main-area">
+        <TopBanner />
+        <main className="page-content">
+          <Routes>
+            <Route path="/" element={<Navigate to="/upload" replace />} />
+            <Route path="/upload" element={<ProtectedRoute><Upload /></ProtectedRoute>} />
+            <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
+            <Route path="/review" element={<ProtectedRoute><ReviewQueue /></ProtectedRoute>} />
+            <Route path="/impact" element={<ProtectedRoute adminOnly><ImpactLedger /></ProtectedRoute>} />
+            <Route path="/glossary" element={<ProtectedRoute><Glossary /></ProtectedRoute>} />
+            <Route path="/training" element={<ProtectedRoute><TrainingHub /></ProtectedRoute>} />
+            <Route path="*" element={<Navigate to="/upload" replace />} />
+          </Routes>
+        </main>
       </div>
-  )
+    </div>
+  );
 }
