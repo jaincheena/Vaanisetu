@@ -27,7 +27,16 @@ export default function History() {
 
   useEffect(() => { load() }, [filterMode, filterStatus])
 
-  const fmt = (iso) => iso ? new Date(iso).toLocaleString('en-IN') : '—'
+  const fmt = (iso) => iso
+    ? new Date(iso).toLocaleString('en-IN', {
+        timeZone: 'Asia/Kolkata',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+    : '—'
 
   return (
     <div>
