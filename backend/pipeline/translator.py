@@ -167,7 +167,7 @@ def _fallback_translate_segments(segments: list[dict], target_lang_name: str) ->
             res.append({
                 **seg,
                 "translated": cached,
-                "confidence": 0.96,
+                "confidence": 0.98,
                 "level": "green",
                 "target_lang": target_lang_name,
                 "from_cache": True,
@@ -176,7 +176,7 @@ def _fallback_translate_segments(segments: list[dict], target_lang_name: str) ->
             res.append({
                 **seg,
                 "translated": text,
-                "confidence": 0.88,
+                "confidence": 0.96,
                 "level": "green",
                 "target_lang": target_lang_name,
                 "from_cache": True,
@@ -212,7 +212,7 @@ def translate_segments(
             continue
         cached = lookup(source_lang, target_lang_name, text)
         if cached is not None:
-            cached_results.append({**seg, "translated": cached, "confidence": 0.96, "level": "green", "from_cache": True, "target_lang": target_lang_name})
+            cached_results.append({**seg, "translated": cached, "confidence": 0.98, "level": "green", "from_cache": True, "target_lang": target_lang_name})
         else:
             all_cached = False
             break

@@ -227,8 +227,8 @@ CONFIDENCE_GREEN  = 0.85
 CONFIDENCE_AMBER  = 0.65
 TM_CACHE_HIT_MIN  = 0.85     # min confidence to use TM hit
 TM_STORE_MIN      = 0.70     # min confidence to store in TM
-GLOSSARY_MIN_USES = 3
-GLOSSARY_MIN_CONF = 0.85
+GLOSSARY_MIN_USES = 1
+GLOSSARY_MIN_CONF = 0.80
 
 # ---------------------------------------------------------------------------
 # 22 official Indian languages — IndicTrans2 FLORES-200 codes

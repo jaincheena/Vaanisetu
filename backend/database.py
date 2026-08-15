@@ -94,12 +94,13 @@ CREATE INDEX IF NOT EXISTS idx_rq_status          ON review_queue(status);
 
 
 def init_db() -> None:
-    """Create tables and seed impact_config and domain translations."""
+    """Create tables and seed impact_config, domain translations, and review queue."""
     conn = sqlite3.connect(str(DB_PATH))
     try:
         conn.executescript(SCHEMA_SQL)
         _seed_impact_config(conn)
         _seed_domain_translations(conn)
+        _seed_review_queue(conn)
         # Safe column migrations — no-op if column already exists
         _safe_add_column(conn, "jobs", "submitter_id",            "TEXT")
         _safe_add_column(conn, "jobs", "distribution_clearance",  "TEXT")
@@ -172,7 +173,56 @@ def _seed_domain_translations(conn: sqlite3.Connection) -> None:
             "Hindi", "English",
             "नमस्ते साहब, हमारे ड्रिप इरिगेशन (Drip Irrigation) की नलियों में खारे पानी की वजह से सफेद नमक जम गया है और पानी बहुत धीमा टपक रहा है। क्या हम इसमें हाइड्रोक्लोरिक एसिड का एसिड ट्रीटमेंट कर सकते हैं? कृपया चना फसल के लिए सही घोल की मात्रा, पीएच स्तर और सुरक्षा सावधानियां तुरंत बताएं।",
             "Hello Sir, due to hard saline water, white salt has accumulated inside our drip irrigation dripper pipes and water is dripping very slowly. Can we perform acid treatment using hydrochloric acid? Please urgently guide us on the exact chemical concentration, target pH level, and safety precautions for the chickpea crop."
-        )
+        ),
+        # 4. Comprehensive BAIF AgriShield Domain Terms (Pesticides, Fertilizers, Irrigation, Livestock, Schemes)
+        ("English", "Hindi", "Propiconazole 25% EC", "प्रोपिकोनाजोल 25% ईसी (फफूंदनाशक)"),
+        ("English", "Marathi", "Propiconazole 25% EC", "प्रोपिकोनाझोल २५% ईसी (बुरशीनाशक)"),
+        ("English", "Gujarati", "Propiconazole 25% EC", "પ્રોપિકોનાઝોલ ૨૫% ઈસી (ફૂગનાશક)"),
+        ("English", "Telugu", "Propiconazole 25% EC", "ప్రోపికొనజోల్ 25% ఇసి (శిలీంద్ర సంహారిణి)"),
+
+        ("English", "Hindi", "Yellow Rust Disease", "पीला रतुआ रोग (गेहूं का फफूंद रोग)"),
+        ("English", "Marathi", "Yellow Rust Disease", "पिवळा तांबेरा रोग"),
+        ("English", "Gujarati", "Yellow Rust Disease", "પીળો રતવો રોગ"),
+
+        ("English", "Hindi", "Lumpy Skin Disease (LSD)", "लंपी त्वचा रोग (गोवंश विषाणु रोग)"),
+        ("English", "Marathi", "Lumpy Skin Disease (LSD)", "लंपी त्वचा रोग (पशु आजार)"),
+        ("English", "Gujarati", "Lumpy Skin Disease (LSD)", "લંપી સ્કીન ડીસીઝ (ગૌવંશ રોગ)"),
+
+        ("English", "Hindi", "Goat Pox Vaccine", "गोट पॉक्स का टीका (लंपी रोकथाम लस)"),
+        ("English", "Marathi", "Goat Pox Vaccine", "गोट पॉक्स लस (लंपी प्रतिबंधक)"),
+
+        ("English", "Hindi", "Drip Irrigation Emitter", "ड्रिप इरिगेशन ड्रिपर (टपक सिंचाई नोजल)"),
+        ("English", "Marathi", "Drip Irrigation Emitter", "ठिबक सिंचन उत्सर्जक / ड्रिपर"),
+        ("English", "Gujarati", "Drip Irrigation Emitter", "ટપક પદ્ધતિ ડ્રિપર"),
+
+        ("English", "Hindi", "Diammonium Phosphate (DAP)", "डीएपी खाद (डाई-अमोनियम फॉस्फेट)"),
+        ("English", "Marathi", "Diammonium Phosphate (DAP)", "डीएपी खत (डाय-अमोनियम फॉस्फेट)"),
+
+        ("English", "Hindi", "Trichoderma viride Bio-fungicide", "ट्राइकोडर्मा विरिडी जैव-फफूंदनाशक"),
+        ("English", "Marathi", "Trichoderma viride Bio-fungicide", "ट्रायकोडर्मा व्हिरिडी जैविक बुरशीनाशक"),
+
+        ("English", "Hindi", "PM-KISAN Samman Nidhi", "प्रधानमंत्री किसान सम्मान निधि योजना"),
+        ("English", "Marathi", "PM-KISAN Samman Nidhi", "प्रधानमंत्री किसान सन्मान निधी योजना"),
+        ("English", "Gujarati", "PM-KISAN Samman Nidhi", "પ્રધાનમંત્રી કિસાન સન્માન નિધિ યોજના"),
+
+        ("English", "Hindi", "Pradhan Mantri Fasal Bima Yojana (PMFBY)", "प्रधानमंत्री फसल बीमा योजना (पीएमएफबीवाई)"),
+        ("English", "Marathi", "Pradhan Mantri Fasal Bima Yojana (PMFBY)", "प्रधानमंत्री पीक विमा योजना (पीएमएफबीवाय)"),
+
+        ("English", "Hindi", "Neem Oil 1500 PPM Formulation", "नीम का तेल १५०० पीपीएम घोल (जैविक कीटनाशक)"),
+        ("English", "Marathi", "Neem Oil 1500 PPM Formulation", "कडुनिंब तेल १५०० पीपीएम द्रावण (सेंद्रिय कीटकनाशक)"),
+
+        ("English", "Hindi", "Soil Testing & Health Card", "मृदा स्वास्थ्य कार्ड एवं मिट्टी परीक्षण"),
+        ("English", "Marathi", "Soil Testing & Health Card", "माती परीक्षण व जमीन आरोग्य पत्रिका"),
+
+        ("English", "Hindi", "Pink Bollworm Pest Control", "गुलाबी सुंडी (पिंक बोलवर्म) कीट नियंत्रण"),
+        ("English", "Marathi", "Pink Bollworm Pest Control", "बोंडअळी (गुलाबी बोंडअळी) कीड नियंत्रण"),
+        ("English", "Gujarati", "Pink Bollworm Pest Control", "ગુલાબી ઈયળ નિયંત્રણ"),
+
+        ("English", "Hindi", "Urea Fertilizer 46% N", "यूरिया खाद (४६% नाइट्रोजन)"),
+        ("English", "Marathi", "Urea Fertilizer 46% N", "युरिया खत (४६% नत्र)"),
+
+        ("English", "Hindi", "Acid Treatment Flushing for Drip", "ड्रिप नली हाइड्रोक्लोरिक एसिड फ्लशिंग उपचार"),
+        ("English", "Marathi", "Acid Treatment Flushing for Drip", "ठिबक नलिका ॲसिड ट्रीटमेंट फ्लशिंग")
     ]
 
     now = datetime.utcnow().isoformat()
@@ -183,10 +233,52 @@ def _seed_domain_translations(conn: sqlite3.Connection) -> None:
             INSERT OR REPLACE INTO translation_memory
             (source_hash, source_text, source_lang, target_lang, translated_text,
              confidence, times_used, created_at, last_used_at, flagged, domain)
-            VALUES (?, ?, ?, ?, ?, 0.96, 5, ?, ?, 0, 'agriculture')
+            VALUES (?, ?, ?, ?, ?, 0.98, 5, ?, ?, 0, 'agriculture')
             """,
             (key, src_t, src_l, tgt_l, tgt_t, now, now),
         )
+
+
+def _seed_review_queue(conn: sqlite3.Connection) -> None:
+    """Seed realistic agricultural review items requiring field officer validation."""
+    # First purge stale test artifacts
+    conn.execute("DELETE FROM review_queue WHERE translated_text LIKE 'FAKE TRANSLATION%' OR job_id LIKE 'test_%'")
+
+    # Check if active review items exist
+    existing = conn.execute("SELECT COUNT(*) as c FROM review_queue WHERE status='pending'").fetchone()[0]
+    if existing > 0:
+        return
+
+    now = datetime.utcnow().isoformat()
+    # Ensure parent jobs exist for FOREIGN KEY integrity
+    conn.execute(
+        """
+        INSERT OR IGNORE INTO jobs
+        (id, mode, submitter_id, filename, file_hash, file_size, input_type, source_lang, target_langs, status, queued_at, quality_mode)
+        VALUES
+        ('baif_advisory_chem_01', 'translate', 'admin', 'sugarcane_termite.txt', 'hash_chem01', 300, 'text', 'English', '["Hindi"]', 'completed', ?, 'draft'),
+        ('baif_advisory_drip_02', 'translate', 'admin', 'drip_maintenance.txt', 'hash_drip02', 350, 'text', 'English', '["Marathi"]', 'completed', ?, 'draft')
+        """,
+        (now, now),
+    )
+
+    # Insert realistic agricultural review items (Amber confidence: 0.72 and 0.68)
+    conn.execute(
+        """
+        INSERT INTO review_queue
+        (job_id, segment_index, source_text, translated_text, source_lang, target_lang, confidence, status, created_at)
+        VALUES
+        ('baif_advisory_chem_01', 1,
+         'Apply Chlorpyrifos 20% EC at 2.5 liters per hectare diluted in 1000 liters of water for termite control in sugarcane setts.',
+         'दीमक नियंत्रण के लिए क्लोरपायरीफॉस २०% ईसी को प्रति हेक्टेयर २.५ लीटर की दर से १००० लीटर पानी में मिलाकर गन्ने के टुकड़ों पर छिड़काव करें।',
+         'English', 'Hindi', 0.72, 'pending', ?),
+        ('baif_advisory_drip_02', 1,
+         'Flush subsurface drip laterals with 0.6% hydrochloric acid solution at 1.5 kg/cm2 pressure to dissolve calcium carbonate scale.',
+         'कॅल्शियम कार्बोनेटचा थर विरघळवण्यासाठी ठिबकच्या नळ्यांमध्ये १.५ किलो/सेंमी२ दाबाने ०.६% हायड्रोक्लोरिक आम्लाचे द्रावण सोडून फ्लशिंग करावे.',
+         'English', 'Marathi', 0.68, 'pending', ?)
+        """,
+        (now, now),
+    )
 
 
 @contextmanager

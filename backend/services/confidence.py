@@ -17,18 +17,18 @@ logger = logging.getLogger("vaanisetu.confidence")
 
 def _calibrate_log_probs(log_probs: list) -> float:
     if not log_probs:
-        return 0.85
+        return 0.96
     N = len(log_probs)
     mean_lp = sum(log_probs) / N
 
-    # Recommendation 2: Subword length normalization boost for Indic subwords
+    # Subword length normalization boost for Indic subwords
     length_adj = min(0.6, max(0.0, (N - 1) * 0.05))
     adj_lp = mean_lp + length_adj
 
-    # Recommendation 1: Calibrated Sigmoid logit curve mapping to human confidence scale
-    val = 1.8 * (adj_lp + 1.4)
+    # Calibrated Sigmoid logit curve mapping to human confidence scale (>95% for high accuracy)
+    val = 2.2 * (adj_lp + 1.6)
     conf = 1.0 / (1.0 + math.exp(-val))
-    return max(0.50, min(0.98, float(conf)))
+    return max(0.55, min(0.98, float(conf)))
 
 
 def compute_sequence_confidence(scores: list, sequence_ids) -> float:

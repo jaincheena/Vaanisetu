@@ -59,38 +59,44 @@ async def review_item(item_id: int, body: ReviewAction, current_user: dict = Dep
         row = conn.execute(
             "SELECT * FROM review_queue WHERE id=?", (item_id,)
         ).fetchone()
-    if not row:
-        raise HTTPException(404, "Review item not found")
+        if not row:
+            raise HTTPException(404, "Review item not found")
 
-    now = datetime.utcnow().isoformat()
-    new_status = {"approve": "approved", "edit": "edited", "reject": "rejected"}[body.action]
-    edited_text = body.edited_text or row["translated_text"]
+        now = datetime.utcnow().isoformat()
+        new_status = {"approve": "approved", "edit": "edited", "reject": "rejected"}[body.action]
+        edited_text = body.edited_text or row["translated_text"]
+        reviewer_name = body.reviewer or current_user.get("username", "Field Officer")
 
-    with get_db() as conn:
         conn.execute(
             """
             UPDATE review_queue
             SET status=?, reviewer=?, edited_translation=?, reviewed_at=?
             WHERE id=?
             """,
-            (new_status, body.reviewer, edited_text, now, item_id),
+            (new_status, reviewer_name, edited_text, now, item_id),
         )
 
+        # Store to TM directly in the same connection to avoid nested connection deadlocks
         if body.action in ("approve", "edit"):
-            # Store to TM with confidence=0.92
-            store_approved(
-                src_lang=row["source_lang"],
-                tgt_lang=row["target_lang"],
-                source_text=row["source_text"],
-                translated_text=edited_text,
+            from backend.utils.file_utils import tm_cache_key
+            key = tm_cache_key(row["source_lang"], row["target_lang"], row["source_text"])
+            conn.execute(
+                """
+                INSERT OR REPLACE INTO translation_memory
+                (source_hash, source_text, source_lang, target_lang, translated_text,
+                 confidence, times_used, created_at, last_used_at, flagged, domain)
+                VALUES (?, ?, ?, ?, ?, 0.98, 1, ?, ?, 0, 'agriculture')
+                """,
+                (key, row["source_text"], row["source_lang"], row["target_lang"], edited_text, now, now),
             )
 
         # Check if all items for this job are now resolved
         job_id = row["job_id"]
-        pending = conn.execute(
+        pending_row = conn.execute(
             "SELECT COUNT(*) as c FROM review_queue WHERE job_id=? AND status='pending'",
             (job_id,),
-        ).fetchone()["c"]
+        ).fetchone()
+        pending = pending_row["c"] if pending_row else 0
 
         if pending == 0:
             conn.execute(
@@ -99,4 +105,12 @@ async def review_item(item_id: int, body: ReviewAction, current_user: dict = Dep
             )
             logger.info(f"Job {job_id} cleared for distribution")
 
-    return {"success": True, "new_status": new_status}
+    return {"success": True, "new_status": new_status, "item_id": item_id}
+
+
+@router.delete("/clear-all")
+async def clear_review_queue(current_user: dict = Depends(get_current_user)):
+    """Clear test items from review queue."""
+    with get_db() as conn:
+        conn.execute("DELETE FROM review_queue WHERE translated_text LIKE 'FAKE TRANSLATION%'")
+    return {"success": True, "message": "Test items cleaned up"}

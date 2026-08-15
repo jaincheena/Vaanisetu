@@ -385,6 +385,26 @@ async def job_history(mode: str = "", status: str = "", limit: int = 50, current
     for r in rows:
         d = dict(r)
         if d.get("target_langs"):
-            d["target_langs"] = json.loads(d["target_langs"])
+            try:
+                d["target_langs"] = json.loads(d["target_langs"])
+            except Exception:
+                pass
         result.append(d)
     return result
+
+
+@router.delete("/history/clear")
+async def clear_history(current_user: dict = Depends(get_current_user)):
+    """Purge synthetic/test runs and old failed jobs from history."""
+    with get_db() as conn:
+        conn.execute("DELETE FROM jobs WHERE id LIKE 'test_%' OR file_hash LIKE 'hash%' OR status='failed'")
+    return {"success": True, "message": "Test runs cleared from history"}
+
+
+@router.delete("/{job_id}")
+async def delete_single_job(job_id: str, current_user: dict = Depends(get_current_user)):
+    """Delete a specific job and its outputs."""
+    with get_db() as conn:
+        conn.execute("DELETE FROM review_queue WHERE job_id=?", (job_id,))
+        conn.execute("DELETE FROM jobs WHERE id=?", (job_id,))
+    return {"success": True, "job_id": job_id}

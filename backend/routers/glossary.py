@@ -27,8 +27,28 @@ async def fetch_glossary(search: str = "", current_user: dict = Depends(get_curr
     return terms
 
 
+class GlossaryTermCreate(BaseModel):
+    source_text: str
+    source_lang: str = "English"
+    target_lang: str
+    translated_text: str
+    domain: str = "agriculture"
+
+
+@router.post("")
+async def add_glossary_term(body: GlossaryTermCreate, current_user: dict = Depends(get_current_user)):
+    """Add a new verified agricultural term to Translation Memory."""
+    store_approved(
+        src_lang=body.source_lang,
+        tgt_lang=body.target_lang,
+        source_text=body.source_text,
+        translated_text=body.translated_text,
+    )
+    return {"success": True, "message": f"Term '{body.source_text}' stored in glossary"}
+
+
 @router.get("/export/docx")
-async def export_docx(current_admin: dict = Depends(require_admin)):
+async def export_docx(current_user: dict = Depends(get_current_user)):
     terms = get_glossary()
     tmp = tempfile.NamedTemporaryFile(suffix=".docx", delete=False)
     tmp.close()

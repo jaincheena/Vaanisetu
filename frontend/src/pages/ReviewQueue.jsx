@@ -9,13 +9,15 @@ export default function ReviewQueue() {
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState('pending')
 
+  const [feedback, setFeedback] = useState(null)
+
   const load = () => {
     setLoading(true)
     Promise.all([
       fetch(`/api/review/queue?status=${statusFilter}`).then(r => r.json()),
       fetch('/api/review/stats').then(r => r.json()),
     ]).then(([q, s]) => {
-      setItems(q)
+      setItems(Array.isArray(q) ? q : [])
       setStats(s)
       setLoading(false)
     }).catch(() => setLoading(false))
@@ -24,11 +26,27 @@ export default function ReviewQueue() {
   useEffect(load, [statusFilter])
 
   const action = async (id, act, editedText) => {
-    await fetch(`/api/review/${id}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: act, edited_text: editedText, reviewer }),
-    })
+    try {
+      const res = await fetch(`/api/review/${id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: act, edited_text: editedText, reviewer: reviewer || 'BAIF Field Officer' }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        setFeedback(`✓ Segment successfully ${act === 'approve' ? 'approved' : act === 'edit' ? 'edited & approved' : 'rejected'} and stored in Translation Memory!`)
+        setTimeout(() => setFeedback(null), 4000)
+      }
+    } catch (e) {
+      console.error(e)
+    }
+    load()
+  }
+
+  const handleClearTest = async () => {
+    await fetch('/api/review/clear-all', { method: 'DELETE' })
+    setFeedback('✓ Cleaned up test items from review queue!')
+    setTimeout(() => setFeedback(null), 3000)
     load()
   }
 
@@ -43,7 +61,7 @@ export default function ReviewQueue() {
       <div className="page-header flex items-center justify-between">
         <div>
           <h2>Review Queue</h2>
-          <p>Amber and red confidence segments awaiting human review</p>
+          <p>Amber and red confidence segments awaiting human review & verification</p>
         </div>
         {stats && (
           <div className="flex gap-2">
@@ -54,9 +72,15 @@ export default function ReviewQueue() {
         )}
       </div>
 
+      {feedback && (
+        <div className="card mb-4" style={{ background: 'rgba(82, 196, 135, 0.12)', borderColor: 'var(--green)', color: 'var(--green)', padding: '12px 16px', fontSize: 13, fontWeight: 500 }}>
+          {feedback}
+        </div>
+      )}
+
       {/* Reviewer name + filter */}
       <div className="card mb-4">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3" style={{ flexWrap: 'wrap' }}>
           <div style={{ minWidth: 200 }}>
             <label>Reviewer Name</label>
             <input
@@ -65,21 +89,22 @@ export default function ReviewQueue() {
               type="text"
               value={reviewer}
               onChange={e => setReviewer(e.target.value)}
-              placeholder="Your name"
+              placeholder="e.g. Dr. Patil (BAIF Pune HQ)"
             />
           </div>
           <div style={{ minWidth: 160 }}>
             <label>Status Filter</label>
             <select id="status-filter" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
-              <option value="pending">Pending</option>
-              <option value="approved">Approved</option>
-              <option value="edited">Edited</option>
-              <option value="rejected">Rejected</option>
-              <option value="all">All</option>
+              <option value="pending">Pending ({stats?.pending || 0})</option>
+              <option value="approved">Approved ({stats?.approved || 0})</option>
+              <option value="edited">Edited ({stats?.edited || 0})</option>
+              <option value="rejected">Rejected ({stats?.rejected || 0})</option>
+              <option value="all">All ({stats?.total || 0})</option>
             </select>
           </div>
-          <div style={{ alignSelf: 'flex-end' }}>
+          <div style={{ alignSelf: 'flex-end', display: 'flex', gap: 8 }}>
             <button className="btn btn-secondary" onClick={load}>↻ Refresh</button>
+            <button className="btn btn-secondary" onClick={handleClearTest} title="Purge legacy test entries">🧹 Clean Stale Items</button>
           </div>
         </div>
       </div>
