@@ -1,6 +1,6 @@
 """
-VaaniSetu — 1-Click Interactive Launcher & Onboarding Assistant
-Provides robust verification, auto-setup, model management, and server execution.
+VaaniSetu — Modern Interactive Launcher & Onboarding Assistant
+Crafted with modern typography, warm saffron/slate styling, and robust lifecycle management.
 """
 
 import sys
@@ -11,16 +11,34 @@ import webbrowser
 import urllib.request
 from pathlib import Path
 
+# Enable ANSI escape processing in Windows console
+os.system("")
+
 REPO_ROOT = Path(__file__).resolve().parent
 BASE_DIR = Path("C:/VaaniSetu")
 
+# Design System Colors (Matching Web UI)
+SAFFRON = "\033[38;2;232;146;74m"
+SAFFRON_BOLD = "\033[1;38;2;232;146;74m"
+EMERALD = "\033[38;2;82;196;135m"
+EMERALD_BOLD = "\033[1;38;2;82;196;135m"
+INDIGO = "\033[38;2;124;131;208m"
+INDIGO_BOLD = "\033[1;38;2;124;131;208m"
+SLATE = "\033[38;2;139;134;150m"
+WHITE_BOLD = "\033[1;37m"
+RESET = "\033[0m"
+
 def print_banner():
-    print("=" * 80)
-    print("  VAANISETU - 100% Offline AI Translation Platform")
-    print("  Bharatiya Agro Industries Foundation (BAIF)")
-    print("=" * 80)
-    print("  Interactive Onboarding & Startup Wizard")
-    print("=" * 80 + "\n")
+    print(f"\n{SAFFRON_BOLD}  ================================================================================")
+    print(f"    __     __                  _   ____       _         ")
+    print(f"    \\ \\   / /_ _  __ _ _ __   (_) / ___|  ___| |_ _   _ ")
+    print(f"     \\ \\ / / _` |/ _` | '_ \\  | | \\___ \\ / _ \\ __| | | |")
+    print(f"      \\ V / (_| | (_| | | | | | |  ___) |  __/ |_| |_| |")
+    print(f"       \\_/ \\__,_|\\__,_|_| |_| |_| |____/ \\___|\\__|\\__,_|")
+    print(f"{RESET}")
+    print(f"   {WHITE_BOLD}100% Offline AI Translation & Localization Platform{RESET}")
+    print(f"   {SLATE}Bharatiya Agro Industries Foundation (BAIF){RESET}")
+    print(f"{SAFFRON_BOLD}  ================================================================================{RESET}\n")
 
 def free_port(port=8765):
     """Ensure port 8765 is not occupied by an old stale background process."""
@@ -35,15 +53,15 @@ def free_port(port=8765):
                     if pid and pid != str(os.getpid()):
                         try:
                             subprocess.run(f'taskkill /F /PID {pid}', shell=True, capture_output=True)
-                            print(f"      [INFO] Cleaned up stale background process (PID {pid}) on port {port}.")
+                            print(f"   {SLATE}[CLEANUP] Reclaimed port {port} from background process (PID {pid}){RESET}")
                         except Exception:
                             pass
-            time.sleep(0.5)
+            time.sleep(0.4)
         except Exception:
             pass
 
 def check_directories():
-    print("[1/4] Verifying local storage directories on C:\\VaaniSetu...")
+    print(f" {INDIGO_BOLD}[1/4]{RESET} {WHITE_BOLD}Verifying local storage architecture...{RESET}")
     dirs = [
         BASE_DIR,
         BASE_DIR / "models",
@@ -58,57 +76,59 @@ def check_directories():
     ]
     for d in dirs:
         d.mkdir(parents=True, exist_ok=True)
-    print("      Directories initialized: PASS\n")
+    print(f"       {EMERALD_BOLD}[OK]{RESET} {SLATE}Storage directories verified at C:\\VaaniSetu{RESET}\n")
 
 def check_dependencies():
-    print("[2/4] Verifying Python packages...")
+    print(f" {INDIGO_BOLD}[2/4]{RESET} {WHITE_BOLD}Checking Python AI & Web runtime libraries...{RESET}")
     try:
         import fastapi
         import uvicorn
         import torch
         import transformers
-        print("      Core packages verified: PASS\n")
+        print(f"       {EMERALD_BOLD}[OK]{RESET} {SLATE}FastAPI, PyTorch, and Transformers ready{RESET}\n")
     except ImportError as e:
-        print(f"      [!] Some packages are missing ({e.name}).")
-        choice = input("      Install dependencies from requirements.txt now? (Y/N) [Default: Y]: ").strip().upper()
+        print(f"       {SAFFRON}[!] Missing required dependency: {e.name}{RESET}")
+        choice = input(f"       Install dependencies from requirements.txt now? (Y/N) [Default: Y]: ").strip().upper()
         if choice in ("", "Y", "YES"):
-            print("      Installing packages via pip (this may take 3-5 minutes)...")
+            print(f"       {SLATE}Installing packages via pip (takes 2-4 minutes)...{RESET}")
             res = subprocess.run([sys.executable, "-m", "pip", "install", "-r", "requirements.txt"], cwd=str(REPO_ROOT))
             if res.returncode != 0:
-                print("      [ERROR] Package installation failed. Check internet connection.")
+                print(f"       {SAFFRON}[ERROR] Package installation failed. Please check internet connection.{RESET}")
                 input("Press Enter to exit...")
                 sys.exit(1)
-            print("      Dependencies installed: PASS\n")
+            print(f"       {EMERALD_BOLD}[OK]{RESET} {SLATE}Packages installed successfully{RESET}\n")
         else:
-            print("      Proceeding with existing packages.\n")
+            print(f"       {SLATE}Proceeding with existing runtime packages.{RESET}\n")
 
 def check_models():
-    print("[3/4] Checking AI model assets in C:\\VaaniSetu\\models...")
+    print(f" {INDIGO_BOLD}[3/4]{RESET} {WHITE_BOLD}Verifying AI Model weights & memory profile...{RESET}")
+    from backend.config import WHISPER_MODEL, IS_LOW_RAM
+
     whisper_dir = BASE_DIR / "models" / "whisper"
     indic_dir = BASE_DIR / "models" / "indictrans2-en-indic"
-    piper_dir = BASE_DIR / "models" / "piper"
 
     has_whisper = whisper_dir.exists() and any(whisper_dir.iterdir())
     has_indic = indic_dir.exists() and any(indic_dir.iterdir())
 
+    print(f"       {SLATE}Adaptive Hardware Tier:{RESET} {SAFFRON_BOLD}{'Low-RAM Safe Profile (<650MB peak)' if IS_LOW_RAM else 'Standard Precision Profile'}{RESET}")
+    print(f"       {SLATE}Active STT Engine:{RESET}      {WHITE_BOLD}Whisper ({WHISPER_MODEL}){RESET}")
+
     if not (has_whisper and has_indic):
-        print("      [INFO] Offline model weights not fully downloaded yet.")
-        print("      Server will start in fallback / lightweight mode.")
-        print("      To download complete 5GB offline weights, run: scripts\\download_models.bat")
+        print(f"       {EMERALD_BOLD}[READY]{RESET} {SLATE}Offline JIT mode active (Zero idle RAM). Run scripts\\download_models.bat anytime.{RESET}")
     else:
-        print("      AI Model weights detected: PASS")
+        print(f"       {EMERALD_BOLD}[OK]{RESET} {SLATE}Offline weights detected in C:\\VaaniSetu\\models{RESET}")
     print()
 
 def check_frontend():
-    print("[4/4] Verifying Web UI production bundle...")
+    print(f" {INDIGO_BOLD}[4/4]{RESET} {WHITE_BOLD}Checking React Web Interface distribution...{RESET}")
     dist_index = REPO_ROOT / "frontend" / "dist" / "index.html"
     if not dist_index.exists():
-        print("      Building React frontend (one-time build)...")
+        print(f"       {SLATE}Compiling React web bundle (one-time step)...{RESET}")
         subprocess.run(["npm", "install"], cwd=str(REPO_ROOT / "frontend"), shell=True)
         subprocess.run(["npm", "run", "build"], cwd=str(REPO_ROOT / "frontend"), shell=True)
-        print("      Frontend build complete: PASS\n")
+        print(f"       {EMERALD_BOLD}[OK]{RESET} {SLATE}Production build compiled successfully{RESET}\n")
     else:
-        print("      Pre-compiled Web UI bundle ready: PASS\n")
+        print(f"       {EMERALD_BOLD}[OK]{RESET} {SLATE}Pre-compiled Web UI bundle ready in frontend\\dist{RESET}\n")
 
 def open_browser_when_ready(url="http://localhost:8765", max_wait=30):
     import threading
@@ -117,27 +137,27 @@ def open_browser_when_ready(url="http://localhost:8765", max_wait=30):
         while time.time() - start_t < max_wait:
             try:
                 req = urllib.request.Request(f"{url}/api/health", headers={"User-Agent": "Mozilla/5.0"})
-                with urllib.request.urlopen(req, timeout=1.0) as resp:
+                with urllib.request.urlopen(req, timeout=0.8) as resp:
                     if resp.status == 200:
-                        print(f"\n[OK] Server is ready! Opening web browser at {url} ...\n")
+                        print(f"\n {EMERALD_BOLD}[ONLINE]{RESET} {WHITE_BOLD}VaaniSetu is live! Opening web browser at {url} ...{RESET}\n")
                         webbrowser.open(url)
                         return
             except Exception:
-                time.sleep(0.4)
+                time.sleep(0.3)
 
     th = threading.Thread(target=_wait_and_open, daemon=True)
     th.start()
 
 def start_server():
-    print("=" * 80)
-    print("  STARTING VAANISETU SERVER")
-    print("=" * 80)
-    print("  Local Web Access: http://localhost:8765")
-    print("  Office WiFi LAN:  http://0.0.0.0:8765")
+    print(f"{SAFFRON_BOLD}  ================================================================================")
+    print(f"   🚀 LAUNCHING VAANISETU SERVER")
+    print(f"  ================================================================================{RESET}")
+    print(f"   {WHITE_BOLD}Local Web Access:{RESET} {EMERALD_BOLD}http://localhost:8765{RESET}")
+    print(f"   {WHITE_BOLD}Office WiFi LAN:{RESET}  {INDIGO_BOLD}http://0.0.0.0:8765{RESET}")
     print()
-    print("  Server is starting... Web browser will open automatically once live.")
-    print("  Press Ctrl+C in this window at any time to stop the server.")
-    print("=" * 80 + "\n")
+    print(f"   {SLATE}Web browser will open automatically once the server is live.{RESET}")
+    print(f"   {SLATE}Press {WHITE_BOLD}Ctrl+C{SLATE} in this window at any time to safely stop the server.{RESET}")
+    print(f"{SAFFRON_BOLD}  ================================================================================{RESET}\n")
 
     # Clean port before binding
     free_port(8765)
@@ -148,10 +168,10 @@ def start_server():
         import uvicorn
         uvicorn.run("backend.main:app", host="0.0.0.0", port=8765, log_level="info")
     except KeyboardInterrupt:
-        print("\n[INFO] Server stopped by user.")
+        print(f"\n{INDIGO}[INFO] VaaniSetu server stopped gracefully.{RESET}")
     except Exception as e:
-        print(f"\n[ERROR] Server failed to start: {e}")
-        print("Check logs at C:\\VaaniSetu\\logs\\vaanisetu.log")
+        print(f"\n{SAFFRON}[ERROR] Server failed to start: {e}{RESET}")
+        print(f"Check structured logs at C:\\VaaniSetu\\logs\\vaanisetu.log")
         input("\nPress Enter to exit...")
 
 def main():

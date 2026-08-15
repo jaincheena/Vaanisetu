@@ -549,11 +549,11 @@ The pipeline is identical. Only the model direction flips (`en-indic` ↔ `indic
 
 ## 11. Getting the App Running Locally
 
-### ⚡ 1-Click Interactive Onboarding Wizard (`quick_start.bat`)
+### ⚡ 1-Click Modern Interactive Launcher (`Launch_VaaniSetu.bat`)
 For any fresh laptop, new user, or hackathon evaluator:
-1. Double-click **`quick_start.bat`** in the repository root.
-2. The interactive onboarding wizard automatically:
-   - **Prerequisite Detection:** Checks for Python 3.10+; if missing, offers to automatically download and launch the official Windows installer with setup instructions.
+1. Double-click **`Launch_VaaniSetu.bat`** (or `quick_start.bat`) in the repository root.
+2. The modern Saffron/Slate CLI assistant automatically:
+   - **Prerequisite Detection:** Checks for Python 3.10+; if missing, offers automated 1-click installer download and setup instructions.
    - **Environment Setup:** Creates all local storage and log directories (`C:\VaaniSetu\models`, `workspace`, `outputs`, `uploads`, `logs`).
    - **Dependency Auto-Install:** Detects missing packages and prompts to install `requirements.txt`.
    - **Low-RAM Auto-Adaptation:** Dynamically sizes Whisper (`tiny`/`base`/`small`) to fit available memory, keeping peak RAM < 650MB with lazy loading (<60MB idle).

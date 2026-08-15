@@ -5,7 +5,7 @@
 ## ⚡ 1-Click Interactive Onboarding Wizard (Recommended for All Users)
 
 **For all users, field officers, and hackathon evaluators:**
-1. Simply double-click **`quick_start.bat`** in the main project folder.
+1. Simply double-click **`Launch_VaaniSetu.bat`** (or `quick_start.bat`) in the main project folder.
 2. The interactive assistant automatically:
    - **Prerequisite Detection:** Checks for Python 3.10+; if missing, offers automated 1-click installer download and setup instructions.
    - **Environment Setup:** Creates all required storage directories on `C:\VaaniSetu\` (`models`, `workspace`, `outputs`, `uploads`, `logs`).
