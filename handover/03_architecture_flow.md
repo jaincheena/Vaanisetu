@@ -27,7 +27,7 @@
 │  Pipelined Processor (Translate ↔ Generate Overlap) │
 │  FFmpeg · faster-Whisper (INT8 CTranslate2 + VAD)   │
 │  IndicTrans2 · AgriShield™ Domain Dictionary (120+) │
-│  Librosa Pitch Analysis → Piper TTS / Coqui XTTS    │
+│  Librosa Pitch Analysis → Piper TTS / Coqui XTTS / gTTS │
 │  Translation Memory · Confidence Scorer             │
 └────────────────────┬────────────────────────────────┘
                      │ SQLite WAL (30s timeout) · File I/O
@@ -103,7 +103,7 @@ COMPLETE — distribution_clearance = cleared | pending_review
 |--------|-------------|--------------------|
 | Text (.txt) | ✅ | ✅ |
 | Subtitles (.srt, .vtt) | ✅ | ✅ |
-| TTS Audio (.mp3) | ✅ Piper (fast) | ✅ XTTS (high quality) |
+| TTS Audio (.mp3) | ✅ Piper (fast) + gTTS fallback | ✅ XTTS (high quality) + gTTS fallback |
 | Bilingual DOCX | ✅ | ✅ |
 | Dubbed MP4 | ❌ skipped | ✅ |
 | Captioned MP4 | ❌ skipped | ✅ |
@@ -125,7 +125,7 @@ IndicTrans2 generates token scores
  mean(log_softmax(scores))
          │
          ▼
- exp( max( mean, -5.0 ) ) = confidence in [0, 1]
+ 1 / (1 + exp(-2.8 * (mean_log_prob + length_adj + 1.8)))
          │
     ┌────┴──────┬──────────┐
     │           │          │

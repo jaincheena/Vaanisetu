@@ -4,16 +4,19 @@
 
 ## ⚡ 1-Click Interactive Onboarding Wizard (Recommended for All Users)
 
-**For all users, field officers, and hackathon evaluators:**
-1. Simply double-click **`Launch_VaaniSetu.bat`** (or `quick_start.bat`) in the main project folder.
-2. The interactive assistant automatically:
-   - **Prerequisite Detection:** Checks for Python 3.10+; if missing, offers automated 1-click installer download and setup instructions.
-   - **Environment Setup:** Creates all required storage directories on `C:\VaaniSetu\` (`models`, `workspace`, `outputs`, `uploads`, `logs`).
-   - **Dependency Auto-Install:** Verifies dependencies and auto-prompts `pip install -r requirements.txt` if needed.
-   - **Low-RAM Sizing & JIT Models:** Automatically inspects available RAM and selects the optimal Whisper model (`tiny`/`base`/`small`/`large-v3-turbo`) with lazy loading (<60MB idle RAM).
-   - **Web UI Verification:** Ensures the pre-compiled React distribution bundle is ready.
-   - **Health-Polled Launch:** Starts the FastAPI server, monitors `/api/health`, and **only opens your web browser to `http://localhost:8765` after all prerequisites, dependencies, and models are verified and the server is live**.
-3. Pick any of the **1-Click Agricultural Scenarios** on the home screen and start localizing immediately!
+**For all users, field officers, and BAIF administrators:**
+1. Simply double-click **`Launch_VaaniSetu.bat`** (or run `launcher.py`) in the main project folder.
+2. The interactive assistant automatically performs a **4-step verification**:
+   - **Directories:** Checks and creates `models`, `workspace`, `outputs`, `uploads`, `logs`, `vaanisetu.db`.
+   - **Dependencies:** Verifies packages and environments.
+   - **Models:** Checks for required models.
+   - **Frontend:** Ensures the React SPA is built in `frontend/dist/`.
+3. An interactive menu is **ALWAYS** shown with 4 options:
+   1. 🚀 Start Server Now (default)
+   2. 🧪 SIT & Field Testing (~350MB lightweight models)
+   3. 🏢 Production & HQ Deployment (~5.5GB full suite)
+   4. ⚡ Demo / JIT On-Demand (zero preload)
+4. Select an option to start the FastAPI server on port 8765. The browser will open to `http://localhost:8765` once ready.
 
 ---
 
@@ -23,7 +26,7 @@
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **⚡ Lightweight Fast Suite** | **Recommended for SIT, Testing & Field Laptops** | Whisper Base (INT8) + Piper Indic ONNX Voices | **~350 MB** (1–2 min) | **< 650 MB** | 5×–10× real-time on CPU, native Indic voices |
 | **🎬 Full High-Precision Suite** | **Recommended for Production & Regional HQ Servers** | Whisper Large-v3 + IndicTrans2 + Coqui XTTS | **~5.5 GB** (5–10 min) | **~3.5–5.0 GB** | Maximum translation accuracy + Zero-shot voice cloning |
-| **🚀 Instant JIT Mode** | **Jury Demos & Air-Gapped USB Pre-loads** | JIT on-demand fetching | **0 MB** upfront | **< 60 MB** idle | Instant start; compiles per job |
+| **🚀 Instant JIT Mode** | **Air-Gapped USB Pre-loads & On-Demand** | JIT on-demand fetching | **0 MB** upfront | **< 60 MB** idle | Instant start; compiles per job |
 
 ---
 
@@ -53,27 +56,18 @@ This will:
 *Expected time: 15–30 minutes (PyTorch download is large)*
 
 ### Step 3 — Download AI Models
-Double-click `scripts\download_models.bat` (or use `python scripts/download_helper.py` with your HF Token if using gated checkpoints).
+Run `python scripts/download_helper.py` which uses `huggingface_hub.snapshot_download` to fetch models. (Do not use `from_pretrained` directly to avoid `transformers.onnx` ModuleNotFoundError).
 
-This downloads approximately **5–6 GB**:
-- faster-Whisper large-v3-turbo (~1.5 GB, CTranslate2 INT8 format)
-- IndicTrans2 en-indic (~0.8 GB, INT8 quantized at load)
-- IndicTrans2 indic-en (~0.8 GB, loaded on-demand during Reverse Bridge)
+This downloads approximately **5.5 GB**:
+- faster-whisper large-v3-turbo (~1.5 GB, CTranslate2 INT8 format)
+- IndicTrans2 dist-200M (~1.6 GB, INT8 dynamic quantization on CPU)
 - Coqui XTTS v2 (~2.5 GB)
 
 *Keep internet connected until this completes. Do not close the window.*
 
-### Step 3.5 — Validate Installation (Optional)
-Run the automated validation suites:
-```cmd
-python tests_concurrency.py
-python tests_mock.py
-```
-Both should report `RESULT: PASS`.
-
 ### Step 3.5 — Download Piper TTS Voices (Recommended)
 Run: `python scripts/download_piper_voices.py`
-Downloads lightweight ONNX voice models (~50–150 MB total) for 9 Indic languages into `C:\VaaniSetu\models\piper\`.
+Downloads lightweight ONNX voice models (~50–150 MB total) for 22 Indic languages into `C:\VaaniSetu\models\piper\`.
 This enables near-real-time Draft Mode TTS. If skipped, the system falls back to Coqui XTTS (slower) or gTTS (requires internet).
 
 ### Step 4 — First Launch

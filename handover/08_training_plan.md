@@ -1,15 +1,15 @@
-# VaaniSetu — Interactive Handover & Gamified Training Masterclass
+# VaaniSetu — Employee Onboarding & Training Plan
 
-> **Document Goal:** Provide a fun, engaging, scenario-based handover and training framework for BAIF Development Research Foundation.  
-> **Philosophy:** No boring slides or dense manuals — learn by doing through interactive simulators, gamified quizzes, micro-learning video storyboards, and audio scenario exercises.
+> **Document Goal:** Provide an onboarding and training framework for BAIF Development Research Foundation employees.
+> **Philosophy:** Learn by doing through interactive simulators, micro-learning video storyboards, and audio scenario exercises.
 
 ---
 
-## 1. The 3-Tier Gamified Mastery Framework
+## 1. The 3-Tier Employee Onboarding Framework
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
-│                             VAANISETU MASTERY & CERTIFICATION TRACKS                             │
+│                             VAANISETU EMPLOYEE ONBOARDING TRACKS                                 │
 ├────────────────────────────────┬────────────────────────────────┬────────────────────────────────┤
 │ 🌾 LEVEL 1: ROOKIE LOCALIZER   │ 🛡️ LEVEL 2: QUALITY GATEKEEPER │ ⚙️ LEVEL 3: OPERATIONAL HERO   │
 │ (Field & Extension Staff)      │ (Bilingual Content Reviewers)  │ (IT & Systems Administrators)  │
@@ -27,9 +27,9 @@
 
 BAIF staff can access the **Interactive Training Academy** directly within the web app at `http://localhost:8765/training`:
 
-1. **Interactive Scenario Challenges:** 4 dynamic agricultural challenges testing AgriShield™ protection, Confidence Gate approvals, and basic feature phone telecom dispatch.
-2. **Instant Score & Explanations:** Explains *why* agricultural acronyms (e.g. PM-KISAN, DAP, Gir cattle) require protected token shields and why amber segments must never be distributed before review.
-3. **Digital Certification Badge:** Generates an offline-verifiable **Certified AI Localization Practitioner** diploma with printable timestamp.
+1. **Interactive Scenario Challenges:** Dynamic agricultural challenges testing AgriShield™ protection (70+ protected terms like PM-KISAN, Gir, Sahiwal, DAP), Confidence Gate approvals, and telecom dispatch.
+2. **Instant Score & Explanations:** Explains *why* agricultural terms require protected token shields and why amber segments must never be distributed before review.
+3. **Digital Certification Badge:** Generates an offline-verifiable certification diploma with printable timestamp.
 
 ---
 
@@ -56,13 +56,13 @@ BAIF staff can access the **Interactive Training Academy** directly within the w
 
 ## 4. Hands-On Training Workshop Schedule (2-Hour Interactive Session)
 
-| Time Slot | Module | Interactive Exercise & Gamified Activity |
+| Time Slot | Module | Interactive Exercise Activity |
 | :--- | :--- | :--- |
 | **00:00 – 00:20** | **The Big Picture** | Live demonstration: Localizing a 5-minute English training video into Marathi, Hindi, and Gujarati in real-time. |
 | **00:20 – 00:50** | **Hands-On Job Arena** | Every trainee opens `http://localhost:8765`, records a 15-second voice note using their laptop mic, and localizes it into their native language. |
 | **00:50 – 01:20** | **The Gatekeeper Challenge** | Trainer injects intentional ambiguous terms (e.g. chemical dosages); trainees use the Review Queue to flag, correct, and approve them. |
 | **01:20 – 01:45** | **Last-Mile Simulator Race** | Trainees test the WhatsApp message preview and the 8kHz IVR keypad dialer. |
-| **01:45 – 02:00** | **In-App Certification Exam** | All trainees take the in-app interactive quiz at `/training` and print their completion certificates. |
+| **01:45 – 02:00** | **Training Academy Review** | All trainees complete the modules at `/training` and print their completion certificates. |
 
 ---
 
@@ -83,6 +83,6 @@ BAIF staff can access the **Interactive Training Academy** directly within the w
 
 ### ⚙️ IT & Systems Administrators
 - [ ] Can run automated pre-flight checks using `scripts\health_check.bat`.
-- [ ] Knows how to execute a 1-click disaster recovery rollback using `scripts\rollback.bat`.
+- [ ] Knows how to execute a disaster recovery rollback using `scripts\rollback.bat`.
 - [ ] Understands the 100% offline air-gapped USB deployment procedure (`scripts\install_from_usb.bat`).
-- [ ] Knows how to monitor rotating logs at `C:\VaaniSetu\logs\vaanisetu.log` and verify health at `/api/health`.
+- [ ] Knows how to monitor logs at `C:\VaaniSetu\logs\` and start the system using `Launch_VaaniSetu.bat` (4-option menu).

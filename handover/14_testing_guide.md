@@ -1,8 +1,8 @@
 # VaaniSetu Comprehensive Testing Guide & Scenarios
 
-As you prepare to present VaaniSetu to the BAIF panel in Pune, thorough testing is critical. This guide provides a structured QA checklist, recommended agricultural test data, and instructions for testing the system's edge cases. 
+As VaaniSetu is deployed to BAIF centers, thorough testing is critical. This guide provides a structured QA checklist, recommended agricultural test data, and instructions for testing the system's edge cases in field scenarios.
 
-**Note for Demo/Pitch:** Since you are presenting in Pune (Maharashtra), **always select Marathi as your primary target language** during the live demo to immediately resonate with the local BAIF HQ staff.
+**Note for Field Validation:** Always select the primary regional language of the local BAIF center during testing to ensure the translated agricultural terminology resonates with the local staff.
 
 ---
 
@@ -24,7 +24,7 @@ You can use free tools like `yt-dlp` or any online YouTube downloader to grab th
 
 ## 2. Manual QA Test Scenarios (The "Happy Path")
 
-Run these tests to ensure the core pipeline is functioning perfectly before the pitch.
+Run these tests to ensure the core pipeline is functioning perfectly before production rollout.
 
 | Test ID | Scenario | Steps to Execute | Expected Result | Pass/Fail |
 |---------|----------|------------------|-----------------|-----------|
@@ -37,7 +37,7 @@ Run these tests to ensure the core pipeline is functioning perfectly before the 
 
 ## 3. Edge Case & Stress Testing
 
-Hackathons are won by proving your system doesn't break when users do unexpected things. Test these edge cases to verify the optimizations we implemented.
+Production readiness means proving the system doesn't break when users do unexpected things. Test these edge cases to verify the robust optimizations we implemented.
 
 | Test ID | Scenario | Steps to Execute | Expected Result | Pass/Fail |
 |---------|----------|------------------|-----------------|-----------|
@@ -53,27 +53,6 @@ Hackathons are won by proving your system doesn't break when users do unexpected
 ## 4. Built-in Automated Test Suites
 
 VaaniSetu includes production-grade test suites that validate orchestration, memory scaling, pipeline execution, and model fallbacks without requiring GPU execution:
-
-### A. Concurrency & Resource Sizing Test Suite
-```cmd
-python tests_concurrency.py
-```
-**Validates 40 checks across core orchestration modules:**
-1. **Pipeline Stage Overlap:** Verifies Stage 5 generation starts immediately while Stage 4 translation is still running for subsequent languages (demonstrating speedup vs. serial).
-2. **Resource Saver Mode:** Confirms strict single-thread serial fallback when enabled.
-3. **Model Replica Pool:** Tests dynamic checkout (`ModelPool.acquire()`) and confirms concurrency never over-subscribes.
-4. **Job Queue Draining:** Validates multi-worker queue execution scaled to available memory.
-5. **Multi-Tier Machine Sizing:** Tests memory and thread allocation across 4GB netbook, 8GB field laptop, 16GB desktop, 32GB laptop, 64GB workstation, and 128GB server tiers.
-
-### B. End-to-End Mock Pipeline Test
-```cmd
-python tests_mock.py
-```
-**Validates the complete 7-stage execution lifecycle:**
-- Job submission and status transitions (`queued` $\rightarrow$ `validating` $\rightarrow$ `extracting` $\rightarrow$ `transcribing` $\rightarrow$ `translating` $\rightarrow$ `generating` $\rightarrow$ `packaging` $\rightarrow$ `completed`).
-- ZIP archive integrity and output file generation.
-- Confidence scoring and Amber/Red review queue population.
-- Automatic disk workspace cleanup.
 
 ### C. Translation Model Fallback Unit Test
 ```cmd

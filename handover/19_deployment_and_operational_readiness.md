@@ -1,6 +1,6 @@
 # VaaniSetu — Deployment & Operational Readiness Guide
 
-> **Target Audience:** BAIF IT Administrators, Field DevOps Engineers, and Hackathon Evaluation Panel  
+> **Target Audience:** BAIF IT Administrators, Field DevOps Engineers, and System Operators  
 > **Architecture Goal:** 100% Offline, Deterministic, Repeatable Deployment across BAIF Regional Centers with Zero-Config Runtime, Low-RAM Adaptability, and Automated Disaster Recovery.
 
 ---
@@ -9,11 +9,11 @@
 
 | Phase | Duration (Broadband Setup) | Duration (Air-Gapped USB Setup) | Frequency | Operator Skill Level |
 | :--- | :---: | :---: | :---: | :---: |
-| **⚡ 1-Click Interactive Launch** | **< 10 Seconds** | **< 10 Seconds** | Daily / Anytime | **Zero-technical (`quick_start.bat`)** |
+| **⚡ Interactive Launcher Menu** | **< 10 Seconds** | **< 10 Seconds** | Daily / Anytime | **Zero-technical (`launcher.py`)** |
 | **Prerequisites Validation** | 1 Minute | 1 Minute | Once per PC | Non-technical (runs script) |
 | **Dependency Installation** | 3-5 Minutes | 0 Minutes (pre-bundled venv) | Once per PC | Automated (`setup.bat`) |
-| **Model Weights Download** | 5-8 Minutes | 2 Minutes (USB copy) | Once per PC | Automated (`download_models.bat`) |
-| **Cold Server Startup** | 0.2 Seconds | 0.2 Seconds | Daily / Auto-start | 1-Click (`quick_start.bat`) |
+| **Model Weights Download** | 5-8 Minutes | 2 Minutes (USB copy) | Once per PC | Automated (`download_helper.py`) |
+| **Cold Server Startup** | 0.2 Seconds | 0.2 Seconds | Daily / Auto-start | Interactive Menu (`launcher.py`) |
 | **Total Time to Live Service** | **~10-15 Minutes** | **~3-5 Minutes** | — | **Zero configuration required** |
 
 ---
@@ -45,35 +45,20 @@
 
 ## 3. Repeatable Deployment Workflows
 
-### Method A: ⚡ 1-Click Interactive Onboarding Wizard (`quick_start.bat`)
+### Method A: ⚡ Interactive Launcher Menu (`launcher.py` / `Launch_VaaniSetu.bat`)
 
-Used for all new computers, non-technical field officers, or evaluation judges:
+Used for all new computers, non-technical field officers, or standard setups:
 
-1. Double-click **`quick_start.bat`** in the repository root.
-2. The wizard automatically validates Python, storage, dependencies, and model weights.
-3. Once the server is online and health is verified, **the web browser opens automatically to `http://localhost:8765`**.
-   ```cmd
-   git clone https://github.com/jaincheena/Vaanisetu.git C:\VaaniSetuApp
-   cd C:\VaaniSetuApp
-   ```
-2. **Run Pre-Flight Hardware & Dependency Check:**
-   ```cmd
-   scripts\health_check.bat
-   ```
-3. **Execute One-Click Setup:**
-   ```cmd
-   scripts\setup.bat
-   ```
-   *Automatically creates `C:\VaaniSetu` directories, installs Python requirements, and compiles the React production bundle.*
-4. **Download AI Model Weights:**
-   ```cmd
-   scripts\download_models.bat
-   ```
-5. **Launch the Server:**
-   ```cmd
-   scripts\start_vaanisetu.bat
-   ```
-   *The server starts at `http://0.0.0.0:8765`. Share the host IPv4 address with all office staff over local WiFi.*
+1. Double-click **`Launch_VaaniSetu.bat`** in the repository root.
+2. The launcher automatically executes a 4-step verification: directories $\rightarrow$ dependencies $\rightarrow$ models $\rightarrow$ frontend.
+3. The user is presented with a 4-option interactive menu:
+   - **1. 🚀 Start Server Now (default)**
+   - **2. 🧪 SIT & Field Testing (~350MB lightweight models)**
+   - **3. 🏢 Production & HQ Deployment (~5.5GB full suite)**
+   - **4. ⚡ Demo / JIT On-Demand (zero preload)**
+4. Once the server is online and health is verified, the web browser opens automatically to `http://localhost:8765`.
+
+*Note: For step 2 and 3 above, model downloads utilize `scripts/download_helper.py` which strictly uses `huggingface_hub.snapshot_download` to fetch optimized INT8 CPU models reliably (avoiding `AutoModelForSeq2SeqLM.from_pretrained`).*
 
 ---
 

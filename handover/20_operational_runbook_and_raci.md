@@ -33,7 +33,7 @@ Issue: User navigates to http://192.168.x.x:8765 but page fails to load.
   │
   ├─► Check 2: Is the server running?
   │     └─► Run scripts\health_check.bat on the host PC.
-  │     └─► If offline, double click scripts\start_vaanisetu.bat.
+  │     └─► If offline, double click Launch_VaaniSetu.bat and select Start Server.
   │
   └─► Check 3: Is Windows Defender Firewall blocking port 8765?
         └─► Open PowerShell (Admin) and run:
@@ -54,7 +54,7 @@ Issue: Progress bar has not updated for > 20 minutes on a low-memory laptop.
   │
   └─► Resolution:
         1. Run scripts\stop_vaanisetu.bat
-        2. Run scripts\start_vaanisetu.bat
+        2. Run Launch_VaaniSetu.bat
         3. Submit job using ⚡ Draft Mode or enable "Resource Saver Mode".
 ```
 

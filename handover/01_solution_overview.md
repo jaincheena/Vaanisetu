@@ -41,8 +41,8 @@ VaaniSetu eliminates this barrier by bringing AI translation directly into the B
 | 5 | **Reverse Bridge & Multilingual Pivot** | Transcribes regional farmer audio to English for HQ, and enables Indic $\rightarrow$ Indic translation (e.g., Marathi $\rightarrow$ Telugu) via a cached English pivot |
 | 6 | **Gender-Aware Voice Matching & Cloning** | Analyzes speaker pitch via librosa ($F_0 > 165\text{Hz}$) to select male/female Piper voices or extract a 15-second reference clip for high-fidelity Coqui XTTS voice cloning |
 | 7 | **Interactive In-Browser Result Studio** | Listen to translated audio directly in the browser, compare source vs target transcripts side-by-side, and inspect subtitle timings without unzipping |
-| 8 | **1-Click Realistic Agricultural Presets** | Instant demo scenarios (Wheat Yellow Rust, Dairy Veterinary Alert, Farmer Irrigation Query) pre-configured for live presentations |
-| 9 | **WhatsApp & 8kHz Feature Phone Simulators** | Visual interactive mockups showing exactly how advisory notes reach smartphones on WhatsApp and ₹1,000 basic phones over IVR telecom audio |
+| 8 | **1-Click Realistic Agricultural Presets** | Instant scenarios (Wheat Yellow Rust, Dairy Veterinary Alert, Farmer Irrigation Query) pre-configured for user training and onboarding |
+| 9 | **WhatsApp & 8kHz Feature Phone Simulators** | Visual interactive simulators showing exactly how advisory notes reach smartphones on WhatsApp and ₹1,000 basic phones over IVR telecom audio |
 | 10 | **WhatsApp Auto-Splitter** | Slices translated videos into <15MB chunks to bypass WhatsApp media size limits |
 | 11 | **GPU Auto-Detection & Draft/Full Mode** | Automatically uses CUDA GPU when available (10-30x speedup); Draft mode delivers text+SRT+audio in minutes; Full Quality mode renders all outputs overnight-ready |
 | 12 | **Interactive Financial ROI Ledger** | Live dynamic economic model calculating ₹ Lakhs in agency translation savings and farmer reach metrics across BAIF's 12 regional state centers |
@@ -68,7 +68,7 @@ Built to survive BAIF's actual IT constraints:
 |--------|--------|
 | Languages supported | 22 official Indian languages |
 | Formats accepted | Video (.mp4, .mkv, .avi, .mov), Audio (.mp3, .wav, .m4a, .flac), Documents (.txt, .pdf, .docx, .csv) |
-| Output formats per job | .txt, bilingual .docx, .srt, .vtt, TTS .mp3, dubbed .mp4, captioned .mp4, IVR .wav, WhatsApp chunks, .zip (Draft mode: text, SRT, MP3 only; Full mode: all formats) |
+| Output formats per job | .txt, bilingual .docx, .srt, .vtt, TTS .mp3, dubbed .mp4, captioned .mp4, IVR .wav, WhatsApp chunks, translated .csv, .zip (Draft mode: text, SRT, MP3 only; Full mode: all formats) |
 | Internet required at runtime | **None (100% Offline)** |
 | Maximum file size | 2 GB |
 | Concurrent jobs | Dynamically planned by available RAM & CPU cores (e.g. 1 on 4GB, up to 4+ on 16GB/32GB) |

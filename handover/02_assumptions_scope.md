@@ -3,7 +3,7 @@
 ## What Is In Scope
 
 - Translation of video, audio, and plain text files into 22 Indian languages
-- Speech-to-text transcription of any language that Whisper supports
+- Speech-to-text transcription of any language that faster-whisper supports
 - Automated confidence scoring and review queue for quality control
 - Reverse Bridge mode (regional language → English) for field officer use
 - Translation Memory that learns and improves over time

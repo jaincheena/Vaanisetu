@@ -49,7 +49,7 @@ No. VaaniSetu does not have a login. Anyone connected to the office WiFi can ope
 Check the following, in order:
 1. Is your device connected to the **office WiFi** (not mobile data)?
 2. Is the VaaniSetu server computer **switched on**?
-3. Has the IT admin started the server? (They need to run `start_vaanisetu.bat` each morning.)
+3. Has the IT admin started the server? (They need to run `Launch_VaaniSetu.bat` and select Option 1 or 3 each morning.)
 4. Try refreshing the page (press F5).
 5. If still not working, contact your IT admin.
 
@@ -118,8 +118,8 @@ If the progress bar has been stuck on the same stage for more than 30 minutes, c
 **Q: How does the system match the speaker's voice gender?**
 
 VaaniSetu uses pitch analysis (`librosa`) to detect the speaker's vocal frequency in the original recording:
-- **Male Speaker** (fundamental frequency < 165Hz) → Synthesizes speech using a natural male voice profile.
-- **Female Speaker** (fundamental frequency ≥ 165Hz) → Synthesizes speech using a female voice profile.
+- **Male Speaker** (fundamental frequency ≤ 165Hz) → Synthesizes speech using a natural male voice profile.
+- **Female Speaker** (fundamental frequency > 165Hz) → Synthesizes speech using a female voice profile.
 In **Full Quality Mode**, the system extracts a 15-second audio reference clip to clone the speaker's tone using Coqui XTTS.
 
 ---
@@ -186,7 +186,7 @@ When you download the ZIP for a job, it contains a comprehensive set of files fo
 | `subtitles_Hindi.srt` | Subtitle file | Add to video in VLC, YouTube, or editing software |
 | `subtitles_Hindi.vtt` | Web subtitle file | Upload with video to BAIF website or web portal |
 | `audio_Hindi.mp3` | AI-spoken Hindi audio | Community radio, WhatsApp voice broadcast |
-|  | (⚡ Draft: Piper TTS, near-realtime; 🎬 Full: Coqui XTTS v2 high-quality) | |
+|  | (3-engine cascade: Piper ONNX → Coqui XTTS v2 → gTTS) | |
 | `ivr_audio_Hindi.wav` | 8kHz mono telephone audio (🎬 Full Quality only) | Interactive Voice Response (IVR) phone calls to farmers |
 | `dubbed_Hindi.mp4` | Video with translated audio voice-over (🎬 Full Quality only) | Gram panchayat video screenings, farmer workshops |
 | `captioned_Hindi.mp4` | Video with burned-in subtitles (🎬 Full Quality only) | Social media, WhatsApp groups, TV displays |
@@ -292,7 +292,7 @@ Our strong recommendation: for any content involving dosages, chemical usage, or
 
 **Q: The page says "Models: Loading…" in the top banner. What does that mean?**
 
-The AI models take 2–5 minutes to load when the server first starts. This is normal. Wait a few minutes and refresh the page. When it changes to **"Models: Ready"** (in green), the system is ready to process jobs.
+The AI models take some time to load when the server starts depending on the launcher mode selected (e.g., Option 3 preloads models). This is normal. Wait a few minutes and refresh the page. When it changes to **"Models: Ready"** (in green), the system is ready to process jobs.
 
 If it stays on "Loading…" for more than 10 minutes, contact the IT admin — the server may need to be restarted.
 

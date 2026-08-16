@@ -6,9 +6,9 @@
 
 | Task | Who | When | How |
 | :--- | :--- | :--- | :--- |
-| **1-Click Start Server** | Any User / Admin | Start of work day | Double-click **`quick_start.bat`** (browser opens automatically once live) |
+| **1-Click Start Server** | Any User / Admin | Start of work day | Double-click **`Launch_VaaniSetu.bat`** (or `launcher.py`) |
 | Check system health | Any user | Anytime | Look at top status bar or run `scripts\health_check.bat` |
-| Submit a translation job | Training Officer | As needed | Upload page (use 1-click presets for instant demo) |
+| Submit a translation job | Training Officer | As needed | Upload page |
 | Review amber segments | Content Reviewer | Daily (before distributing) | Review Queue page |
 | Practice / Train Staff | All Employees | Ongoing | Training Academy page (`/training`) |
 | Export impact report | Programme Manager | Monthly | Impact Ledger → Export PDF |
@@ -19,11 +19,10 @@
 
 ## Submitting a Job — Step by Step
 
-1. **Launch Server:** Double-click `quick_start.bat`. The wizard verifies prerequisites, dependencies, and models, and **automatically launches your browser to `http://localhost:8765` once the server is healthy and online**.
+1. **Launch Server:** Double-click `Launch_VaaniSetu.bat` (or `launcher.py`). The launcher performs a 4-step verification (directories, dependencies, models, frontend). Select option **1** from the interactive menu to start the server.
 2. **Login** with the provided office credentials (default: `admin` / `baif2026`)
 3. Click **Upload** in the sidebar
-4. **(Optional) Select a 1-Click Preset:** Click any of the 3 built-in demo scenarios (Crop Disease Alert, Dairy Veterinary Advisory, Farmer Voice Query) to auto-fill text, languages, and settings instantly.
-5. **Choose Mode:**
+4. **Choose Mode:**
    - *HQ Advisory → Farmer Media* — for BAIF training videos/audio/documents
    - *Farmer Voice → HQ English Bridge* — for farmer field audio recordings
 6. **Select Input Type:**
@@ -32,8 +31,8 @@
    - *🎙️ Record Mic* — Record live farmer audio directly from your microphone
 7. **Language Settings:**
    - Source: Auto-Detect (Whisper AI) or specific language
-   - Target: Select from verified active Indic languages (Hindi, Marathi, Gujarati, Bengali, Kannada, English)
-8. **Select Output Formats (Optional):** Expand "Output Formats" to select only the files you need (e.g. only Text & MP3 to skip heavy video rendering).
+   - Target: Select from 22 official Indian languages or English
+8. **Select Output Formats (Optional):** Expand "Output Formats" to select only the files you need from the 10 available formats.
 9. **Choose Quality Mode:** Select ⚡ Draft Mode for fast turnaround (30 sec–2 min) or 🎬 Full Quality Mode for video dubbing & WhatsApp chunking.
 10. Click **🚀 Start AI Localization**
 11. **Live Result Studio:** Once complete, use the interactive tabs to:
@@ -49,9 +48,9 @@
 
 | Badge | Colour | Meaning | Action Required |
 |-------|--------|---------|-----------------|
-| ✓ High Confidence | 🟢 Green | AI is ≥ 85% confident | Ready to distribute |
-| ⚠ Review Needed | 🟡 Amber | AI is 65–84% confident | Go to Review Queue and approve |
-| ✗ Low Confidence | 🔴 Red | AI is < 65% confident | Manual review + possible re-translation |
+| ✓ High Confidence | 🟢 Green | AI is ≥ 0.85 confident | Ready to distribute |
+| ⚠ Review Needed | 🟡 Amber | AI is 0.65–0.84 confident | Go to Review Queue and approve |
+| ✗ Low Confidence | 🔴 Red | AI is < 0.65 confident | Manual review + possible re-translation |
 
 > **Rule:** Never distribute a job with amber segments until the Review Queue shows 0 pending items for that job.
 
@@ -117,7 +116,7 @@ STOP SERVER:     scripts\stop_vaanisetu.bat
 BACKUP:          scripts\backup.bat
 BROWSER URL:     http://localhost:8765
 
-CONFIDENCE:  🟢 ≥85% ready  🟡 65-84% review first  🔴 <65% manual check
+CONFIDENCE:  🟢 ≥0.85 ready  🟡 0.65-0.84 review first  🔴 <0.65 manual check
 
 SUPPORT:     IT Admin → [fill in contact]
              Developer → [fill in contact]

@@ -10,8 +10,8 @@
 | **Concurrency bounded by RAM** | Low-memory PCs (4GB–8GB) run jobs serially | System dynamically allocates workers; on 16GB+ multiple jobs/stages run in parallel |
 | **Scanned/Image OCR** | Text-based PDFs, DOCX, CSV, TXT are supported; scanned image PDFs are not | For scanned documents, OCR into text/DOCX before uploading |
 | **Dialect support** | AI translates standard forms rather than local sub-dialects | Use standard regional language; reviewers adjust dialect nuances in Review Queue |
-| **TTS voice naturalness** | Piper TTS (ONNX, near-realtime) is the default for 9 supported Indic languages; others use XTTS or gTTS. XTTS reserved for Full Quality mode for highest naturalness. | Use TTS output as rapid reference; produce human voice-over for broadcast if needed |
-| **Hardware ceiling on low RAM** | With INT8 quantization, models are ~40% smaller. 8 GB RAM is now sufficient for serial operation; 16 GB for parallel jobs. | Use **Resource Saver Mode** or run on 16GB+ office desktops |
+| **TTS voice naturalness** | 3-engine cascade: Piper ONNX (draft) → Coqui XTTS v2 (full quality voice cloning) → gTTS (online fallback) | Use Draft TTS for rapid reference; Full Quality mode produces human-like voice clones |
+| **Hardware ceiling on low RAM** | Concurrency is RAM-aware. Job: 1.5GB, Generate: 0.6GB, Translate: 0.3GB, OS headroom: 2.0GB. | Use Launcher Option 2 (SIT & Field Testing) for lightweight 350MB models on low RAM |
 | **Offline model updates** | Models cannot update automatically without internet | Re-run `scripts\download_models.bat` during internet maintenance windows |
 | **Database concurrency** | SQLite WAL mode with 30s timeout handles multi-worker traffic | Built-in WAL and 30s lock timeout prevents database lock issues |
 | **GPU auto-detection** | CUDA GPUs (NVIDIA) auto-used when present for 10-30x speedup; CPU INT8 is the well-optimised fallback | Use any CUDA-capable NVIDIA GPU to dramatically accelerate all three model stages |
@@ -26,7 +26,7 @@
 | R2 | Model weights deleted or corrupted | Low | High | Backup models directory monthly; USB copy stored separately |
 | R3 | Staff turnover — institutional knowledge lost | Medium | Medium | This document + training plan; two staff trained per role |
 | R4 | Translation quality below acceptable threshold | Low | Medium | Confidence Gate + Review Queue catches issues before distribution |
-| R5 | Computer RAM insufficient (upgraded to 32 languages) | Low | Low | Current design supports 22 languages within 16 GB |
+| R5 | Computer RAM insufficient | Low | Low | RAM-aware dynamic worker sizing ensures stable execution within available RAM |
 | R6 | Large video file (>2 GB) submitted | Medium | Low | File size limit enforced; error message guides user to compress |
 | R7 | Network connectivity drops during job | Low | Low | Jobs run server-side; browser disconnect doesn't stop processing |
 | R8 | Power cut during job | Medium | Medium | UPS recommended for server; incomplete job marked as failed; re-submit |
@@ -38,7 +38,7 @@
 
 ### 🔴 Scenario 1: Server Crashed During a Job
 1. Run `stop_vaanisetu.bat`
-2. Run `start_vaanisetu.bat` and wait for "Models: Ready"
+2. Run `Launch_VaaniSetu.bat` (select Option 1) and wait for "Models: Ready"
 3. Go to History page — find the failed job
 4. Re-submit the same file
 5. *Note: output ZIP not created for the failed job; original file is still in uploads/*

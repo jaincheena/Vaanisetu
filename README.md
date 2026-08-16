@@ -33,7 +33,7 @@
 
 **VaaniSetu** solves this by:
 - Accepting uploaded **videos / audio recordings / documents / direct microphone voice** from BAIF staff
-- **Transcribing** them using **faster-Whisper** (CTranslate2 INT8, 4-8× faster than openai-whisper, with real Silero VAD)
+- **Transcribing** them using **faster-Whisper** (CTranslate2 INT8, with real Silero VAD)
 - **Translating** them into Indian languages using AI4Bharat's IndicTrans2 (INT8 quantized)
 - **AgriShield™ Domain Protection**: 120+ specialized agricultural terms, government schemes (PM-KISAN, PMFBY), pests, fertilizer formulas, and livestock breeds protected from mistranslation via regex token shields
 - Running all target-language translations **concurrently** in a dedicated thread pool, with a cached English pivot for Indic→Indic pairs
@@ -43,7 +43,7 @@
 - **Upload-Time Format Selector**: Users select exactly which formats they want (e.g. only text and MP3), drastically saving processing time and ZIP size by skipping large video rendering
 - **Interactive In-Browser Result Studio**: Live audio player for synthetic voices, side-by-side bilingual transcript inspection, WhatsApp & IVR feature phone delivery simulators
 - **1-Click Realistic Agricultural Presets**: Instant demo scenarios for crop disease alerts, dairy veterinary care, and farmer voice queries
-- **Interactive Hackathon Tour & ROI Calculator**: Built-in 4-step jury tour with technical benchmark matrix and dynamic ₹ Lakhs ROI calculator
+- **Interactive ROI Calculator**: Built-in dynamic ₹ Lakhs ROI calculator for evaluating impact
 - Throttling hardware via **Resource Saver Mode** so low-end NGO computers don't freeze during heavy AI workloads
 - Providing a **Review Queue** so staff can check low-confidence translations before distributing
 - **Auto-detecting CUDA GPUs** at startup for 10-30× speedup on machines that have them, with graceful CPU INT8 fallback
@@ -88,11 +88,9 @@ Staff downloads ZIP ◄──── Output: .txt .docx .srt .vtt .mp3 .mp4 .csv
 | **FastAPI** | Backend API framework | Async-native, auto-generates docs at `/docs`, high throughput |
 | **Uvicorn** | ASGI web server | Production-grade, handles async perfectly, simple to start |
 | **SQLite (WAL Mode)** | Database | Zero-config, thread-safe with 30s busy timeout, WAL mode for concurrent writes |
-| **faster-Whisper** | Speech-to-text | CTranslate2 INT8 backend — 4-8× faster than openai-whisper on CPU; real Silero VAD; auto-detects source language |
+| **faster-Whisper** | Speech-to-text | CTranslate2 INT8 backend — fast on CPU; real Silero VAD; auto-detects source language |
 | **AI4Bharat IndicTrans2** | Translation | State-of-the-art for 22 Indian languages, distilled 200M architecture, INT8 quantized at load |
-| **Piper TTS** | Text-to-speech (default, draft) | ONNX-based, near-real-time on CPU (~0.1s/sentence); 9 Indic language voices |
-| **Coqui XTTS v2** | Text-to-speech (full quality) | High-quality voice cloning for Full Quality mode; used when Piper voice unavailable |
-| **gTTS** | Text-to-speech (online fallback) | Final fallback when both local engines unavailable |
+| **TTS Engine Cascade** | Text-to-speech | 3-engine cascade: Piper ONNX (draft) → Coqui XTTS v2 (full quality voice cloning) → gTTS (online fallback) |
 | **CTranslate2** | INT8 inference engine | Powers faster-Whisper; provides INT8 quantization for Whisper |
 | **FFmpeg 8.1.2** | Audio/video processing | Bundled locally for zero-dependency video dubbing, subtitle burning, IVR 8kHz WAV, and WhatsApp auto-splitting |
 | **React 18** | Frontend framework | Component-based UI, real-time SSE updates, responsive design |
@@ -175,9 +173,6 @@ Vaanisetu/
 │   ├── stop_vaanisetu.bat      ← Graceful shutdown
 │   └── backup.bat              ← DB + outputs backup
 │
-├── handover/                   ← Technical & operational handover guides
-├── tests_concurrency.py        ← 40-check Concurrency, replica pool, and resource sizing test suite
-├── tests_mock.py               ← End-to-end 7-stage mock pipeline verification
 ├── requirements.txt            ← Python dependencies (with bcrypt pin)
 └── README.md                   ← Root documentation
 ```
@@ -382,6 +377,7 @@ TRANSLATION_NUM_BEAMS = 4                 # Full Quality mode
 TRANSLATION_DRAFT_BEAMS = 2              # Draft mode
 PIPER_VOICES_DIR = MODEL_DIR / 'piper'    # ONNX voice files
 PIPER_VOICE_MAP = {...}                   # language → voice stem
+ACTIVE_LANGS = list(LANG_CODES.keys())    # All 22 languages active
 ```
 
 ---
@@ -411,7 +407,7 @@ Called once at startup via `await loop.run_in_executor(None, registry.load_all)`
 
 The registry gracefully handles missing models:
 - If Coqui TTS model dir doesn't exist → TTS disabled, everything else still works
-- If IndicTrans2 local weights not found → tries downloading from HuggingFace Hub
+- If IndicTrans2 local weights not found → tries downloading using `scripts/download_helper.py` with `huggingface_hub.snapshot_download`
 
 ---
 
@@ -460,9 +456,9 @@ for each token:
 mean_log_prob = mean(all_log_probs)
 # Average log-probability across all tokens in the translation
 
-confidence = exp(max(mean_log_prob, -5.0))
-# exp() converts from log-space back to probability space
-# max(..., -5.0) prevents extreme negative values from making confidence ≈ 0
+confidence = 1 / (1 + math.exp(-2.8 * (mean_log_prob + length_adj + 1.8)))
+# Calibrated sigmoid converts from log-space back to probability space
+# Green >= 0.85, Amber 0.65-0.84, Red < 0.65.
 # Result: a number between 0 and 1
 ```
 
@@ -550,9 +546,9 @@ The pipeline is identical. Only the model direction flips (`en-indic` ↔ `indic
 ## 11. Getting the App Running Locally
 
 ### ⚡ 1-Click Modern Interactive Launcher (`Launch_VaaniSetu.bat`)
-For any fresh laptop, new user, or hackathon evaluator:
-1. Double-click **`Launch_VaaniSetu.bat`** (or `quick_start.bat`) in the repository root.
-2. The modern Saffron/Slate CLI assistant automatically:
+For any fresh laptop or new user:
+1. Double-click **`Launch_VaaniSetu.bat`** in the repository root. (ALWAYS shows interactive menu with 4 options: 🚀 Start Server Now, 🧪 SIT & Field Testing, 🏢 Production & HQ Deployment, ⚡ Demo / JIT On-Demand)
+2. The CLI assistant automatically:
    - **Prerequisite Detection:** Checks for Python 3.10+; if missing, offers automated 1-click installer download and setup instructions.
    - **Environment Setup:** Creates all local storage and log directories (`C:\VaaniSetu\models`, `workspace`, `outputs`, `uploads`, `logs`).
    - **Dependency Auto-Install:** Detects missing packages and prompts to install `requirements.txt`.
@@ -594,12 +590,6 @@ python scripts\download_piper_voices.py
 ```cmd
 # Run pre-flight health & hardware sizing check
 python scripts\preflight_check.py
-
-# Run 12-point automated test evidence & defect traceability suite (<1s)
-python run_test_evidence.py
-
-# Run 39-point concurrency & RAM scalability test suite
-python tests_concurrency.py
 ```
 
 #### 5. Start Backend Server (with Hot Reload for Development)
@@ -754,7 +744,7 @@ AgriShield™ automatically builds a compiled regex boundary matcher, wraps matc
    ```python
    PIPER_VOICE_MAP["Tulu"] = "kn_IN-lili-medium"  # Fallback or dedicated voice
    ```
-3. Run `python run_test_evidence.py` to verify the new language mapping.
+3. Run `scripts\preflight_check.py` to verify the new language mapping.
 
 ---
 
