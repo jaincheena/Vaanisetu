@@ -200,7 +200,7 @@ def _generate_piper_for_segments(
                 chunk_path = os.path.join(temp_dir, f"chunk_{i:04d}_{j:02d}.wav")
                 try:
                     with wave.open(chunk_path, "wb") as wav_file:
-                        voice.synthesize(piece, wav_file)
+                        voice.synthesize_wav(piece, wav_file)
                     chunk_wav_paths.append(chunk_path)
                 except Exception as e:
                     logger.warning(f"Piper synthesis failed for chunk {j} of seg {i}: {e}")
