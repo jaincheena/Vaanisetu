@@ -18,7 +18,7 @@ frontend/dist/
 frontend/.vite/
 *.tgz
 
-# Model weights (large files, stored separately)
+# Model weights (large files, stored on C:\VaaniSetu)
 C:/VaaniSetu/models/
 
 # Database & outputs
@@ -30,6 +30,16 @@ C:/VaaniSetu/models/
 C:/VaaniSetu/workspace/
 C:/VaaniSetu/outputs/
 C:/VaaniSetu/uploads/
+
+# FFmpeg archives (binaries are in ffmpeg-8.1.2-essentials_build/)
+*.7z
+*.tar.xz
+
+# Test artifacts
+.test_workspace/
+test.wav
+tests_*.py
+mock_server.py
 
 # OS
 .DS_Store
