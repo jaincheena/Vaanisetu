@@ -14,6 +14,10 @@ from pathlib import Path
 
 # Enable ANSI escape processing in Windows console
 os.system("")
+try:
+    sys.stdout.reconfigure(encoding='utf-8')
+except Exception:
+    pass
 
 REPO_ROOT = Path(__file__).resolve().parent
 BASE_DIR = Path("C:/VaaniSetu")
