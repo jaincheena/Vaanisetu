@@ -19,8 +19,14 @@ from backend.utils.file_utils import sha256_file, new_job_id, job_zip_path, safe
 from backend.utils.sse import sse_manager
 from backend.services.auth_service import get_current_user
 
-# Languages currently supported end-to-end (Piper + IndicTrans2 verified)
-ACTIVE_LANGS = {"Hindi", "Marathi", "English", "Gujarati", "Bengali", "Kannada"}
+# Languages currently supported end-to-end (IndicTrans2 + Piper/XTTS verified)
+# This must be a superset of all languages used in demo scenarios and the frontend UI.
+ACTIVE_LANGS = {
+    "Hindi", "Marathi", "English", "Gujarati", "Bengali", "Kannada",
+    "Telugu", "Tamil", "Malayalam", "Punjabi", "Odia", "Urdu",
+    "Assamese", "Nepali", "Maithili", "Sanskrit", "Konkani",
+    "Sindhi", "Dogri", "Kashmiri", "Manipuri", "Bodo", "Santhali",
+}
 
 router = APIRouter(prefix="/api/jobs", tags=["jobs"])
 logger = logging.getLogger("vaanisetu.router.jobs")
