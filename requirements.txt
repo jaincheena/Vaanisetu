@@ -26,7 +26,7 @@ accelerate>=0.30.0
 
 # --- TTS ---
 gTTS>=2.5.0
-piper-tts>=2023.11.14         # ONNX-based, near-real-time on CPU for Indic languages
+piper-tts>=1.2.0         # ONNX-based, near-real-time on CPU for Indic languages
 coqui-tts>=0.27.0; python_version < "3.12"   # XTTS for high-quality voice-clone mode
 
 # --- Document Generation ---
