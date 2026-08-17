@@ -114,7 +114,7 @@ export default function Upload() {
           if (match) loadScenario(match)
         }
       })
-      .catch(() => {})
+      .catch(() => { })
   }, [location.state])
 
   const applyBundle = (bundle) => {
@@ -123,6 +123,7 @@ export default function Upload() {
   }
 
   const loadScenario = (s) => {
+    reset()
     setActiveScenarioId(s.id)
     setMode(s.mode)
     setSourceLang(s.source_lang)

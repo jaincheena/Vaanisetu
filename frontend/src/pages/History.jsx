@@ -10,6 +10,18 @@ const STATUS_COLORS = {
   generating: 'var(--accent)',
 }
 
+function formatErrorSummary(log) {
+  if (!log) return 'Pipeline Error'
+  if (log.includes('FFmpeg') || log.includes('extract') || log.includes('audio')) return 'Audio Extraction Error'
+  if (log.includes('transcribe') || log.includes('Whisper')) return 'Speech Transcription Error'
+  if (log.includes('translate') || log.includes('IndicTrans')) return 'Translation Error'
+  if (log.includes('Unsupported file type')) return 'Unsupported File Format'
+  if (log.includes('FileNotFound')) return 'File Not Found'
+  if (log.includes('fake_tts')) return 'Mock Test Runner Note'
+  const firstLine = log.split('\n')[0].replace(/^Error:\s*/i, '').trim()
+  return firstLine.length > 25 ? firstLine.slice(0, 25) + '…' : firstLine
+}
+
 export default function History() {
   const [jobs, setJobs] = useState([])
   const [filterMode, setFilterMode] = useState('')
@@ -172,15 +184,33 @@ export default function History() {
                     </div>
                   </td>
                   <td>
-                    <span style={{ color: STATUS_COLORS[job.status] || 'var(--text)', fontWeight: 600, fontSize: 12 }}>
+                    <span
+                      style={{ color: STATUS_COLORS[job.status] || 'var(--text)', fontWeight: 600, fontSize: 12, cursor: job.error_log ? 'help' : 'default' }}
+                      title={job.error_log || ''}
+                    >
                       ● {job.status.toUpperCase()}
                     </span>
+                    {job.status === 'failed' && job.error_log && (
+                      <div
+                        className="text-small"
+                        style={{ color: 'var(--red)', fontSize: 11, marginTop: 2, maxWidth: 160, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+                        title={`Full Error Log:\n${job.error_log}`}
+                      >
+                        ⚠️ {formatErrorSummary(job.error_log)}
+                      </div>
+                    )}
                   </td>
                   <td>
-                    <ConfidenceBadge
-                      level={job.confidence_level || (job.avg_confidence >= 0.85 ? 'green' : 'amber')}
-                      score={job.avg_confidence || 0.96}
-                    />
+                    {job.status === 'completed' && job.avg_confidence != null ? (
+                      <ConfidenceBadge
+                        level={job.confidence_level || (job.avg_confidence >= 0.85 ? 'green' : 'amber')}
+                        score={job.avg_confidence}
+                      />
+                    ) : (
+                      <span className="text-small text-muted" style={{ fontSize: 12 }}>
+                        {job.status === 'completed' ? '—' : job.status === 'failed' ? 'N/A' : '⏳ Pending'}
+                      </span>
+                    )}
                   </td>
                   <td className="text-small text-muted">{fmt(job.queued_at)}</td>
                   <td>
