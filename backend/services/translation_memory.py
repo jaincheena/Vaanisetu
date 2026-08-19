@@ -117,7 +117,7 @@ def get_glossary(limit: int = 500) -> list[dict]:
     with get_db() as conn:
         rows = conn.execute(
             """
-            SELECT source_text, source_lang, target_lang, translated_text,
+            SELECT id, source_text, source_lang, target_lang, translated_text,
                    times_used, confidence
             FROM translation_memory
             WHERE times_used >= ? AND confidence >= ? AND flagged = 0
@@ -133,6 +133,7 @@ def get_glossary(limit: int = 500) -> list[dict]:
         key = (r["source_text"], r["source_lang"])
         if key not in glossary:
             glossary[key] = {
+                "id": r["id"],
                 "source_text": r["source_text"],
                 "source_lang": r["source_lang"],
                 "times_used":  r["times_used"],

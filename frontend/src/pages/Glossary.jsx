@@ -70,6 +70,25 @@ export default function Glossary() {
       console.error(err)
     }
   }
+  
+  const handleDelete = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this term?")) return;
+    
+    try {
+      const res = await fetch(`/api/glossary/${id}`, { method: "DELETE" });
+      if (res.ok) 
+      {
+        setTerms(terms.filter(t => t.id !== id));
+        setFeedback(`✗ Deleted term with ID ${id}`);
+        setTimeout(() => setFeedback(null), 4000);
+      } 
+      else {
+      console.error("Failed to delete term");
+   }
+  } catch (err) {
+    console.error(err);
+  }
+};
 
   const filteredTerms = terms.filter(t => {
     if (category === 'all') return true
@@ -156,6 +175,7 @@ export default function Glossary() {
                   <th>Source</th>
                   <th>Confidence</th>
                   {allLangs.map(l => <th key={l}>{l}</th>)}
+                  <th>Actions</th> {/* New column header */}
                 </tr>
               </thead>
               <tbody>
@@ -175,6 +195,14 @@ export default function Glossary() {
                         {term.translations?.[l] || <span style={{ color: 'var(--text-dim)' }}>—</span>}
                       </td>
                     ))}
+                    <td>
+                       <button
+                         className="btn btn-danger btn-sm"
+                         onClick={() => handleDelete(term.id)}
+                       >
+                         🗑 Delete
+                       </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>

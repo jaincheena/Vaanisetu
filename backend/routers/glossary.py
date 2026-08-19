@@ -26,6 +26,19 @@ async def fetch_glossary(search: str = "", current_user: dict = Depends(get_curr
         terms = [t for t in terms if q in t["source_text"].lower()]
     return terms
 
+@router.delete("/{term_id}")
+async def delete_glossary_term(term_id: int, current_user: dict = Depends(require_admin)):
+    """
+    Delete a glossary term by ID.
+    Only admins can delete terms.
+    """
+    with get_db() as conn:
+      cursor = conn.cursor()
+      cursor.execute("DELETE FROM translation_memory WHERE id=?", (term_id,))
+      conn.commit()
+      if cursor.rowcount == 0:
+        raise HTTPException(status_code=404, detail="Term not found")
+      return {"success": True, "deleted_id": term_id}
 
 class GlossaryTermCreate(BaseModel):
     source_text: str
