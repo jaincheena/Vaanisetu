@@ -3,6 +3,7 @@ VaaniSetu — Translation Memory Service
 SQLite-backed cache keyed by SHA-256("src_lang|tgt_lang|" + text.strip().lower())
 """
 
+import math
 import logging
 from datetime import datetime
 from typing import Optional

@@ -3,6 +3,7 @@ VaaniSetu — IndicTrans2 Translator
 Batch translation with TM cache, confidence scoring, and amber routing.
 """
 
+import math
 import logging
 import re
 from typing import Optional
@@ -296,7 +297,6 @@ def translate_segments(
             scores_list = list(outputs.scores) if outputs.scores else []
             confs = batch_confidence(scores_list, outputs.sequences)
 
-            import math
             for local_i, global_i in enumerate(pending_idx):
                 # Post-process to restore placeholders and normalize whitespace
                 protected_items = replacements_map[global_i]
