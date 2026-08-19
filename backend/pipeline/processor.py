@@ -41,6 +41,42 @@ def _update_job(job_id: str, **kwargs) -> None:
         conn.execute(f"UPDATE jobs SET {sets} WHERE id=?", vals)
 
 
+CANCELLED_JOBS: set[str] = set()
+
+
+class JobCancelledError(Exception):
+    """Raised when a job is cancelled by the user."""
+    pass
+
+
+def request_cancellation(job_id: str) -> bool:
+    """Flag a job as cancelled both in-memory and in SQLite database."""
+    CANCELLED_JOBS.add(job_id)
+    _update_job(job_id, status="cancelled", error_log="Cancelled by user", completed_at=_now())
+    _publish(job_id, "failed", "Job cancelled by user")
+    logger.info(f"Cancellation requested for job {job_id}")
+    return True
+
+
+def is_cancelled(job_id: str) -> bool:
+    if job_id in CANCELLED_JOBS:
+        return True
+    try:
+        with get_db() as conn:
+            row = conn.execute("SELECT status FROM jobs WHERE id=?", (job_id,)).fetchone()
+            if row and row["status"] == "cancelled":
+                CANCELLED_JOBS.add(job_id)
+                return True
+    except Exception:
+        pass
+    return False
+
+
+def check_cancelled(job_id: str) -> None:
+    if is_cancelled(job_id):
+        raise JobCancelledError(f"Job {job_id} was cancelled by user")
+
+
 def run_pipeline(job_id: str) -> None:
     """
     Main pipeline — runs synchronously in a thread-pool executor.
@@ -48,7 +84,9 @@ def run_pipeline(job_id: str) -> None:
     """
     upload_path = None
     try:
+        check_cancelled(job_id)
         _stage_validating(job_id)
+        check_cancelled(job_id)
         upload_path, source_lang, target_langs, mode, farmer_context, quality_mode, output_formats = _load_job_params(job_id)
 
         # Hardware Resource Saver logic (auto-enabled on low-RAM machines)
@@ -68,7 +106,9 @@ def run_pipeline(job_id: str) -> None:
             except Exception:
                 pass
 
+        check_cancelled(job_id)
         _stage_extracting(job_id, upload_path)  # This stage might modify upload_path if it's a document
+        check_cancelled(job_id)
         wav_path = _get_wav_path(job_id)  # This gets the WAV path if it's audio/video
 
         # Detect speaker gender and extract reference clip for voice cloning
@@ -81,8 +121,10 @@ def run_pipeline(job_id: str) -> None:
             voice_gender, speaker_wav = detect_voice(wav_path, str(ws))
             logger.info(f"Voice profile: gender={voice_gender}, clip={'yes' if speaker_wav else 'no'}")
 
+        check_cancelled(job_id)
         segments, detected_whisper_lang_code = _stage_transcribing(job_id, wav_path, source_lang, upload_path)
         
+        check_cancelled(job_id)
         # Pipelined Translation & Generation
         translated_map, output_files = _stage_translating(
             job_id=job_id,
@@ -100,14 +142,20 @@ def run_pipeline(job_id: str) -> None:
             speaker_wav=speaker_wav,
         )
         
+        check_cancelled(job_id)
         _stage_packaging(job_id, output_files, source_lang, target_langs)
         _finish_job(job_id, translated_map)
 
+    except JobCancelledError as ce:
+        logger.info(f"Job {job_id} stopped cleanly due to cancellation: {ce}")
+        _update_job(job_id, status="cancelled", error_log="Cancelled by user", completed_at=_now())
+        _publish(job_id, "failed", "Job cancelled by user")
     except Exception as e:
         logger.error(f"Pipeline error for {job_id}: {e}", exc_info=True)
         _update_job(job_id, status="failed", error_log=str(e)[:2000], completed_at=_now())
         _publish(job_id, "failed", str(e))
     finally:
+        CANCELLED_JOBS.discard(job_id)
         _cleanup_job(job_id, upload_path)
 
 

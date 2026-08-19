@@ -56,6 +56,19 @@ export default function History() {
     load()
   }
 
+  const handleCancelJob = async (jobId) => {
+    try {
+      const r = await fetch(`/api/jobs/${jobId}/cancel`, { method: 'POST' })
+      if (r.ok) {
+        setFeedback('✓ Job stopped/cancelled!')
+        setTimeout(() => setFeedback(null), 3000)
+        load()
+      }
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
   const fmt = (iso) => {
     if (!iso) return '—'
     const hasTimezone = /Z$|[+-]\d{2}:\d{2}$/.test(iso)
@@ -214,7 +227,17 @@ export default function History() {
                   </td>
                   <td className="text-small text-muted">{fmt(job.queued_at)}</td>
                   <td>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2" style={{ alignItems: 'center' }}>
+                      {!['completed', 'failed', 'cancelled'].includes(job.status) && (
+                        <button
+                          className="btn btn-sm btn-secondary"
+                          style={{ color: 'var(--red)', borderColor: 'var(--red)', padding: '3px 8px', fontSize: 11, fontWeight: 600 }}
+                          onClick={() => handleCancelJob(job.id)}
+                          title="Stop ongoing job"
+                        >
+                          🛑 Stop
+                        </button>
+                      )}
                       {job.status === 'completed' && (
                         <a
                           className="btn btn-sm btn-secondary"

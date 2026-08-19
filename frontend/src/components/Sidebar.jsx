@@ -48,10 +48,7 @@ export default function Sidebar() {
       </nav>
 
       <div className="sidebar-footer">
-        <button onClick={logout} className="nav-item" style={{ width: '100%', cursor: 'pointer', border: 'none', background: 'none', textAlign: 'left', color: 'var(--red)' }}>
-          Logout
-        </button>
-        <div style={{ marginTop: 16 }}>VaaniSetu v2.0</div>
+        <div>VaaniSetu v2.0</div>
         <div style={{ marginTop: 4 }}>Port 8765</div>
       </div>
     </aside>

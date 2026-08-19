@@ -193,9 +193,21 @@ def check_models():
 def check_frontend():
     print(f" {INDIGO_BOLD}[4/4]{RESET} {WHITE_BOLD}Checking React Web Interface distribution...{RESET}")
     dist_index = REPO_ROOT / "frontend" / "dist" / "index.html"
-    if not dist_index.exists():
-        print(f"       {SLATE}Compiling React web bundle (one-time step)...{RESET}")
-        subprocess.run(["npm", "install"], cwd=str(REPO_ROOT / "frontend"), shell=True)
+    src_dir = REPO_ROOT / "frontend" / "src"
+
+    rebuild_needed = not dist_index.exists()
+    if dist_index.exists() and src_dir.exists():
+        dist_mtime = dist_index.stat().st_mtime
+        for root, _, files in os.walk(src_dir):
+            for f in files:
+                if Path(root, f).stat().st_mtime > dist_mtime:
+                    rebuild_needed = True
+                    break
+            if rebuild_needed:
+                break
+
+    if rebuild_needed:
+        print(f"       {SLATE}Rebuilding React web bundle with latest code updates...{RESET}")
         subprocess.run(["cmd", "/c", "npm run build"], cwd=str(REPO_ROOT / "frontend"))
         print(f"       {EMERALD_BOLD}[OK]{RESET} {SLATE}Production build compiled successfully{RESET}\n")
     else:

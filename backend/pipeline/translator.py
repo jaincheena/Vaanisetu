@@ -240,6 +240,9 @@ def translate_segments(
     batch_indices = range(0, len(segments), BATCH_SIZE)
 
     for batch_start in batch_indices:
+        from backend.pipeline.processor import check_cancelled
+        check_cancelled(job_id)
+
         batch = segments[batch_start: batch_start + BATCH_SIZE]
         texts = [s["text"] for s in batch]
         translations: list[Optional[str]] = [None] * len(texts)

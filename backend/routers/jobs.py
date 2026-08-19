@@ -462,3 +462,19 @@ async def delete_single_job(job_id: str, current_user: dict = Depends(get_curren
         conn.execute("DELETE FROM review_queue WHERE job_id=?", (job_id,))
         conn.execute("DELETE FROM jobs WHERE id=?", (job_id,))
     return {"success": True, "job_id": job_id}
+
+
+@router.post("/{job_id}/cancel")
+async def cancel_job(job_id: str, current_user: dict = Depends(get_current_user)):
+    """Cancel / stop an ongoing or queued job."""
+    from backend.pipeline.processor import request_cancellation
+    with get_db() as conn:
+        row = conn.execute("SELECT status FROM jobs WHERE id=?", (job_id,)).fetchone()
+    if not row:
+        raise HTTPException(404, f"Job {job_id} not found")
+    if row["status"] in ("completed", "cancelled"):
+        return {"success": False, "message": f"Job is already {row['status']}", "status": row["status"]}
+
+    request_cancellation(job_id)
+    await sse_manager.publish(job_id, "failed", "Job cancelled by user")
+    return {"success": True, "job_id": job_id, "status": "cancelled"}
