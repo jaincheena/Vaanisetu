@@ -36,7 +36,7 @@ export default function Overview() {
             🌾 BHARATIYA AGRO INDUSTRIES FOUNDATION (BAIF)
           </span>
           <span className="badge" style={{ fontSize: 11, background: 'rgba(255, 255, 255, 0.1)', color: 'var(--text-muted)' }}>
-            100% OFFLINE AIR-GAPPED AI
+            100% OFFLINE AI (NO INTERNET NEEDED)
           </span>
         </div>
 
@@ -58,7 +58,7 @@ export default function Overview() {
           lineHeight: 1.6,
           marginBottom: 24
         }}>
-          A sovereign, zero-cloud AI translation and multi-channel broadcast platform built for BAIF Pune headquarters and nationwide field extension networks. Localize agricultural advisories, livestock protocols, and farmer voice queries across India's regional languages — 100% offline on standard NGO laptops.
+          An easy-to-use offline AI translation platform built for BAIF headquarters and field teams. Quickly translate crop advisories, animal health instructions, and farmer voice messages into local regional languages — working 100% offline on standard laptops.
         </p>
 
         {/* Primary Action Buttons */}
@@ -93,11 +93,11 @@ export default function Overview() {
       {/* ── 2. Core Capabilities Bento Grid ── */}
       <div style={{ marginBottom: 32 }}>
         <h2 style={{ fontSize: 18, fontWeight: 700, margin: '0 0 14px 0', color: 'var(--text)' }}>
-          🏛️ Platform Capabilities & Rural Distribution Channels
+          🏛️ Platform Capabilities & Features
         </h2>
 
+        {/* ORIGINAL 4-TILE NAVIGATION CODE (COMMENTED OUT FOR EASY REVERSION):
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 16 }}>
-          {/* Card 1 */}
           <div className="card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
             <div>
               <div style={{ fontSize: 28, marginBottom: 10 }}>📡</div>
@@ -118,7 +118,6 @@ export default function Overview() {
             </button>
           </div>
 
-          {/* Card 2 */}
           <div className="card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
             <div>
               <div style={{ fontSize: 28, marginBottom: 10 }}>🎙️</div>
@@ -139,7 +138,6 @@ export default function Overview() {
             </button>
           </div>
 
-          {/* Card 3 */}
           <div className="card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
             <div>
               <div style={{ fontSize: 28, marginBottom: 10 }}>🛡️</div>
@@ -160,7 +158,6 @@ export default function Overview() {
             </button>
           </div>
 
-          {/* Card 4 */}
           <div className="card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
             <div>
               <div style={{ fontSize: 28, marginBottom: 10 }}>📚</div>
@@ -179,6 +176,82 @@ export default function Overview() {
             >
               Explore Glossary →
             </button>
+          </div>
+        </div>
+        */}
+
+        {/* ── Updated Homepage Feature Showcase Grid ── */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
+          {/* Feature Card 1 */}
+          <div
+            className="card"
+            style={{
+              border: '1px solid rgba(74, 158, 122, 0.25)',
+              background: 'linear-gradient(145deg, rgba(20, 24, 33, 0.9) 0%, rgba(14, 17, 24, 0.95) 100%)',
+              padding: '24px 22px'
+            }}
+          >
+            <div style={{ fontSize: 32, marginBottom: 12 }}>📢</div>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', marginBottom: 8 }}>
+              Multi-Format Broadcast Studio
+            </h3>
+            <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.55, margin: 0 }}>
+              Translates farm advisories into video, audio voice notes, phone calls, printed slips, and subtitles all at once.
+            </p>
+          </div>
+
+          {/* Feature Card 2 */}
+          <div
+            className="card"
+            style={{
+              border: '1px solid rgba(74, 158, 122, 0.25)',
+              background: 'linear-gradient(145deg, rgba(20, 24, 33, 0.9) 0%, rgba(14, 17, 24, 0.95) 100%)',
+              padding: '24px 22px'
+            }}
+          >
+            <div style={{ fontSize: 32, marginBottom: 12 }}>🎙️</div>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', marginBottom: 8 }}>
+              Farmer Voice Assistant
+            </h3>
+            <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.55, margin: 0 }}>
+              Listens to farmer voice messages in regional languages and converts them into clear summary reports.
+            </p>
+          </div>
+
+          {/* Feature Card 3 */}
+          <div
+            className="card"
+            style={{
+              border: '1px solid rgba(74, 158, 122, 0.25)',
+              background: 'linear-gradient(145deg, rgba(20, 24, 33, 0.9) 0%, rgba(14, 17, 24, 0.95) 100%)',
+              padding: '24px 22px'
+            }}
+          >
+            <div style={{ fontSize: 32, marginBottom: 12 }}>🛡️</div>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', marginBottom: 8 }}>
+              Quality & Accuracy Check
+            </h3>
+            <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.55, margin: 0 }}>
+              Automatically checks translation quality so crop medicine names and dosages are always correct before sending.
+            </p>
+          </div>
+
+          {/* Feature Card 4 */}
+          <div
+            className="card"
+            style={{
+              border: '1px solid rgba(74, 158, 122, 0.25)',
+              background: 'linear-gradient(145deg, rgba(20, 24, 33, 0.9) 0%, rgba(14, 17, 24, 0.95) 100%)',
+              padding: '24px 22px'
+            }}
+          >
+            <div style={{ fontSize: 32, marginBottom: 12 }}>📚</div>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', marginBottom: 8 }}>
+              Protected Farm Glossary
+            </h3>
+            <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.55, margin: 0 }}>
+              Protects important crop names, fertilizers, chemical dosages, and government scheme names from wrong translations.
+            </p>
           </div>
         </div>
       </div>
@@ -257,7 +330,7 @@ export default function Overview() {
         </div>
       </div>
 
-      {/* ── 4. Live Hardware & Air-Gapped Telemetry ── */}
+      {/* ── 4. Live Hardware & Air-Gapped Telemetry (COMMENTED OUT AS REQUESTED) ──
       <div className="card" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
           <strong style={{ fontSize: 13, color: 'var(--text)' }}>
@@ -295,6 +368,7 @@ export default function Overview() {
           </div>
         </div>
       </div>
+      ── */}
     </div>
   )
 }
