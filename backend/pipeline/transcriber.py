@@ -92,6 +92,18 @@ def transcribe(
     # Map display name → Whisper lang code
     whisper_lang = _display_to_whisper(source_lang) if source_lang else None
 
+    # Concurrency here only pays off with faster-whisper: CTranslate2 serves
+    # several callers from one copy of the weights via num_workers. Plain
+    # openai-whisper is a torch module driven by our own threads, so N chunks
+    # each wanting the full intra-op width just oversubscribe the cores.
+    backend_name = getattr(registry, "whisper_backend", None)
+    if workers > 1 and backend_name != "faster-whisper":
+        logger.info(
+            f"Whisper backend is {backend_name or 'unknown'}; transcribing in a "
+            f"single pass. Install faster-whisper to enable parallel chunks."
+        )
+        workers = 1
+
     logger.info(f"Transcribing {wav_path} (lang={whisper_lang or 'auto'}, workers={workers}) ...")
 
     # One shared Whisper instance across concurrent jobs — serialize per job.

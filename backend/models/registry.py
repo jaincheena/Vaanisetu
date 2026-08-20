@@ -168,6 +168,9 @@ class ModelRegistry:
         self._initialized = True
 
         self.whisper_model = None
+        # "faster-whisper" | "openai-whisper" | None — decides whether chunked
+        # parallel transcription is worth attempting.
+        self.whisper_backend = None
         self.en_indic_model = None
         self.en_indic_tokenizer = None
         self.indic_en_model = None
@@ -257,14 +260,20 @@ class ModelRegistry:
                 cpu_threads=cpu_threads,
             )
             self._whisper_loaded = True
-            logger.info("Whisper loaded ✓")
+            self.whisper_backend = "faster-whisper"
+            logger.info("Whisper loaded ✓ (faster-whisper)")
         except ImportError:
             try:
                 import whisper
-                logger.info(f"Loading Whisper {WHISPER_MODEL} with openai-whisper fallback ...")
+                logger.warning(
+                    "faster-whisper is not installed — falling back to openai-whisper, "
+                    "which runs fp32 on CPU and is several times slower. "
+                    "Install it with: pip install -r requirements.txt"
+                )
                 self.whisper_model = whisper.load_model(WHISPER_MODEL, download_root=str(WHISPER_MODEL_DIR))
                 self._whisper_loaded = True
-                logger.info("Whisper loaded ✓")
+                self.whisper_backend = "openai-whisper"
+                logger.info("Whisper loaded ✓ (openai-whisper fallback)")
             except Exception as e:
                 logger.info(f"Whisper offline weights not found in {WHISPER_MODEL_DIR} ({e}). Pipeline ready in lightweight mode.")
         except Exception as e:
