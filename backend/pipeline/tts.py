@@ -14,6 +14,7 @@ import shutil
 import subprocess
 import re
 import tempfile
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Optional
 
@@ -263,33 +264,87 @@ def _generate_coqui_tts_for_segments(
             )
             logger.info(f"Using default speaker reference: {_speaker_wav}")
 
-        def _synthesize_chunks(model_instance):
-            nonlocal failed_chunks
-            for i, seg in enumerate(segments):
-                text = seg.get("translated", "").strip()
-                if not text:
+        # Flatten to a numbered work list first. XTTS is the slowest stage in
+        # the pipeline by a wide margin, and every piece is independent, so
+        # the order only has to be restored at concat time — not during work.
+        work: list[tuple[int, str, str]] = []
+        for i, seg in enumerate(segments):
+            text = seg.get("translated", "").strip()
+            if not text:
+                continue
+            for j, piece in enumerate(split_text(text)):
+                if not piece.strip():
                     continue
+                work.append((
+                    len(work),
+                    piece,
+                    os.path.join(temp_dir, f"chunk_{i:04d}_{j:02d}.wav"),
+                ))
 
-                pieces = split_text(text)
-                for j, piece in enumerate(pieces):
-                    chunk_path = os.path.join(temp_dir, f"chunk_{i:04d}_{j:02d}.wav")
-                    try:
-                        model_instance.tts_to_file(
-                            text=piece, language=lang_code,
-                            speaker_wav=_speaker_wav, file_path=chunk_path,
-                        )
-                        chunk_wav_paths.append(chunk_path)
-                    except Exception as e:
-                        logger.warning(f"Coqui TTS piece {j} of seg {i} failed: {e}")
+        if not work:
+            return None
+
+        def _synthesize_one(model_instance, piece: str, chunk_path: str) -> bool:
+            try:
+                model_instance.tts_to_file(
+                    text=piece, language=lang_code,
+                    speaker_wav=_speaker_wav, file_path=chunk_path,
+                )
+                return True
+            except Exception as e:
+                logger.warning(f"Coqui TTS piece failed ({chunk_path}): {e}")
+                return False
+
+        done: dict[int, str] = {}
+
+        if pool is not None and pool.size > 1:
+            # Each piece checks out its own replica, so concurrency is capped
+            # by the pool rather than by how many languages happen to be
+            # generating at once — several languages sharing one bounded pool
+            # can never oversubscribe RAM.
+            def _run(item):
+                order, piece, chunk_path = item
+                with pool.acquire() as model:
+                    return order, chunk_path, _synthesize_one(model, piece, chunk_path)
+
+            logger.info(
+                f"Coqui TTS: {len(work)} pieces across {pool.size} replica(s) for {language_name}"
+            )
+            with ThreadPoolExecutor(
+                max_workers=min(pool.size, len(work)),
+                thread_name_prefix="vaani-xtts",
+            ) as executor:
+                for order, chunk_path, ok in executor.map(_run, work):
+                    if ok:
+                        done[order] = chunk_path
+                    else:
+                        failed_chunks += 1
+        else:
+            # Single instance — the original serial path.
+            def _serial(model):
+                nonlocal failed_chunks
+                for order, piece, chunk_path in work:
+                    if _synthesize_one(model, piece, chunk_path):
+                        done[order] = chunk_path
+                    else:
                         failed_chunks += 1
 
-        if pool is not None:
-            with pool.acquire() as model:
-                _synthesize_chunks(model)
-        else:
-            from backend.pipeline.locks import TTS_LOCK
-            with TTS_LOCK:
-                _synthesize_chunks(registry.tts_model)
+            if pool is not None:
+                with pool.acquire() as model:
+                    _serial(model)
+            else:
+                from backend.pipeline.locks import TTS_LOCK
+                with TTS_LOCK:
+                    _serial(registry.tts_model)
+
+        # Restore source order — concatenating out of order would scramble the
+        # advisory into nonsense while still producing a playable file.
+        chunk_wav_paths = [done[k] for k in sorted(done)]
+
+        if failed_chunks:
+            logger.warning(
+                f"Coqui TTS: {failed_chunks}/{len(work)} pieces failed for {language_name}"
+            )
 
         if not chunk_wav_paths:
             return None

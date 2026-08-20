@@ -95,15 +95,57 @@ WHISPER_COMPUTE_TYPE = os.getenv("WHISPER_COMPUTE_TYPE",
                                   "float16" if DEVICE == "cuda" else "int8")
 
 def is_low_ram_device() -> bool:
+    """
+    Is this machine short enough on memory to need Resource Saver Mode?
+
+    Memory only. Running on CPU is the normal case for this product, not a
+    symptom of a small machine — treating the two as the same thing pinned
+    every offline deployment to one worker and two threads no matter how much
+    RAM it had.
+    """
     try:
         import psutil
         vm = psutil.virtual_memory()
-        return (vm.total / (1024 ** 3)) <= 8.5 or (vm.available / (1024 ** 3)) < 4.0 or DEVICE == "cpu"
+        return (vm.total / (1024 ** 3)) <= 8.5 or (vm.available / (1024 ** 3)) < 4.0
     except Exception:
-        return DEVICE == "cpu"
+        # Cannot measure — assume the smaller machine and degrade gracefully.
+        return True
 
 IS_LOW_RAM = is_low_ram_device()
 LAZY_LOAD_MODELS = os.getenv("VAANISETU_LAZY_LOAD", "1" if IS_LOW_RAM else "0") == "1"
+
+
+def inference_threads(resource_saver: bool = False) -> int:
+    """
+    Intra-op thread count for torch.
+
+    Physical cores, not logical: two hyperthreads on one core share the same
+    arithmetic units, so counting them oversubscribes and slows inference down.
+    """
+    if resource_saver:
+        return 2
+    try:
+        import psutil
+        cores = psutil.cpu_count(logical=False)
+    except Exception:
+        cores = None
+    return max(1, cores or (os.cpu_count() or 2))
+
+
+def asr_worker_plan() -> tuple[int, int]:
+    """
+    (num_workers, cpu_threads) for the shared faster-whisper model.
+
+    Their product is held at the physical core count: more concurrent chunks
+    than cores just makes each one slower without finishing any sooner.
+    Resource Saver Mode collapses to a single serial worker.
+    """
+    if IS_LOW_RAM:
+        return 1, 2
+    cores = inference_threads()
+    num_workers = max(1, min(4, cores // 2))
+    cpu_threads = max(1, cores // num_workers)
+    return num_workers, cpu_threads
 
 # FFmpeg / ffprobe executable paths
 FFMPEG_PATH = os.getenv("VAANISETU_FFMPEG", "ffmpeg")

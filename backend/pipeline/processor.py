@@ -96,15 +96,23 @@ def run_pipeline(job_id: str) -> None:
             resource_saver = True
             farmer_context = farmer_context.replace("[RESOURCE_SAVER]", "").strip()
 
-        if resource_saver:
-            os.environ["OMP_NUM_THREADS"] = "2"
-            os.environ["MKL_NUM_THREADS"] = "2"
-            try:
-                import torch
-                torch.set_num_threads(2)
-                logger.info("Low-RAM Resource Saver Mode enabled (capped at 2 threads, minimal RAM footprint).")
-            except Exception:
-                pass
+        # Give torch the machine it is actually on. Without this the saver
+        # branch was the only one that set anything, so an unthrottled run
+        # inherited torch's default of one thread per *logical* core — two
+        # per physical core, contending for the same arithmetic units.
+        from backend.config import inference_threads
+        threads = inference_threads(resource_saver)
+        os.environ["OMP_NUM_THREADS"] = str(threads)
+        os.environ["MKL_NUM_THREADS"] = str(threads)
+        try:
+            import torch
+            torch.set_num_threads(threads)
+        except Exception:
+            pass
+        logger.info(
+            f"Resource Saver Mode {'ON' if resource_saver else 'OFF'} — "
+            f"{threads} inference thread(s)"
+        )
 
         check_cancelled(job_id)
         _stage_extracting(job_id, upload_path)  # This stage might modify upload_path if it's a document
@@ -122,7 +130,7 @@ def run_pipeline(job_id: str) -> None:
             logger.info(f"Voice profile: gender={voice_gender}, clip={'yes' if speaker_wav else 'no'}")
 
         check_cancelled(job_id)
-        segments, detected_whisper_lang_code = _stage_transcribing(job_id, wav_path, source_lang, upload_path)
+        segments, detected_whisper_lang_code = _stage_transcribing(job_id, wav_path, source_lang, upload_path, resource_saver)
         
         check_cancelled(job_id)
         # Pipelined Translation & Generation
@@ -263,7 +271,7 @@ def _get_wav_path(job_id: str) -> Optional[str]:
 # ---------------------------------------------------------------------------
 # Stage 3 — Transcribing
 # ---------------------------------------------------------------------------
-def _stage_transcribing(job_id: str, wav_path: Optional[str], source_lang: str, upload_path: str) -> tuple[list[dict], str]:
+def _stage_transcribing(job_id: str, wav_path: Optional[str], source_lang: str, upload_path: str, resource_saver: bool = False) -> tuple[list[dict], str]:
     _publish(job_id, "transcribing", "Transcribing speech …")
     _update_job(job_id, status="transcribing")
 
@@ -284,7 +292,11 @@ def _stage_transcribing(job_id: str, wav_path: Optional[str], source_lang: str, 
         raise RuntimeError("No audio file found for transcription")
 
     from backend.pipeline.transcriber import transcribe
-    segments, detected_whisper_lang_code = transcribe(wav_path, source_lang)
+    from backend.config import asr_worker_plan
+    asr_workers = 1 if resource_saver else asr_worker_plan()[0]
+    segments, detected_whisper_lang_code = transcribe(
+        wav_path, source_lang, work_dir=str(ws), workers=asr_workers
+    )
     # Save transcript
     with open(str(ws / "transcript.txt"), "w", encoding="utf-8") as f:
         for s in segments:

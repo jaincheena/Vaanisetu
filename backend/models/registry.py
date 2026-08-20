@@ -234,14 +234,27 @@ class ModelRegistry:
     # ------------------------------------------------------------------
     def _load_whisper(self) -> None:
         from backend.config import WHISPER_MODEL, WHISPER_MODEL_DIR, DEVICE, WHISPER_COMPUTE_TYPE
+        from backend.config import asr_worker_plan
         try:
             from faster_whisper import WhisperModel
-            logger.info(f"Loading Whisper {WHISPER_MODEL} with faster-whisper ...")
+            num_workers, cpu_threads = asr_worker_plan()
+            logger.info(
+                f"Loading Whisper {WHISPER_MODEL} with faster-whisper "
+                f"(num_workers={num_workers}, cpu_threads={cpu_threads}) ..."
+            )
+            # num_workers lets CTranslate2 run several transcriptions against
+            # ONE copy of the weights, which is what makes chunked parallel
+            # transcription affordable on a field laptop. cpu_threads is the
+            # per-worker intra-op width; the product is kept at the physical
+            # core count so the workers do not fight each other for the same
+            # arithmetic units.
             self.whisper_model = WhisperModel(
                 WHISPER_MODEL,
                 device=DEVICE,
                 compute_type=WHISPER_COMPUTE_TYPE,
                 download_root=str(WHISPER_MODEL_DIR),
+                num_workers=num_workers,
+                cpu_threads=cpu_threads,
             )
             self._whisper_loaded = True
             logger.info("Whisper loaded ✓")
