@@ -10,6 +10,11 @@ import types
 import logging
 from pathlib import Path
 
+# download_piper() imports scripts.download_piper_voices, but running this file
+# directly puts scripts/ on sys.path rather than the repo root, so that import
+# failed with "No module named 'scripts'" and the Piper voices never downloaded.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] - %(message)s"
