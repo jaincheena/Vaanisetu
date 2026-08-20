@@ -300,3 +300,50 @@ class TestPdfExport:
         assert _pdf_safe("₹163,200", False) == "Rs.163,200"
         assert _pdf_safe("VaaniSetu — Report", False) == "VaaniSetu - Report"
         assert _pdf_safe("₹163,200", True) == "₹163,200"
+
+
+# ---------------------------------------------------------------------------
+# Translation availability
+# ---------------------------------------------------------------------------
+class TestTranslationFallback:
+    """When IndicTrans2 could not be loaded, the fallback returned the SOURCE
+    TEXT as the translation at confidence 0.985/green/cleared — so a Marathi
+    farmer received English audio, video and a printed handout, all stamped
+    verified."""
+
+    def test_untranslatable_text_raises_instead_of_echoing_the_source(self, monkeypatch):
+        from backend.pipeline import translator
+        import backend.services.translation_memory as tm
+
+        monkeypatch.setattr(tm, "lookup", lambda *a, **k: None)
+
+        segments = [{"text": "Spray Propiconazole at 1 ml per litre.", "start": 0.0, "end": 3.0}]
+        with pytest.raises(translator.TranslationUnavailableError) as excinfo:
+            translator._fallback_translate_segments(segments, "Marathi")
+        assert "NOT been translated" in str(excinfo.value)
+
+    def test_cached_segments_still_serve(self, monkeypatch):
+        from backend.pipeline import translator
+        import backend.services.translation_memory as tm
+
+        monkeypatch.setattr(tm, "lookup", lambda src, tgt, text: "फवारणी करा")
+        segments = [{"text": "Spray it.", "start": 0.0, "end": 1.0}]
+        out = translator._fallback_translate_segments(segments, "Marathi")
+        assert out[0]["translated"] == "फवारणी करा"
+        assert out[0]["from_cache"] is True
+
+    def test_no_source_text_is_ever_returned_as_a_translation(self, monkeypatch):
+        """Mixed case: one segment cached, one not. Must raise, not part-echo."""
+        from backend.pipeline import translator
+        import backend.services.translation_memory as tm
+
+        def partial_lookup(src, tgt, text):
+            return "फवारणी करा" if text == "Spray it." else None
+
+        monkeypatch.setattr(tm, "lookup", partial_lookup)
+        segments = [
+            {"text": "Spray it.", "start": 0.0, "end": 1.0},
+            {"text": "Something never seen before.", "start": 1.0, "end": 2.0},
+        ]
+        with pytest.raises(translator.TranslationUnavailableError):
+            translator._fallback_translate_segments(segments, "Marathi")

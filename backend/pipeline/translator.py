@@ -157,31 +157,51 @@ def _run_inference(tokenizer, model, pending_texts: list[str], src_code: str, ta
     return decoded, outputs
 
 
+class TranslationUnavailableError(RuntimeError):
+    """The translation model could not be loaded and no cache covers the text."""
+
+
 def _fallback_translate_segments(segments: list[dict], target_lang_name: str) -> list[dict]:
-    """Gracefully return domain-shielded translation when the IndicTrans2 neural weights are not yet loaded."""
+    """
+    Serve from translation memory when IndicTrans2 is not loaded.
+
+    Anything the cache does not cover raises. This used to return the SOURCE
+    TEXT as the translation, marked confidence 0.985 / green / cleared — so a
+    Marathi farmer received an English audio file, an English video and an
+    English printed handout, all stamped as verified. A job that cannot be
+    translated must fail loudly; there is no safe way to ship the original
+    text under a target-language label.
+    """
     from backend.services.translation_memory import lookup
+
     res = []
+    untranslatable = 0
     for seg in segments:
         text = seg.get("text", "").strip()
-        cached = lookup("Marathi", target_lang_name, text) or lookup("English", target_lang_name, text) or lookup("Hindi", target_lang_name, text)
-        if cached:
-            res.append({
-                **seg,
-                "translated": cached,
-                "confidence": 0.99,
-                "level": "green",
-                "target_lang": target_lang_name,
-                "from_cache": True,
-            })
-        else:
-            res.append({
-                **seg,
-                "translated": text,
-                "confidence": 0.985,
-                "level": "green",
-                "target_lang": target_lang_name,
-                "from_cache": True,
-            })
+        cached = (
+            lookup("Marathi", target_lang_name, text)
+            or lookup("English", target_lang_name, text)
+            or lookup("Hindi", target_lang_name, text)
+        )
+        if not cached:
+            untranslatable += 1
+            continue
+        res.append({
+            **seg,
+            "translated": cached,
+            "confidence": 0.99,
+            "level": "green",
+            "target_lang": target_lang_name,
+            "from_cache": True,
+        })
+
+    if untranslatable:
+        raise TranslationUnavailableError(
+            f"Cannot translate into {target_lang_name}: the IndicTrans2 model is "
+            f"not loaded and {untranslatable} of {len(segments)} segment(s) are "
+            f"not in translation memory. Check the server log for the model load "
+            f"error — the advisory has NOT been translated and must not be sent."
+        )
     return res
 
 

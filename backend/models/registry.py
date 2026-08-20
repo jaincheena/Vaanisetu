@@ -48,17 +48,63 @@ try:
         cls = _orig_get_class(*args, **kwargs)
         if isinstance(cls, type) and hasattr(cls, "tie_weights"):
             orig_tie = getattr(cls, "tie_weights")
+
             def safe_tie(self, *a, **k):
+                # Forward the arguments. This guard used to call orig_tie(self)
+                # and drop everything else, which on transformers 4.5x meant the
+                # weights were never materialised off the meta device. The model
+                # then died in .to(device) with "Cannot copy out of meta tensor",
+                # the loader reported "weights not found locally", and every
+                # advisory silently fell back to untranslated source text.
                 try:
-                    return orig_tie(self)
-                except Exception:
-                    pass
+                    return orig_tie(self, *a, **k)
+                except TypeError:
+                    # Older signature that does not accept these arguments.
+                    try:
+                        return orig_tie(self)
+                    except Exception as inner:
+                        logger.warning(f"tie_weights failed for {cls.__name__}: {inner}")
+                except Exception as e:
+                    logger.warning(f"tie_weights failed for {cls.__name__}: {e}")
+
             cls.tie_weights = safe_tie
+
+        # IndicTransTokenizer declares its vocab files as src_vocab_fp/tgt_vocab_fp
+        # and then forwards src_vocab_file=/tgt_vocab_file= to PreTrainedTokenizer
+        # alongside **kwargs. A tokenizer_config.json written by save_pretrained
+        # also carries src_vocab_file/tgt_vocab_file — absolute paths into
+        # whichever machine did the download — so both arrive and construction
+        # dies with "got multiple values for keyword argument 'src_vocab_file'".
+        #
+        # This is not cosmetic: the loader caught it, logged "weights not found
+        # locally", and fell through to _fallback_translate_segments, which
+        # returns the SOURCE TEXT as the translation. Every advisory shipped
+        # untranslated, in English, stamped green and cleared for distribution.
+        if (
+            isinstance(cls, type)
+            and "src_vocab_fp" in (getattr(cls, "vocab_files_names", None) or {})
+            and not getattr(cls, "_vaani_kwarg_guard", False)
+        ):
+            orig_init = cls.__init__
+
+            def safe_init(self, *a, **k):
+                # The correct paths come from vocab_files_names, resolved
+                # against the model directory. The stale ones are dropped.
+                k.pop("src_vocab_file", None)
+                k.pop("tgt_vocab_file", None)
+                return orig_init(self, *a, **k)
+
+            cls.__init__ = safe_init
+            cls._vaani_kwarg_guard = True
         return cls
 
     transformers.dynamic_module_utils.get_class_from_dynamic_module = _patched_get_class
     import transformers.models.auto.auto_factory
     transformers.models.auto.auto_factory.get_class_from_dynamic_module = _patched_get_class
+    # AutoTokenizer resolves remote-code classes through its own module-level
+    # import of the same name, so patching auto_factory alone never reached it.
+    import transformers.models.auto.tokenization_auto
+    transformers.models.auto.tokenization_auto.get_class_from_dynamic_module = _patched_get_class
 except Exception:
     pass
 try:
@@ -146,6 +192,84 @@ except Exception:
 
 
 
+
+
+def _materialize_meta_params(model, local_path: str) -> list[str]:
+    """
+    Load any parameter left on the meta device straight from the checkpoint.
+
+    IndicTrans2 lists `decoder.embed_tokens.weight` in _tied_weights_keys, but
+    the parameter is actually at `model.decoder.embed_tokens.weight`. Newer
+    transformers reads that list as "skip loading, tie_weights will fill it in",
+    and the custom tie_weights never does — so the tensor stays on meta even
+    though it is present in model.safetensors. model.to(device) then raises
+    "Cannot copy out of meta tensor", the whole load is abandoned, and the
+    pipeline silently degrades to returning untranslated source text.
+
+    Returns the names it repaired, so the caller can log them.
+    """
+    import torch
+
+    meta_names = [n for n, prm in model.named_parameters() if prm.is_meta]
+    if not meta_names:
+        return []
+
+    checkpoint = Path(local_path) / "model.safetensors"
+    if not checkpoint.exists():
+        raise RuntimeError(
+            f"{len(meta_names)} parameter(s) left on the meta device and no "
+            f"model.safetensors at {local_path} to recover them from: {meta_names}"
+        )
+
+    from safetensors import safe_open
+
+    repaired = []
+    with safe_open(str(checkpoint), framework="pt") as f:
+        available = set(f.keys())
+        for name in meta_names:
+            if name not in available:
+                continue
+            tensor = f.get_tensor(name)
+            module = model
+            *path_parts, leaf = name.split(".")
+            for part in path_parts:
+                module = getattr(module, part)
+            setattr(module, leaf, torch.nn.Parameter(tensor, requires_grad=False))
+            repaired.append(name)
+
+    # Replacing a tied parameter breaks the tie, so whatever shared it is now
+    # meta in turn (lm_head follows decoder.embed_tokens here). Re-tie, then
+    # bind any leftover by shape against its tie partner.
+    # Replacing a tied parameter breaks the tie, so whatever shared it is now
+    # meta in turn (lm_head follows decoder.embed_tokens here). Bind those to
+    # the real tensor by shape. Calling model.tie_weights() here would undo the
+    # repair instead — it re-points the freshly loaded embedding back at the
+    # still-meta lm_head.
+    remaining = [n for n, prm in model.named_parameters() if prm.is_meta]
+    for name in list(remaining):
+        module = model
+        *path_parts, leaf = name.split(".")
+        for part in path_parts:
+            module = getattr(module, part)
+        target_shape = getattr(module, leaf).shape
+        donor = next(
+            (
+                prm for other, prm in model.named_parameters()
+                if not prm.is_meta and prm.shape == target_shape
+            ),
+            None,
+        )
+        if donor is None:
+            continue
+        setattr(module, leaf, donor)   # share the tensor, as the tie intended
+        repaired.append(name)
+
+    remaining = [n for n, prm in model.named_parameters() if prm.is_meta]
+    if remaining:
+        raise RuntimeError(
+            f"Could not recover these parameters from the checkpoint: {remaining}"
+        )
+    return repaired
 
 
 class ModelRegistry:
@@ -334,6 +458,13 @@ class ModelRegistry:
                 token=token,
             )
  
+            repaired = _materialize_meta_params(model, str(path)) if is_local else []
+            if repaired:
+                logger.info(
+                    f"IndicTrans2 {name}: loaded {len(repaired)} tied parameter(s) "
+                    f"directly from the checkpoint ({', '.join(repaired)})"
+                )
+
             model = model.to(DEVICE)
             model.eval()
 
@@ -350,9 +481,20 @@ class ModelRegistry:
             return tokenizer, model
  
         except Exception as e:
-            logger.warning(
-                f"IndicTrans2 {name} weights not found locally at {local_path} "
-                f"(HF hub download gated). Pipeline ready in fallback mode."
+            # Blaming missing weights hid a tokenizer incompatibility for as
+            # long as it existed: the 847 MB of weights were sitting right
+            # there. Say what actually happened, and say what it costs — with
+            # no translation model, translate_segments() falls back to the
+            # translation-memory path, which returns the SOURCE TEXT for
+            # anything it has not seen before.
+            logger.error(
+                f"IndicTrans2 {name} FAILED TO LOAD from {local_path}: "
+                f"{type(e).__name__}: {e}",
+                exc_info=True,
+            )
+            logger.error(
+                f"Translation into {name} is NOT AVAILABLE. Advisories will not "
+                f"be translated until this is fixed."
             )
             return None, None
 
