@@ -82,14 +82,17 @@ class LanguageImpact(BaseModel):
     job_count: int
     total_minutes: float
     cost_saved: float
-    farmers_reachable: float
+    farmers_reachable: int
 
 
 class ImpactSummary(BaseModel):
     total_hours: float
     total_cost_saved: float
-    total_farmers_reachable: float
+    total_farmers_reachable: int
     job_count: int
+    # Completed jobs finished before media_duration_s existed. They cannot be
+    # costed honestly, so they are excluded from every figure and counted here.
+    unmeasured_job_count: int = 0
     language_breakdown: list[LanguageImpact]
 
 

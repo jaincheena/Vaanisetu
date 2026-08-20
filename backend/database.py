@@ -98,9 +98,13 @@ def init_db() -> None:
     conn = sqlite3.connect(str(DB_PATH))
     try:
         conn.executescript(SCHEMA_SQL)
-        _seed_impact_config(conn)
-        _seed_domain_translations(conn)
-        _seed_review_queue(conn)
+
+        # Migrations run before the seeds, not after. _seed_review_queue
+        # inserts jobs rows naming quality_mode and submitter_id, so on a
+        # brand-new database the old order raised "table jobs has no column
+        # named quality_mode" and the backend could not start at all. Existing
+        # installs never hit it because a previous run had already added the
+        # columns.
         # Safe column migrations — no-op if column already exists
         _safe_add_column(conn, "jobs", "submitter_id",            "TEXT")
         _safe_add_column(conn, "jobs", "distribution_clearance",  "TEXT")
@@ -108,8 +112,12 @@ def init_db() -> None:
         _safe_add_column(conn, "jobs", "farmer_context",          "TEXT")
         _safe_add_column(conn, "jobs", "quality_mode",            "TEXT DEFAULT 'full'")
         _safe_add_column(conn, "jobs", "output_formats",          "TEXT")
-        _safe_add_column(conn, "jobs", "media_duration_s",       "REAL")
-        _safe_add_column(conn, "translation_memory", "domain",   "TEXT DEFAULT 'agriculture'")
+        _safe_add_column(conn, "jobs", "media_duration_s",        "REAL")
+        _safe_add_column(conn, "translation_memory", "domain",    "TEXT DEFAULT 'agriculture'")
+
+        _seed_impact_config(conn)
+        _seed_domain_translations(conn)
+        _seed_review_queue(conn)
         conn.commit()
     finally:
         conn.close()
