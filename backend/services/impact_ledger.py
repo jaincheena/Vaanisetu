@@ -1,10 +1,32 @@
 """
 VaaniSetu — Impact Ledger Service
-Aggregates job metrics into hours saved, ₹ cost saved, farmers reachable.
+
+Aggregates completed jobs into hours localized, ₹ saved against agency rates,
+and the reach those advisories make possible.
+
+Two things this module is careful about, because the numbers end up in a PDF
+that goes to donors and auditors:
+
+  * Hours come from the length of the advisory (jobs.media_duration_s), not
+    from completed_at - started_at. Wall-clock is how long the laptop took to
+    think; billing an agency rate against it means a slower machine reports
+    larger savings, which is backwards.
+
+  * Content hours are counted once per job. Cost and reach are counted per
+    target language, because translating one advisory into five languages
+    genuinely is five deliverables — but it is still only one hour of source
+    material, and reporting five would inflate the headline by the language
+    count alone.
+
+Reach is a capacity figure — how many farmers these advisories *can* serve at
+the configured farmers-per-hour rate. VaaniSetu produces files; it does not
+deliver them, and it has no way to know who listened. The field is named
+`farmers_reachable` throughout for that reason, and the UI must not relabel it
+as farmers reached.
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
 from backend.database import get_db
 
@@ -13,14 +35,13 @@ logger = logging.getLogger("vaanisetu.impact")
 
 def get_impact_summary() -> dict:
     with get_db() as conn:
-        # Completed jobs with duration
         jobs = conn.execute(
             """
-            SELECT id, target_langs, started_at, completed_at
+            SELECT id, target_langs, media_duration_s
             FROM jobs
             WHERE status = 'completed'
-              AND started_at IS NOT NULL
-              AND completed_at IS NOT NULL
+              AND media_duration_s IS NOT NULL
+              AND media_duration_s > 0
             """
         ).fetchall()
 
@@ -28,6 +49,16 @@ def get_impact_summary() -> dict:
             row["language"]: dict(row)
             for row in conn.execute("SELECT * FROM impact_config").fetchall()
         }
+
+        # Jobs finished before media_duration_s existed cannot be costed
+        # honestly, so they are reported separately rather than guessed at.
+        unmeasured = conn.execute(
+            """
+            SELECT COUNT(*) AS c FROM jobs
+            WHERE status = 'completed'
+              AND (media_duration_s IS NULL OR media_duration_s <= 0)
+            """
+        ).fetchone()["c"]
 
     import json as _json
 
@@ -37,24 +68,25 @@ def get_impact_summary() -> dict:
     lang_stats: dict[str, dict] = {}
 
     for job in jobs:
-        try:
-            start = datetime.fromisoformat(job["started_at"])
-            end   = datetime.fromisoformat(job["completed_at"])
-            duration_min = max((end - start).total_seconds() / 60, 0)
-        except Exception:
-            duration_min = 0.0
+        duration_min = max(float(job["media_duration_s"] or 0.0) / 60.0, 0.0)
 
-        target_langs = _json.loads(job["target_langs"] or "[]")
+        try:
+            target_langs = _json.loads(job["target_langs"] or "[]")
+        except Exception:
+            target_langs = []
+
+        # Source material, counted once however many languages it went into.
+        total_minutes += duration_min
+
         for lang in target_langs:
             cfg = config.get(lang, {})
-            fph  = cfg.get("farmers_per_hour", 120)
+            fph = cfg.get("farmers_per_hour", 120)
             rate = cfg.get("translation_rate_per_min", 850)
 
-            cost    = duration_min * rate
+            cost = duration_min * rate
             farmers = (duration_min / 60) * fph
 
-            total_minutes += duration_min
-            total_cost    += cost
+            total_cost += cost
             total_farmers += farmers
 
             if lang not in lang_stats:
@@ -65,22 +97,32 @@ def get_impact_summary() -> dict:
                     "cost_saved": 0.0,
                     "farmers_reachable": 0.0,
                 }
-            lang_stats[lang]["job_count"]        += 1
-            lang_stats[lang]["total_minutes"]    += duration_min
-            lang_stats[lang]["cost_saved"]       += cost
+            lang_stats[lang]["job_count"] += 1
+            lang_stats[lang]["total_minutes"] += duration_min
+            lang_stats[lang]["cost_saved"] += cost
             lang_stats[lang]["farmers_reachable"] += farmers
 
+    for row in lang_stats.values():
+        row["total_minutes"] = round(row["total_minutes"], 2)
+        row["cost_saved"] = round(row["cost_saved"], 2)
+        # Whole people only — a bar reading "7.6 farmers" reads as a bug, and
+        # in an audit report it reads as carelessness.
+        row["farmers_reachable"] = int(round(row["farmers_reachable"]))
+
     return {
-        "total_hours":            round(total_minutes / 60, 2),
-        "total_cost_saved":       round(total_cost, 2),
-        "total_farmers_reachable": round(total_farmers, 0),
+        "total_hours":             round(total_minutes / 60, 2),
+        "total_cost_saved":        round(total_cost, 2),
+        "total_farmers_reachable": int(round(total_farmers)),
         "job_count":               len(jobs),
-        "language_breakdown":      list(lang_stats.values()),
+        "unmeasured_job_count":    unmeasured,
+        "language_breakdown":      sorted(
+            lang_stats.values(), key=lambda r: r["farmers_reachable"], reverse=True
+        ),
     }
 
 
 def update_impact_config(language: str, farmers_per_hour: int, rate_per_min: int) -> None:
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     with get_db() as conn:
         conn.execute(
             """

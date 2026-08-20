@@ -241,7 +241,7 @@ export default function History() {
                       {job.status === 'completed' && (
                         <a
                           className="btn btn-sm btn-secondary"
-                          href={`/api/jobs/${job.id}/download?token=${localStorage.getItem('vaani_token')}`}
+                          href={`/api/jobs/${job.id}/download${localStorage.getItem('vaani_token') ? `?token=${localStorage.getItem('vaani_token')}` : ''}`}
                           download
                           title="Download ZIP Package"
                         >

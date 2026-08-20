@@ -1,17 +1,21 @@
 import React, { useState, useEffect } from 'react'
 
+// Indian numbering, and never "0.00 Crores" for a four-figure sum.
+const formatRupees = (value) => {
+  const n = Number(value) || 0
+  if (n >= 1e7) return `₹${(n / 1e7).toFixed(2)} Cr`
+  if (n >= 1e5) return `₹${(n / 1e5).toFixed(2)} L`
+  if (n >= 1e3) return `₹${(n / 1e3).toFixed(1)}K`
+  return `₹${n.toFixed(0)}`
+}
+
 export default function ImpactLedger() {
   const [summary, setSummary] = useState(null)
   const [config, setConfig] = useState([])
   const [editRows, setEditRows] = useState({})
   const [saving, setSaving] = useState({})
+  const [saveError, setSaveError] = useState({})
   const [loading, setLoading] = useState(true)
-
-  // Interactive ROI Calculator State for Judges
-  const [calcVideos, setCalcVideos] = useState(25)
-  const [calcDuration, setCalcDuration] = useState(12)
-  const [calcLangs, setCalcLangs] = useState(6)
-  const [calcRate, setCalcRate] = useState(850)
 
   const load = () => {
     Promise.all([
@@ -27,14 +31,35 @@ export default function ImpactLedger() {
   useEffect(load, [])
 
   const saveConfig = async (lang, fph, rpm) => {
+    // These rates drive an audit report, so a rejected value must not sit on
+    // screen looking saved. The API enforces >= 1; mirror that here so the
+    // user gets told rather than silently ignored.
+    if (!Number.isFinite(+fph) || +fph < 1 || !Number.isFinite(+rpm) || +rpm < 1) {
+      setSaveError(e => ({ ...e, [lang]: 'Both values must be 1 or more' }))
+      return
+    }
     setSaving(s => ({ ...s, [lang]: true }))
-    await fetch('/api/impact/config', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ language: lang, farmers_per_hour: +fph, translation_rate_per_min: +rpm }),
-    })
-    setSaving(s => ({ ...s, [lang]: false }))
-    load()
+    setSaveError(e => ({ ...e, [lang]: null }))
+    try {
+      const r = await fetch('/api/impact/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ language: lang, farmers_per_hour: +fph, translation_rate_per_min: +rpm }),
+      })
+      if (!r.ok) throw new Error(`Server rejected the change (${r.status})`)
+      // Clear the pending edit so the row falls back to the stored value —
+      // otherwise a stale local edit shadows what the server actually holds.
+      setEditRows(rows => {
+        const next = { ...rows }
+        delete next[lang]
+        return next
+      })
+      load()
+    } catch (err) {
+      setSaveError(e => ({ ...e, [lang]: err.message }))
+    } finally {
+      setSaving(s => ({ ...s, [lang]: false }))
+    }
   }
 
   const setRow = (lang, field, val) =>
@@ -47,13 +72,6 @@ export default function ImpactLedger() {
     ? Math.max(...summary.language_breakdown.map(r => r.farmers_reachable), 1)
     : 1
 
-  // Calculator computations
-  const totalMinsMonth = calcVideos * calcDuration * calcLangs
-  const monthlyCostSaved = totalMinsMonth * calcRate
-  const annualCostSaved = monthlyCostSaved * 12
-  const monthlyFarmers = (totalMinsMonth / 60) * 120
-  const annualFarmers = monthlyFarmers * 12
-
   if (loading) return (
     <div className="card" style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
       Loading impact data…
@@ -64,8 +82,8 @@ export default function ImpactLedger() {
     <div>
       <div className="page-header flex items-center justify-between">
         <div>
-          <h2>Social Impact & Financial ROI Ledger</h2>
-          <p>Real-time analytics of agricultural outreach, cost savings, and scale</p>
+          <h2>Impact Ledger</h2>
+          <p>Advisory output, cost avoided against agency rates, and the reach it makes possible</p>
         </div>
         <a
           className="btn btn-secondary"
@@ -79,137 +97,46 @@ export default function ImpactLedger() {
 
       {/* Stat tiles */}
       {summary && (
-        <div className="stat-grid mb-6">
-          <div className="stat-tile">
-            <div className="stat-label">Hours Translated</div>
-            <div className="stat-value">{summary.total_hours.toFixed(1)} hrs</div>
-            <div className="stat-sub">across completed jobs</div>
+        <>
+          <div className="stat-grid mb-4">
+            <div className="stat-tile">
+              <div className="stat-label">Advisory Hours Localized</div>
+              <div className="stat-value">{(summary.total_hours ?? 0).toFixed(1)} hrs</div>
+              <div className="stat-sub">source runtime, counted once per job</div>
+            </div>
+            <div className="stat-tile">
+              <div className="stat-label">Cost Saved vs Agency</div>
+              <div className="stat-value">{formatRupees(summary.total_cost_saved)}</div>
+              <div className="stat-sub">at the per-language rates configured below</div>
+            </div>
+            <div className="stat-tile">
+              <div className="stat-label">Farmers Reachable</div>
+              <div className="stat-value">{Number(summary.total_farmers_reachable ?? 0).toLocaleString('en-IN')}</div>
+              <div className="stat-sub">capacity at the configured rate — not farmers served</div>
+            </div>
+            <div className="stat-tile">
+              <div className="stat-label">Completed Jobs</div>
+              <div className="stat-value">{summary.job_count}</div>
+              <div className="stat-sub">multi-format packages</div>
+            </div>
           </div>
-          <div className="stat-tile">
-            <div className="stat-label">Financial Savings</div>
-            <div className="stat-value">₹{(summary.total_cost_saved/1000).toFixed(1)}K</div>
-            <div className="stat-sub">vs ₹850/min agency rate</div>
+
+          <div className="card mb-6" style={{ padding: '12px 16px' }}>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.6 }}>
+              <strong style={{ color: 'var(--text)' }}>How these figures are calculated.</strong>{' '}
+              Hours are the runtime of the source advisory, counted once per job however many
+              languages it was localized into. Cost saved is advisory minutes × the configured
+              agency rate, per target language. <strong style={{ color: 'var(--text)' }}>Farmers
+              Reachable is a capacity estimate</strong> — VaaniSetu produces the files but does not
+              deliver them, so this is potential reach, not a count of farmers served.
+              {summary.unmeasured_job_count > 0 && (
+                <> {summary.unmeasured_job_count} earlier job{summary.unmeasured_job_count === 1 ? '' : 's'} predate
+                duration tracking and {summary.unmeasured_job_count === 1 ? 'is' : 'are'} excluded from every figure above.</>
+              )}
+            </div>
           </div>
-          <div className="stat-tile">
-            <div className="stat-label">Farmers Reached</div>
-            <div className="stat-value">{Number(summary.total_farmers_reachable).toLocaleString('en-IN')}</div>
-            <div className="stat-sub">smallholder beneficiaries</div>
-          </div>
-          <div className="stat-tile">
-            <div className="stat-label">Completed Jobs</div>
-            <div className="stat-value">{summary.job_count}</div>
-            <div className="stat-sub">multi-format packages</div>
-          </div>
-        </div>
+        </>
       )}
-
-      {/* ── Interactive ROI Impact Calculator for Judges ── */}
-      <div className="card mb-6" style={{
-        background: 'linear-gradient(135deg, rgba(232, 109, 31, 0.08) 0%, var(--bg-card) 100%)',
-        border: '1px solid var(--accent)'
-      }}>
-        <div className="card-title" style={{ color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span>🧮</span>
-          <span>Interactive BAIF Scale & Financial Projection Model</span>
-        </div>
-        <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20 }}>
-          Adjust the sliders below to simulate organization-wide deployment across BAIF's 12 regional field offices.
-        </p>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 20, marginBottom: 24 }}>
-          <div>
-            <label style={{ fontSize: 12, fontWeight: 600 }}>Training Videos / Month: <strong>{calcVideos}</strong></label>
-            <input
-              type="range"
-              min="5"
-              max="100"
-              value={calcVideos}
-              onChange={e => setCalcVideos(+e.target.value)}
-              style={{ width: '100%', accentColor: 'var(--accent)' }}
-            />
-          </div>
-
-          <div>
-            <label style={{ fontSize: 12, fontWeight: 600 }}>Avg Video Length: <strong>{calcDuration} mins</strong></label>
-            <input
-              type="range"
-              min="2"
-              max="45"
-              value={calcDuration}
-              onChange={e => setCalcDuration(+e.target.value)}
-              style={{ width: '100%', accentColor: 'var(--accent)' }}
-            />
-          </div>
-
-          <div>
-            <label style={{ fontSize: 12, fontWeight: 600 }}>Target Languages: <strong>{calcLangs} langs</strong></label>
-            <input
-              type="range"
-              min="1"
-              max="12"
-              value={calcLangs}
-              onChange={e => setCalcLangs(+e.target.value)}
-              style={{ width: '100%', accentColor: 'var(--accent)' }}
-            />
-          </div>
-
-          <div>
-            <label style={{ fontSize: 12, fontWeight: 600 }}>Agency Translation Rate: <strong>₹{calcRate}/min</strong></label>
-            <input
-              type="range"
-              min="400"
-              max="1500"
-              step="50"
-              value={calcRate}
-              onChange={e => setCalcRate(+e.target.value)}
-              style={{ width: '100%', accentColor: 'var(--accent)' }}
-            />
-          </div>
-        </div>
-
-        {/* Projection Results */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-          gap: 12,
-          background: 'var(--bg-input)',
-          padding: 16,
-          borderRadius: 'var(--radius-sm)',
-          border: '1px solid var(--border)'
-        }}>
-          <div>
-            <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Monthly Output Generated</div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)' }}>
-              {(totalMinsMonth / 60).toFixed(0)} Hours
-            </div>
-            <div style={{ fontSize: 10, color: 'var(--text-dim)' }}>{totalMinsMonth.toLocaleString('en-IN')} audio mins</div>
-          </div>
-
-          <div>
-            <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Monthly Agency Cost</div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: '#f87171' }}>
-              ₹{(monthlyCostSaved / 100000).toFixed(2)} Lakhs
-            </div>
-            <div style={{ fontSize: 10, color: 'var(--text-dim)' }}>Commercial outsourcing bill</div>
-          </div>
-
-          <div>
-            <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>VaaniSetu Annual Savings</div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: '#4ade80' }}>
-              ₹{(annualCostSaved / 10000000).toFixed(2)} Crores
-            </div>
-            <div style={{ fontSize: 10, color: '#4ade80' }}>100% saved via offline AI</div>
-          </div>
-
-          <div>
-            <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Annual Farmer Reach</div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--accent)' }}>
-              {annualFarmers.toLocaleString('en-IN')}
-            </div>
-            <div style={{ fontSize: 10, color: 'var(--text-dim)' }}>Farmers trained across India</div>
-          </div>
-        </div>
-      </div>
 
       {/* Language breakdown */}
       {summary?.language_breakdown?.length > 0 && (
@@ -236,14 +163,14 @@ export default function ImpactLedger() {
       <div className="card">
         <div className="flex items-center justify-between mb-4">
           <div className="card-title" style={{ margin: 0 }}>Regional Rate Configuration</div>
-          <span className="text-small text-muted">Multipliers used for official audit reporting</span>
+          <span className="text-small text-muted">Rates used for the figures above and the PDF report</span>
         </div>
         <div style={{ overflowX: 'auto' }}>
           <table className="data-table">
             <thead>
               <tr>
                 <th>Language</th>
-                <th>Farmers Reached / Hour</th>
+                <th>Farmers Reachable / Hour</th>
                 <th>Human Agency Rate (₹/min)</th>
                 <th>Action</th>
               </tr>
@@ -286,6 +213,11 @@ export default function ImpactLedger() {
                     >
                       {saving[row.language] ? '…' : '💾 Save'}
                     </button>
+                    {saveError[row.language] && (
+                      <div style={{ fontSize: 11, color: 'var(--red)', marginTop: 4 }}>
+                        ⚠️ {saveError[row.language]}
+                      </div>
+                    )}
                   </td>
                 </tr>
               ))}

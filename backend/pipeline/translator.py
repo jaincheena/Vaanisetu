@@ -200,7 +200,7 @@ def translate_segments(
     from backend.models.registry import registry
     from backend.models.pool import get_pool
     from backend.services.translation_memory import lookup, store
-    from backend.services.confidence import batch_confidence, confidence_level
+    from backend.services.confidence import batch_confidence, confidence_level, FALLBACK_CONFIDENCE
     from backend.config import BATCH_SIZE, ENGLISH_CODE, LANG_CODES, TRANSLATION_MAX_LENGTH
 
     # 1. Fast-path TM cache check
@@ -317,9 +317,9 @@ def translate_segments(
         # ---------------------------------------------------------------
         for i, seg in enumerate(batch):
             trans = translations[i] or ""
-            conf  = confidences[i] if confidences[i] is not None else 0.85
+            conf  = confidences[i] if confidences[i] is not None else FALLBACK_CONFIDENCE
             if not isinstance(conf, (int, float)) or math.isnan(conf) or math.isinf(conf):
-                conf = 0.85
+                conf = FALLBACK_CONFIDENCE
             conf  = max(0.0, min(1.0, float(conf)))
             level = confidence_level(conf)
 

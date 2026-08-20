@@ -145,7 +145,7 @@ export default function Overview() {
                 Quality Review Governance
               </h3>
               <p style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5 }}>
-                Calibrated confidence gate (&gt;98% target) automatically intercepts ambiguous chemical dosages or technical terms for validation before field broadcast.
+                The confidence gate holds back low-scoring segments — chemical dosages and technical terms especially — for a human to verify before anything reaches a farmer.
               </p>
             </div>
             <button

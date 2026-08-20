@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { NavLink } from 'react-router-dom'
+import { NavLink, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
 const NAV = [
@@ -15,7 +15,16 @@ const NAV = [
 
 export default function Sidebar() {
   const [reviewPending, setReviewPending] = useState(0)
+  // Under 900px the sidebar used to be display:none with nothing to replace
+  // it, so a field officer on a phone landed on Advisory Studio and could not
+  // reach any other tab for the rest of the session.
+  const [mobileOpen, setMobileOpen] = useState(false)
   const { role, logout } = useAuth()
+  const location = useLocation()
+
+  // Close on navigate, so tapping a link doesn't leave the drawer covering
+  // the page you just asked for.
+  useEffect(() => { setMobileOpen(false) }, [location.pathname])
 
   useEffect(() => {
     const fetch_ = () =>
@@ -29,7 +38,20 @@ export default function Sidebar() {
   }, [])
 
   return (
-    <aside className="sidebar">
+    <>
+      <button
+        type="button"
+        className="sidebar-toggle"
+        aria-label={mobileOpen ? 'Close navigation' : 'Open navigation'}
+        aria-expanded={mobileOpen}
+        onClick={() => setMobileOpen(o => !o)}
+      >
+        {mobileOpen ? '✕' : '☰'}
+      </button>
+      {mobileOpen && (
+        <div className="sidebar-scrim" onClick={() => setMobileOpen(false)} />
+      )}
+      <aside className={`sidebar ${mobileOpen ? 'is-open' : ''}`}>
       <div className="sidebar-logo">
         <h1>🌱 VaaniSetu</h1>
         <p>AI Translation · BAIF</p>
@@ -51,6 +73,7 @@ export default function Sidebar() {
         <div>VaaniSetu v2.0</div>
         <div style={{ marginTop: 4 }}>Port 8765</div>
       </div>
-    </aside>
+      </aside>
+    </>
   )
 }

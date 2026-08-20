@@ -14,23 +14,32 @@ from typing import Optional
 
 logger = logging.getLogger("vaanisetu.confidence")
 
+# Used when confidence cannot be measured at all — an empty score list or a
+# failed computation. Deliberately below CONFIDENCE_GREEN so the segment is
+# routed to a human instead of being auto-cleared for distribution: "we do
+# not know" must fail towards review, never towards the farmer.
+FALLBACK_CONFIDENCE = 0.75
+
 
 def _calibrate_log_probs(log_probs: list) -> float:
     if not log_probs:
-        return 0.985
+        return FALLBACK_CONFIDENCE
     N = len(log_probs)
     mean_lp = sum(log_probs) / N
 
     # Subword length normalization boost for Indic subwords
-    length_adj = min(0.8, max(0.0, (N - 1) * 0.06))
+    length_adj = min(0.6, max(0.0, (N - 1) * 0.05))
     adj_lp = mean_lp + length_adj
 
-    # Calibrated Sigmoid logit curve mapping to human confidence scale (>98% for verified accuracy)
-    val = 2.8 * (adj_lp + 1.8)
+    # Calibrated sigmoid mapping token log-probability to a human confidence
+    # scale. The output must span the Green/Amber/Red thresholds in
+    # backend/config.py — an earlier revision rescaled this into 0.982-0.995,
+    # which put the floor above CONFIDENCE_GREEN and made amber and red
+    # unreachable. Nothing then ever reached the Review Queue, and every job
+    # was stamped "Distribution Cleared" regardless of translation quality.
+    val = 1.8 * (adj_lp + 1.4)
     conf = 1.0 / (1.0 + math.exp(-val))
-    # Map high probability range to 98.2% - 99.5%
-    scaled = 0.982 + (conf * 0.013)
-    return max(0.60, min(0.995, float(scaled)))
+    return max(0.50, min(0.98, float(conf)))
 
 
 def compute_sequence_confidence(scores: list, sequence_ids) -> float:
@@ -56,11 +65,11 @@ def compute_sequence_confidence(scores: list, sequence_ids) -> float:
 
         conf = _calibrate_log_probs(log_probs)
         if math.isnan(conf) or math.isinf(conf):
-            return 0.985
+            return FALLBACK_CONFIDENCE
         return max(0.0, min(1.0, float(conf)))
     except Exception as e:
         logger.warning(f"Confidence computation failed: {e}")
-        return 0.985
+        return FALLBACK_CONFIDENCE
 
 
 def batch_confidence(scores: list, sequences) -> list[float]:
@@ -94,7 +103,7 @@ def batch_confidence(scores: list, sequences) -> list[float]:
 
             conf = _calibrate_log_probs(log_probs)
             if math.isnan(conf) or math.isinf(conf):
-                conf = 0.985
+                conf = FALLBACK_CONFIDENCE
             else:
                 conf = max(0.0, min(1.0, float(conf)))
             results.append(conf)
@@ -102,14 +111,14 @@ def batch_confidence(scores: list, sequences) -> list[float]:
         return results
     except Exception as e:
         logger.warning(f"Batch confidence failed: {e}")
-        return [0.985] * (sequences.shape[0] if hasattr(sequences, "shape") else 1)
+        return [FALLBACK_CONFIDENCE] * (sequences.shape[0] if hasattr(sequences, "shape") else 1)
 
 
 def confidence_level(score: float) -> str:
     """Map numeric confidence to Green/Amber/Red label."""
     from backend.config import CONFIDENCE_GREEN, CONFIDENCE_AMBER
     if score is None or not isinstance(score, (int, float)) or math.isnan(score) or math.isinf(score):
-        score = 0.985
+        score = FALLBACK_CONFIDENCE
     if score >= CONFIDENCE_GREEN:
         return "green"
     if score >= CONFIDENCE_AMBER:
@@ -123,5 +132,5 @@ def avg_confidence(scores: list[float]) -> float:
         if s is not None and isinstance(s, (int, float)) and not math.isnan(s) and not math.isinf(s)
     ]
     if not valid_scores:
-        return 0.985
+        return FALLBACK_CONFIDENCE
     return sum(valid_scores) / len(valid_scores)

@@ -31,6 +31,31 @@ const DELIVERY_BUNDLES = [
   { id: 'print', label: '📄 Field Officer Handout Pack', formats: ['docx', 'srt', 'txt'] },
 ]
 
+// Names here mirror what backend/pipeline/packager.py actually writes into
+// the job ZIP. The result view is driven off that list rather than a fixed
+// set of cards, so it can only ever offer files that genuinely exist.
+const ARTIFACT_INFO = [
+  { match: /^video_advisory_/, channel: '📺 WhatsApp Video & KVK Screens', desc: 'HD video with voiceover & burned subtitles' },
+  { match: /^dubbed_/,         channel: '🎬 Dubbed Video',                 desc: 'Original video with the translated voice track' },
+  { match: /^captioned_/,      channel: '🎬 Captioned Video',              desc: 'Original video with burned-in subtitles' },
+  { match: /^whatsapp_part/,   channel: '📱 WhatsApp Status Chunk',        desc: 'Auto-split clip under 15 MB for WhatsApp' },
+  { match: /^audio_/,          channel: '🎧 WhatsApp Audio & Community Radio', desc: 'MP3 for smartphones & radio broadcast' },
+  { match: /^ivr_audio_/,      channel: '📞 Feature Phone IVR Broadcast',  desc: '8 kHz mono telecom audio for outbound calls' },
+  { match: /^bilingual_/,      channel: '📄 Field Officer Prescription Slip', desc: 'Printable bilingual Word handout' },
+  { match: /^subtitles_.*\.srt$/, channel: '📝 Video Subtitles (SRT)',     desc: 'Captions for VLC, editors & YouTube' },
+  { match: /^subtitles_.*\.vtt$/, channel: '🌐 Web Subtitles (VTT)',       desc: 'Subtitle track for HTML5 video players' },
+  { match: /^translation_/,    channel: '📱 SMS & Digital Records',        desc: 'Plain UTF-8 text for bulk SMS & ERP' },
+  { match: /^translated_.*\.csv$/, channel: '📊 Survey & Crop Data',       desc: 'Translated spreadsheet rows' },
+  { match: /^transcript\./,    channel: '🗒️ Source Transcript',            desc: 'What the speech recogniser heard' },
+]
+
+const describeArtifact = (name) =>
+  ARTIFACT_INFO.find(a => a.match.test(name)) || { channel: '📦 Output File', desc: 'Generated artifact' }
+
+// A file belongs to a language when its name ends in `_<Language>.<ext>`.
+const filesForLang = (files, lang) =>
+  (files || []).filter(f => new RegExp(`_${lang}\.[a-z0-9]+$`, 'i').test(f))
+
 const DEFAULT_FORMATS = OUTPUT_FORMATS.filter(f => f.default).map(f => f.key)
 const SIZE_LABELS = { tiny: 'TINY', small: 'SMALL', medium: 'MED', large: 'LARGE' }
 
@@ -71,6 +96,10 @@ function Toggle({ checked, onChange }) {
 
 export default function Upload() {
   const navigate = useNavigate()
+  // Holds the open EventSource so reset() can close it. Its absence threw a
+  // ReferenceError out of both loadScenario() and submit(), which killed
+  // every scenario preset and hung every job at "Queuing job… 0%".
+  const esRef = useRef(null)
 
   // Form state
   const [mode, setMode] = useState('translate')
@@ -102,6 +131,7 @@ export default function Upload() {
   const [error, setError] = useState(null)
   const [showVisualTour, setShowVisualTour] = useState(false)
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false)
+  const [cancelling, setCancelling] = useState(false)
   const location = useLocation()
 
   useEffect(() => {
@@ -147,6 +177,33 @@ export default function Upload() {
   }
 
   const effectiveFormats = selectedFormats
+
+  // What this job actually produced for the language on screen. Draft mode
+  // skips video entirely, and any stage can fail, so the result view has to
+  // ask rather than assume — an empty <video> with a Download button under
+  // it is worse than not offering the tab at all.
+  const langFiles = filesForLang(previewData?.files, previewLang)
+  const has = {
+    audio: langFiles.some(f => f.startsWith('audio_')),
+    video: langFiles.some(f => /^(video_advisory|dubbed|captioned)_/.test(f)),
+    ivr: langFiles.some(f => f.startsWith('ivr_audio_')),
+  }
+  const PREVIEW_TABS = [
+    ['bilingual', '📄 Bilingual Transcript', true],
+    ['audio', '🎧 Audio Player', has.audio],
+    ['video', '🎬 Video Player', has.video],
+    ['whatsapp', '💬 WhatsApp Simulator', has.audio],
+    ['ivr', '📞 Feature Phone IVR', has.ivr],
+    ['files', '📦 Download Outputs', true],
+  ].filter(([, , available]) => available)
+
+  // Switching language can remove the tab you were on — don't strand the user
+  // on a blank panel.
+  useEffect(() => {
+    if (previewData && !PREVIEW_TABS.some(([tab]) => tab === activePreviewTab)) {
+      setActivePreviewTab('bilingual')
+    }
+  }, [previewData, previewLang])
 
   const canSubmit = (inputType === 'file' ? file : (inputType === 'mic' ? file : textContent.trim()))
     && targetLangs.length > 0 && !submitting
@@ -254,6 +311,19 @@ export default function Upload() {
       }
     }
     poll()
+  }
+
+  const cancelJob = async () => {
+    if (!jobId) return
+    setCancelling(true)
+    try {
+      await fetch(`/api/jobs/${jobId}/cancel`, { method: 'POST' })
+    } catch (e) {
+      console.warn('Cancel request failed:', e)
+    }
+    if (esRef.current) { esRef.current.close(); esRef.current = null }
+    setCancelling(false)
+    reset()
   }
 
   const reset = () => {
@@ -725,9 +795,20 @@ export default function Upload() {
               message={progress.message}
             />
           )}
-          <p style={{ marginTop: 16, fontSize: 12, color: 'var(--text-dim)' }}>
-            ✦ Server-Sent Events stream pipeline status in real-time across the local office LAN.
-          </p>
+          <div style={{ marginTop: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+            <p style={{ fontSize: 12, color: 'var(--text-dim)', margin: 0 }}>
+              ✦ Server-Sent Events stream pipeline status in real-time across the local office LAN.
+            </p>
+            <button
+              type="button"
+              className="btn btn-sm btn-secondary"
+              onClick={cancelJob}
+              disabled={!jobId || cancelling}
+              id="btn-cancel"
+            >
+              {cancelling ? 'Stopping…' : '✕ Stop Job'}
+            </button>
+          </div>
         </div>
       )}
 
@@ -770,14 +851,7 @@ export default function Upload() {
             paddingBottom: 8,
             overflowX: 'auto'
           }}>
-            {[
-              ['bilingual', '📄 Bilingual Transcript'],
-              ['audio', '🎧 Audio Player'],
-              ['video', '🎬 Video Player'],
-              ['whatsapp', '💬 WhatsApp Simulator'],
-              ['ivr', '📞 Feature Phone IVR'],
-              ['files', '📦 Download Outputs']
-            ].map(([tab, label]) => (
+            {PREVIEW_TABS.map(([tab, label]) => (
               <button
                 key={tab}
                 type="button"
@@ -956,56 +1030,54 @@ export default function Upload() {
               <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div className="section-label">Generated Multi-Channel Packages & Artifacts</div>
                 <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                  {previewData?.files?.length || 0} files ready
+                  {langFiles.length} file{langFiles.length === 1 ? '' : 's'} for {previewLang}
                 </span>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 10 }}>
-                {[
-                  { name: `video_advisory_${previewLang}.mp4`, channel: '📺 WhatsApp Video & KVK Screens', desc: 'HD video with audio voiceover & burned subtitles', url: `/api/jobs/${jobId}/video/${previewLang}` },
-                  { name: `audio_${previewLang}.mp3`, channel: '🎧 WhatsApp Audio & Community Radio', desc: '44.1kHz stereo MP3 for smartphones & radio', url: `/api/jobs/${jobId}/audio/${previewLang}` },
-                  { name: `ivr_audio_${previewLang}.wav`, channel: '📞 Feature Phone IVR Broadcast', desc: '8kHz Mono telecom audio for outbound voice calls', url: `/api/jobs/${jobId}/ivr/${previewLang}` },
-                  { name: `bilingual_doc_${previewLang}.docx`, channel: '📄 Field Officer Prescription Slip', desc: 'Printable formatted Word document for physical handouts', url: null },
-                  { name: `subtitles_${previewLang}.srt`, channel: '📝 Video Subtitles (SRT)', desc: 'Synchronized subtitle captions for VLC & YouTube', url: null },
-                  { name: `translation_${previewLang}.txt`, channel: '📱 SMS & Digital Records', desc: 'Plain UTF-8 text for bulk SMS & agronomist ERP', url: null },
-                ].map(item => (
-                  <div
-                    key={item.name}
-                    style={{
-                      background: 'var(--bg-input)',
-                      border: '1px solid var(--border)',
-                      borderRadius: 6,
-                      padding: '12px 14px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 4
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: 12, fontFamily: 'monospace', fontWeight: 600, color: 'var(--text)' }}>
-                        📄 {item.name}
-                      </span>
-                      <span style={{ fontSize: 10, color: 'var(--accent)' }}>✓ Ready</span>
-                    </div>
-                    <div style={{ fontSize: 11, color: 'var(--accent)', fontWeight: 500 }}>
-                      {item.channel}
-                    </div>
-                    <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>
-                      {item.desc}
-                    </div>
-                    {item.url && (
-                      <div style={{ marginTop: 6, paddingTop: 6, borderTop: '1px dashed var(--border)' }}>
-                        <a
-                          href={item.url}
-                          download={item.name}
-                          style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}
-                        >
-                          ⬇️ Direct Download
-                        </a>
+              {langFiles.length === 0 ? (
+                <div className="alert alert-amber" style={{ fontSize: 12 }}>
+                  No downloadable files were produced for {previewLang}. Check the
+                  History tab for this job's error log.
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 10 }}>
+                  {langFiles.map(name => {
+                    const info = describeArtifact(name)
+                    return (
+                      <div
+                        key={name}
+                        style={{
+                          background: 'var(--bg-input)',
+                          border: '1px solid var(--border)',
+                          borderRadius: 6,
+                          padding: '12px 14px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 4
+                        }}
+                      >
+                        <span style={{ fontSize: 12, fontFamily: 'monospace', fontWeight: 600, color: 'var(--text)' }}>
+                          📄 {name}
+                        </span>
+                        <div style={{ fontSize: 11, color: 'var(--accent)', fontWeight: 500 }}>
+                          {info.channel}
+                        </div>
+                        <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+                          {info.desc}
+                        </div>
+                        <div style={{ marginTop: 6, paddingTop: 6, borderTop: '1px dashed var(--border)' }}>
+                          <a
+                            href={`/api/jobs/${jobId}/file/${encodeURIComponent(name)}`}
+                            download={name}
+                            style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}
+                          >
+                            ⬇️ Direct Download
+                          </a>
+                        </div>
                       </div>
-                    )}
-                  </div>
-                ))}
-              </div>
+                    )
+                  })}
+                </div>
+              )}
             </div>
           )}
 
@@ -1020,7 +1092,7 @@ export default function Upload() {
           }}>
             <a
               className="btn btn-primary btn-lg"
-              href={`/api/jobs/${jobId}/download?token=${localStorage.getItem('vaani_token')}`}
+              href={`/api/jobs/${jobId}/download${localStorage.getItem('vaani_token') ? `?token=${localStorage.getItem('vaani_token')}` : ''}`}
               download
               id="btn-download"
             >

@@ -92,7 +92,7 @@ function AppContent() {
             <Route path="/upload" element={<ProtectedRoute><Upload /></ProtectedRoute>} />
             <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
             <Route path="/review" element={<ProtectedRoute><ReviewQueue /></ProtectedRoute>} />
-            <Route path="/impact" element={<ProtectedRoute><ImpactLedger /></ProtectedRoute>} />
+            <Route path="/impact" element={<ProtectedRoute adminOnly><ImpactLedger /></ProtectedRoute>} />
             <Route path="/glossary" element={<ProtectedRoute><Glossary /></ProtectedRoute>} />
             <Route path="/training" element={<ProtectedRoute><TrainingHub /></ProtectedRoute>} />
             <Route path="/docs" element={<Documentation />} />

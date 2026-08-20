@@ -1,5 +1,21 @@
 import React, { useState, useRef, useEffect } from 'react'
 
+// Preferred first. Every entry's extension is in ALLOWED_EXTENSIONS
+// (backend/config.py), so whichever the browser picks will be accepted.
+const MIME_CANDIDATES = [
+  'audio/webm;codecs=opus',
+  'audio/webm',
+  'audio/ogg;codecs=opus',
+  'audio/mp4',
+]
+
+const EXT_FOR_MIME = {
+  'audio/webm': 'webm',
+  'audio/ogg': 'ogg',
+  'audio/mp4': 'm4a',
+  'audio/wav': 'wav',
+}
+
 export default function VoiceRecorder({ onRecordingComplete, onCancel }) {
   const [isRecording, setIsRecording] = useState(false)
   const [duration, setDuration] = useState(0)
@@ -20,7 +36,14 @@ export default function VoiceRecorder({ onRecordingComplete, onCancel }) {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       chunksRef.current = []
-      const mediaRecorder = new MediaRecorder(stream)
+      // MediaRecorder never produces WAV — Chrome gives WebM/Opus, Safari
+      // gives MP4/AAC. Labelling that ".wav" shipped a mislabelled container
+      // to the pipeline; ask for what the browser supports and name the file
+      // after what actually comes back.
+      const mimeType = MIME_CANDIDATES.find(
+        t => typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported?.(t)
+      )
+      const mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined)
       mediaRecorderRef.current = mediaRecorder
 
       mediaRecorder.ondataavailable = (e) => {
@@ -28,11 +51,13 @@ export default function VoiceRecorder({ onRecordingComplete, onCancel }) {
       }
 
       mediaRecorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: 'audio/wav' })
+        const actualType = mediaRecorder.mimeType || mimeType || 'audio/webm'
+        const blob = new Blob(chunksRef.current, { type: actualType })
         const url = URL.createObjectURL(blob)
         setAudioBlob(blob)
         setAudioUrl(url)
-        const file = new File([blob], `mic_recording_${Date.now()}.wav`, { type: 'audio/wav' })
+        const ext = EXT_FOR_MIME[actualType.split(';')[0]] || 'webm'
+        const file = new File([blob], `mic_recording_${Date.now()}.${ext}`, { type: actualType })
         onRecordingComplete(file)
         stream.getTracks().forEach(t => t.stop())
       }

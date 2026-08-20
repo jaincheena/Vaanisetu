@@ -244,6 +244,60 @@ async def preview_job(job_id: str, current_user: dict = Depends(get_current_user
     }
 
 
+_FILE_MEDIA_TYPES = {
+    ".txt":  "text/plain; charset=utf-8",
+    ".srt":  "application/x-subrip",
+    ".vtt":  "text/vtt",
+    ".csv":  "text/csv; charset=utf-8",
+    ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ".mp3":  "audio/mpeg",
+    ".wav":  "audio/wav",
+    ".mp4":  "video/mp4",
+    ".png":  "image/png",
+    ".json": "application/json",
+}
+
+
+@router.get("/{job_id}/file/{filename}")
+async def download_job_file(job_id: str, filename: str, current_user: dict = Depends(get_current_user)):
+    """
+    Download one artifact from a finished job by name.
+
+    Field officers need the DOCX handout or the SMS text on its own, without
+    pulling the whole multi-channel ZIP over a rural connection.
+
+    `filename` is only ever matched against the archive's own entry list, so a
+    traversal attempt simply fails to match and 404s.
+    """
+    import zipfile
+    from fastapi import Response
+
+    zip_p = str(job_zip_path(job_id))
+    if not os.path.exists(zip_p):
+        raise HTTPException(404, "Job outputs not found")
+
+    try:
+        with zipfile.ZipFile(zip_p, "r") as z:
+            if filename not in z.namelist():
+                raise HTTPException(404, f"{filename} not found in job outputs")
+            payload = z.read(filename)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.warning(f"Error reading {filename} from ZIP for {job_id}: {e}")
+        raise HTTPException(500, "Could not read job outputs")
+
+    media_type = _FILE_MEDIA_TYPES.get(Path(filename).suffix.lower(), "application/octet-stream")
+    return Response(
+        content=payload,
+        media_type=media_type,
+        headers={
+            "Content-Length": str(len(payload)),
+            "Content-Disposition": f'attachment; filename="{Path(filename).name}"',
+        },
+    )
+
+
 @router.get("/{job_id}/audio/{lang_name}")
 async def stream_audio_file(job_id: str, lang_name: str):
     """Stream translated MP3 audio directly with proper HTTP range support."""

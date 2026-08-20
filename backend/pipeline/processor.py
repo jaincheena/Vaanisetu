@@ -131,6 +131,12 @@ def run_pipeline(job_id: str) -> None:
 
         check_cancelled(job_id)
         segments, detected_whisper_lang_code = _stage_transcribing(job_id, wav_path, source_lang, upload_path, resource_saver)
+
+        # Length of the advisory itself, for the Impact Ledger. Recorded here
+        # rather than derived from started_at/completed_at, which measures how
+        # long this laptop took to think — a slower machine must not report
+        # more reach.
+        _update_job(job_id, media_duration_s=_content_duration(wav_path, segments))
         
         check_cancelled(job_id)
         # Pipelined Translation & Generation
@@ -166,6 +172,27 @@ def run_pipeline(job_id: str) -> None:
         CANCELLED_JOBS.discard(job_id)
         _cleanup_job(job_id, upload_path)
 
+
+
+def _content_duration(wav_path: Optional[str], segments: list[dict]) -> float:
+    """
+    Length of the source advisory in seconds.
+
+    Audio and video are measured directly. Text and documents have no runtime,
+    so they are estimated from word count at 130 wpm — roughly the pace of a
+    narrated field advisory, and the length the generated voice note will be.
+    """
+    if wav_path:
+        try:
+            from backend.pipeline.audio_extractor import get_media_duration_seconds
+            measured = get_media_duration_seconds(wav_path)
+            if measured and measured > 0:
+                return round(float(measured), 2)
+        except Exception as e:
+            logger.warning(f"Could not measure media duration: {e}")
+
+    words = sum(len(s.get("text", "").split()) for s in segments)
+    return round(words / 130.0 * 60.0, 2)
 
 def _cleanup_job(job_id: str, upload_path: Optional[str]) -> None:
     """Edge Case Optimization: Prevent disk space exhaustion by clearing intermediate files."""
