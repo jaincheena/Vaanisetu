@@ -105,8 +105,8 @@ export default function Glossary() {
     <div>
       <div className="page-header flex items-center justify-between">
         <div>
-          <h2>AgriShield™ Domain Glossary & Translation Memory</h2>
-          <p>Standardized, verified agricultural terms preserved during AI translation</p>
+          <h2>AgriShield™ Domain Glossary <span style={{ color: '#D97706', fontSize: 18, fontWeight: 700 }}>(वाणीसेतु सुरक्षित शब्दावली)</span></h2>
+          <p>120+ verified agricultural formulations, fertilizers, cattle vaccines, and government schemes protected in 14 Indic scripts</p>
         </div>
         <div className="flex gap-2">
           <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
@@ -215,11 +215,11 @@ export default function Glossary() {
       {showAddModal && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center',
           zIndex: 9999, padding: 20
         }}>
-          <div className="card" style={{ width: '100%', maxWidth: 480, background: 'var(--bg-surface)', border: '1px solid var(--accent)' }}>
-            <h3 style={{ margin: '0 0 16px 0', fontSize: 18 }}>➕ Add Verified Agricultural Term</h3>
+          <div className="card" style={{ width: '100%', maxWidth: 480, background: '#111C30', border: '1.5px solid rgba(245, 158, 11, 0.4)', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.8)' }}>
+            <h3 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#F8FAFC', fontWeight: 800 }}>➕ Add Verified Agricultural Term</h3>
             <form onSubmit={handleAddTerm}>
               <div className="mb-3">
                 <label>Source Term (e.g. English chemical or disease name)</label>

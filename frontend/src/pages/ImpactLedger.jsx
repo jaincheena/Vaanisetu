@@ -82,8 +82,8 @@ export default function ImpactLedger() {
     <div>
       <div className="page-header flex items-center justify-between">
         <div>
-          <h2>Impact Ledger</h2>
-          <p>Advisory output, cost avoided against agency rates, and the reach it makes possible</p>
+          <h2>Impact & Reach Ledger <span style={{ color: '#D97706', fontSize: 18, fontWeight: 700 }}>(वाणीसेतु प्रभाव लेज़र)</span></h2>
+          <p>Tracking multi-lingual advisory output, commercial translation savings, and rural farmer reach across 16 states</p>
         </div>
         <a
           className="btn btn-secondary"

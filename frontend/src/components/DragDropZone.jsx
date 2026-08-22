@@ -41,6 +41,18 @@ export default function DragDropZone({ onFile, accept }) {
       id="file-drop-zone"
       tabIndex={0}
       onKeyDown={e => e.key === 'Enter' && inputRef.current && inputRef.current.click()}
+      style={{
+        position: 'relative',
+        overflow: 'hidden',
+        background: 'linear-gradient(180deg, #0B1120 0%, #080D18 100%)',
+        border: dragging ? '2px dashed #10B981' : '1.5px dashed rgba(255, 255, 255, 0.2)',
+        borderRadius: 16,
+        padding: '36px 20px',
+        textAlign: 'center',
+        cursor: 'pointer',
+        boxShadow: dragging ? '0 0 30px rgba(16, 185, 129, 0.35)' : 'inset 0 2px 6px rgba(0, 0, 0, 0.7), 0 1px 0 rgba(255, 255, 255, 0.08)',
+        transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
+      }}
     >
       <input
         ref={inputRef}
@@ -51,18 +63,81 @@ export default function DragDropZone({ onFile, accept }) {
         id="file-input"
       />
 
+      {/* Moving Acoustic Scanner Beam */}
+      <div style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: '40%',
+        background: 'linear-gradient(180deg, rgba(16, 185, 129, 0.12) 0%, transparent 100%)',
+        animation: 'radarSweep 4s ease-in-out infinite',
+        pointerEvents: 'none'
+      }} />
+
       {selected ? (
-        <div>
-          <div className="drop-icon">{ICONS[detectType(selected.name)]}</div>
-          <p style={{ fontWeight: 600, color: 'var(--text)' }}>{selected.name}</p>
-          <p className="drop-hint mt-2">{fmtSize(selected.size)} · Click to change</p>
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          <div style={{
+            fontSize: 44,
+            marginBottom: 10,
+            animation: 'iconBob 3.5s ease-in-out infinite',
+            filter: 'drop-shadow(0 0 14px #10B981)'
+          }}>
+            {ICONS[detectType(selected.name)]}
+          </div>
+          <p style={{ fontWeight: 800, color: '#F8FAFC', fontSize: 15, margin: 0 }}>
+            {selected.name}
+          </p>
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 8,
+            marginTop: 8,
+            background: 'rgba(16, 185, 129, 0.2)',
+            border: '1px solid rgba(52, 211, 153, 0.4)',
+            borderRadius: 20,
+            padding: '3px 12px',
+            fontSize: 12,
+            color: '#86EFAC',
+            fontWeight: 700
+          }}>
+            <span>✓ {fmtSize(selected.size)}</span>
+            <span>·</span>
+            <span>Click or Drop to Replace</span>
+          </div>
         </div>
       ) : (
-        <div>
-          <div className="drop-icon">📁</div>
-          <p>Drag & drop your file here, or <span style={{ color: 'var(--green-accent)' }}>browse</span></p>
-          <p className="drop-hint">Video · Audio · Text · Max 2 GB</p>
-          <p className="drop-hint">Works offline — no internet required</p>
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          {/* Animated 3D Floating Upload Icon */}
+          <div style={{
+            width: 58,
+            height: 58,
+            borderRadius: 18,
+            background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.25) 0%, rgba(16, 185, 129, 0.3) 100%)',
+            border: '1.5px solid rgba(245, 158, 11, 0.5)',
+            boxShadow: '0 8px 24px rgba(245, 158, 11, 0.3)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: 28,
+            marginBottom: 14,
+            animation: 'iconBob 3.5s ease-in-out infinite'
+          }}>
+            📁
+          </div>
+
+          <p style={{ fontSize: 14.5, color: '#F8FAFC', fontWeight: 700, margin: '0 0 6px 0' }}>
+            Drag & drop your agricultural advisory, or <span style={{ color: '#F59E0B', textDecoration: 'underline' }}>browse</span>
+          </p>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 12, fontSize: 12, color: '#94A3B8', fontWeight: 600, marginTop: 4 }}>
+            <span>🎬 HD Video</span>
+            <span>·</span>
+            <span>🎙️ Field Audio</span>
+            <span>·</span>
+            <span>📄 Advisory Text</span>
+            <span>·</span>
+            <span>⚡ Max 2 GB</span>
+          </div>
         </div>
       )}
     </div>

@@ -7,15 +7,18 @@
 <title>VaaniSetu Documentation</title>
 <style>
   :root {
-    --bg-light: #F7F9F7;
-    --card-bg: #FFFFFF;
-    --border-color: #E2E8F0;
-    --accent: #2F855A;
-    --accent-blue: #3182CE;
-    --text-primary: #2D3748;
-    --text-muted: #718096;
-    --shadow-soft: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-    --shadow-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+    --bg-light: #090E1A;
+    --card-bg: #111C30;
+    --card-hover-bg: #16243E;
+    --border-color: rgba(255, 255, 255, 0.12);
+    --accent: #10B981;
+    --accent-gold: #F59E0B;
+    --accent-blue: #38BDF8;
+    --text-primary: #F8FAFC;
+    --text-muted: #94A3B8;
+    --text-body: #CBD5E1;
+    --shadow-soft: 0 8px 24px -4px rgba(0, 0, 0, 0.6);
+    --shadow-hover: 0 16px 36px -4px rgba(0, 0, 0, 0.8), 0 0 20px rgba(245, 158, 11, 0.2);
   }
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -49,6 +52,7 @@
     letter-spacing: 0.5px;
     margin-bottom: 12px;
     font-weight: 800;
+    color: var(--text-primary);
   }
 
   .bento-header p {
@@ -72,7 +76,7 @@
     padding: 32px;
     cursor: pointer;
     box-shadow: var(--shadow-soft);
-    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease, border-color 0.3s ease;
     display: flex;
     flex-direction: column;
   }
@@ -80,14 +84,16 @@
   .bento-card:hover {
     transform: translateY(-8px);
     box-shadow: var(--shadow-hover);
-    border-color: var(--accent);
+    border-color: var(--accent-gold);
+    background: var(--card-hover-bg);
   }
 
   .bento-icon {
-    font-size: 26px;
+    font-size: 24px;
     font-weight: 800;
-    color: var(--accent);
-    background: #F0FFF4;
+    color: #34D399;
+    background: rgba(16, 185, 129, 0.2);
+    border: 1px solid rgba(16, 185, 129, 0.3);
     width: 60px;
     height: 60px;
     display: flex;
@@ -113,8 +119,8 @@
   #modal-container {
     position: fixed;
     top: 0; left: 0; width: 100vw; height: 100vh;
-    background: rgba(247, 249, 247, 0.85);
-    backdrop-filter: blur(8px);
+    background: rgba(9, 14, 26, 0.88);
+    backdrop-filter: blur(12px);
     z-index: 100;
     overflow-y: auto;
     opacity: 0;
@@ -133,9 +139,9 @@
     max-width: 850px;
     margin: 60px auto;
     background: var(--card-bg);
-    border: 1px solid var(--border-color);
+    border: 1.5px solid rgba(245, 158, 11, 0.4);
     border-radius: 20px;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 25px 60px -12px rgba(0, 0, 0, 0.9);
     position: relative;
     padding-bottom: 40px;
   }
@@ -145,9 +151,9 @@
     top: 24px;
     float: right;
     margin: 24px 24px 0 0;
-    background: #F1F5F9;
-    border: none;
-    color: var(--text-muted);
+    background: #1E293B;
+    border: 1px solid var(--border-color);
+    color: #F8FAFC;
     padding: 10px 20px;
     border-radius: 24px;
     font-weight: 700;
@@ -158,8 +164,9 @@
   }
 
   .close-btn:hover {
-    background: #E2E8F0;
-    color: var(--text-primary);
+    background: #334155;
+    color: #F59E0B;
+    border-color: #F59E0B;
   }
 
   /* Markdown Typography (Inside Modal) */
@@ -172,36 +179,36 @@
   }
 
   h1 { font-size: 36px; color: var(--text-primary); margin-bottom: 12px; font-weight: 800; line-height: 1.2; }
-  h2 { font-size: 24px; color: var(--accent); margin: 40px 0 16px; border-bottom: 2px solid #F0FFF4; padding-bottom: 8px; font-weight: 700; }
+  h2 { font-size: 24px; color: var(--accent-gold); margin: 40px 0 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); padding-bottom: 8px; font-weight: 700; }
   h3 { font-size: 18px; color: var(--text-primary); margin: 28px 0 10px; font-weight: 700; }
   h4 { font-size: 16px; color: var(--text-muted); margin: 16px 0 6px; }
-  p  { color: #4A5568; margin-bottom: 16px; font-size: 16px; line-height: 1.7; }
+  p  { color: var(--text-body); margin-bottom: 16px; font-size: 16px; line-height: 1.7; }
   a  { color: var(--accent-blue); text-decoration: none; font-weight: 600; }
-  a:hover { text-decoration: underline; }
+  a:hover { text-decoration: underline; color: #7DD3FC; }
 
   /* Tables */
-  table { width: 100%; border-collapse: collapse; margin: 24px 0; font-size: 15px; background: #FFFFFF; border-radius: 12px; overflow: hidden; border: 1px solid var(--border-color); }
-  th { background: #F8FAFC; color: var(--text-muted); text-align: left; padding: 14px 18px; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border-color); }
-  td { padding: 14px 18px; border-bottom: 1px solid var(--border-color); color: #2D3748; }
+  table { width: 100%; border-collapse: collapse; margin: 24px 0; font-size: 15px; background: #0B1120; border-radius: 12px; overflow: hidden; border: 1px solid var(--border-color); }
+  th { background: #111C30; color: #94A3B8; text-align: left; padding: 14px 18px; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border-color); }
+  td { padding: 14px 18px; border-bottom: 1px solid var(--border-color); color: var(--text-body); }
   tr:last-child td { border-bottom: none; }
-  tr:hover td { background: #F8FAFC; }
+  tr:hover td { background: rgba(255, 255, 255, 0.04); }
 
   /* Code blocks */
   pre, code { font-family: 'Consolas', monospace; }
   pre {
-    background: #F8FAFC;
+    background: #0B1120;
     border: 1px solid var(--border-color);
     border-radius: 12px;
     padding: 20px;
     overflow-x: auto;
     font-size: 14px;
-    color: var(--text-primary);
+    color: #38BDF8;
     margin: 20px 0 28px;
   }
-  code { background: #F1F5F9; padding: 3px 8px; border-radius: 6px; font-size: 85%; color: var(--accent-blue); }
+  code { background: rgba(255, 255, 255, 0.08); padding: 3px 8px; border-radius: 6px; font-size: 85%; color: #38BDF8; }
   pre code { background: transparent; padding: 0; color: inherit; }
 
-  ul, ol { padding-left: 28px; margin-bottom: 16px; color: #4A5568; font-size: 16px; line-height: 1.7; }
+  ul, ol { padding-left: 28px; margin-bottom: 16px; color: var(--text-body); font-size: 16px; line-height: 1.7; }
   li { margin-bottom: 8px; }
 
   /* Callouts */
@@ -213,33 +220,215 @@
     gap: 16px;
     font-size: 15px;
     line-height: 1.6;
-    background: #F8FAFC;
+    background: #0B1120;
     border: 1px solid var(--border-color);
   }
-  .callout-note   { border-left: 5px solid var(--accent-blue); background: #EFF6FF; border-color: #BFDBFE; }
-  .callout-warn   { border-left: 5px solid #F59E0B; background: #FFFBEB; border-color: #FDE68A; }
-  .callout-danger { border-left: 5px solid #E53E3E; background: #FEF2F2; border-color: #FECACA; }
+  .callout-note   { border-left: 5px solid var(--accent-blue); background: rgba(56, 189, 248, 0.1); border-color: rgba(56, 189, 248, 0.3); color: #BAE6FD; }
+  .callout-warn   { border-left: 5px solid var(--accent-gold); background: rgba(245, 158, 11, 0.1); border-color: rgba(245, 158, 11, 0.3); color: #FDE68A; }
+  .callout-danger { border-left: 5px solid #EF4444; background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.3); color: #FCA5A5; }
 
   /* Gamification Quizzes */
-  .quiz-box { background: #F8FAFC; border: 1px solid var(--border-color); border-radius: 12px; padding: 24px; margin: 32px 0; box-shadow: var(--shadow-soft); }
+  .quiz-box { background: #0B1120; border: 1px solid var(--border-color); border-radius: 12px; padding: 24px; margin: 32px 0; box-shadow: var(--shadow-soft); }
   .quiz-title { font-size: 18px; font-weight: 800; color: var(--accent-blue); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
-  .quiz-option { display: block; width: 100%; text-align: left; padding: 14px 18px; background: #FFFFFF; border: 2px solid var(--border-color); border-radius: 8px; margin-bottom: 10px; cursor: pointer; transition: all 0.2s; font-size: 15px; font-weight: 600; color: var(--text-primary); }
-  .quiz-option:hover { background: #F1F5F9; border-color: #CBD5E1; transform: translateX(4px); }
-  .quiz-option.correct { background: #F0FFF4; border-color: #68D391; color: #276749; pointer-events: none; }
-  .quiz-option.incorrect { background: #FEF2F2; border-color: #FC8181; color: #9B2C2C; opacity: 0.6; pointer-events: none; }
-  .quiz-success-msg { display: none; color: #2F855A; font-weight: 800; margin-top: 12px; font-size: 16px; animation: fadeIn 0.4s ease; text-align: center; background: #C6F6D5; padding: 10px; border-radius: 8px; }
+  .quiz-option { display: block; width: 100%; text-align: left; padding: 14px 18px; background: #111C30; border: 1.5px solid var(--border-color); border-radius: 8px; margin-bottom: 10px; cursor: pointer; transition: all 0.2s; font-size: 15px; font-weight: 600; color: var(--text-primary); }
+  .quiz-option:hover { background: #1E293B; border-color: var(--accent-gold); transform: translateX(4px); }
+  .quiz-option.correct { background: rgba(16, 185, 129, 0.25); border-color: #34D399; color: #6EE7B7; pointer-events: none; }
+  .quiz-option.incorrect { background: rgba(239, 68, 68, 0.25); border-color: #EF4444; color: #FCA5A5; opacity: 0.6; pointer-events: none; }
+  .quiz-success-msg { display: none; color: #34D399; font-weight: 800; margin-top: 12px; font-size: 16px; animation: fadeIn 0.4s ease; text-align: center; background: rgba(16, 185, 129, 0.2); padding: 10px; border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.4); }
   
   /* Visual Breakers */
-  .svg-breaker { display: flex; justify-content: center; margin: 40px 0; opacity: 0.95; padding: 20px; background: #F7FAFC; border-radius: 16px; border: 1px solid var(--border-color); }
+  .svg-breaker { display: flex; justify-content: center; margin: 40px 0; opacity: 0.95; padding: 20px; background: #0B1120; border-radius: 16px; border: 1px solid var(--border-color); }
   .svg-breaker svg { max-width: 140px; height: auto; transition: transform 0.3s ease; }
-  .svg-breaker:hover svg { transform: scale(1.05); }
   .svg-breaker:hover svg { transform: scale(1.05); }
 
   /* Translation Toggle */
-  .lang-toggle { position: absolute; top: 24px; right: 24px; display: flex; gap: 8px; background: #FFFFFF; padding: 6px; border-radius: 30px; box-shadow: var(--shadow-soft); border: 1px solid var(--border-color); z-index: 50; }
+  .lang-toggle { position: absolute; top: 24px; right: 24px; display: flex; gap: 8px; background: #0B1120; padding: 6px; border-radius: 30px; box-shadow: var(--shadow-soft); border: 1px solid var(--border-color); z-index: 50; }
   .lang-btn { background: transparent; border: none; padding: 8px 16px; border-radius: 20px; font-weight: 700; font-size: 13px; color: var(--text-muted); cursor: pointer; transition: all 0.2s; }
   .lang-btn:hover { color: var(--text-primary); }
-  .lang-btn.active { background: var(--accent-blue); color: #FFF; }
+  .lang-btn.active { background: #F59E0B; color: #000; font-weight: 800; }
+
+  /* Search & Category Filter Toolbar */
+  .deck-controls {
+    margin-top: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .search-wrap {
+    position: relative;
+    width: 100%;
+    max-width: 580px;
+  }
+
+  .search-icon {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 16px;
+    color: var(--text-muted);
+    pointer-events: none;
+  }
+
+  #deck-search {
+    width: 100%;
+    padding: 12px 18px 12px 46px;
+    background: #0B1120;
+    border: 1.5px solid var(--border-color);
+    border-radius: 30px;
+    color: var(--text-primary);
+    font-size: 14px;
+    outline: none;
+    transition: all 0.2s;
+    box-shadow: var(--shadow-soft);
+  }
+
+  #deck-search:focus {
+    border-color: var(--accent-gold);
+    box-shadow: 0 0 15px rgba(245, 158, 11, 0.3);
+  }
+
+  .category-pills {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .cat-pill {
+    background: #0B1120;
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .cat-pill:hover {
+    color: var(--text-primary);
+    border-color: rgba(255, 255, 255, 0.3);
+  }
+
+  .cat-pill.active {
+    background: rgba(245, 158, 11, 0.2);
+    border-color: var(--accent-gold);
+    color: var(--accent-gold);
+    font-weight: 700;
+  }
+
+  .card-category-badge {
+    align-self: flex-start;
+    font-size: 10.5px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 3px 8px;
+    border-radius: 6px;
+    margin-bottom: 12px;
+  }
+
+  .badge-ai { background: rgba(56, 189, 248, 0.15); color: #38BDF8; border: 1px solid rgba(56, 189, 248, 0.3); }
+  .badge-field { background: rgba(16, 185, 129, 0.15); color: #34D399; border: 1px solid rgba(16, 185, 129, 0.3); }
+  .badge-it { background: rgba(245, 158, 11, 0.15); color: #F59E0B; border: 1px solid rgba(245, 158, 11, 0.3); }
+  .badge-safety { background: rgba(239, 68, 68, 0.15); color: #F87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+
+  /* Modal Navigation Bar */
+  .modal-top-bar {
+    position: sticky;
+    top: 0;
+    background: rgba(17, 28, 48, 0.95);
+    backdrop-filter: blur(8px);
+    padding: 16px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-color);
+    border-radius: 20px 20px 0 0;
+    z-index: 20;
+  }
+
+  .modal-footer-nav {
+    margin: 40px 60px 0;
+    padding-top: 24px;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .btn-nav {
+    background: #0B1120;
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    padding: 8px 18px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .btn-nav:hover:not(:disabled) {
+    background: rgba(245, 158, 11, 0.2);
+    border-color: var(--accent-gold);
+    color: var(--accent-gold);
+  }
+
+  .btn-nav:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+
+  .btn-modal-action {
+    background: #1E293B;
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    padding: 6px 14px;
+    border-radius: 16px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-modal-action:hover {
+    background: #334155;
+    color: var(--accent-gold);
+  }
+
+  /* Pre Code Copy Button */
+  pre {
+    position: relative;
+  }
+
+  .copy-code-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: #1E293B;
+    border: 1px solid var(--border-color);
+    color: #94A3B8;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .copy-code-btn:hover {
+    color: #F8FAFC;
+    background: #334155;
+    border-color: var(--accent-gold);
+  }
 </style>
 </head>
 <body>
@@ -251,25 +440,102 @@
 
 <div class="bento-container">
   <div class="bento-header">
-     <h1><span style="color:var(--accent)" id="header-title">VaaniSetu</span> <span style="font-weight:400; color:var(--text-muted);" id="header-sub">Learning Deck</span></h1>
+     <h1><span style="color:var(--accent)" id="header-title">VaaniSetu</span> <span style="font-weight:700; color:#F59E0B;" id="header-sub">Learning Deck</span></h1>
      <p id="header-desc">Select a learning card to read the plain-English documentation.</p>
+
+     <div class="deck-controls">
+       <div class="search-wrap">
+         <span class="search-icon">🔍</span>
+         <input type="text" id="deck-search" placeholder="Search architecture, commands, RAM settings, AgriShield, IVR..." oninput="filterDeck(this.value)" />
+       </div>
+       <div class="category-pills">
+         <button class="cat-pill active" onclick="filterCategory('all', this)">🌟 All 9 Modules</button>
+         <button class="cat-pill" onclick="filterCategory('ai', this)">🧠 AI & Architecture</button>
+         <button class="cat-pill" onclick="filterCategory('field', this)">🌾 Field Operations</button>
+         <button class="cat-pill" onclick="filterCategory('it', this)">⚙️ IT & Setup</button>
+         <button class="cat-pill" onclick="filterCategory('safety', this)">🛡️ Quality & Safety</button>
+       </div>
+     </div>
   </div>
-  <div class="bento-grid">
-     <div class="bento-card" onclick="openDoc('doc1')"><div class="bento-icon">01</div><h3 id="card1-title">Solution Overview</h3><p id="card1-desc">Platform architecture and core metrics</p></div>
-     <div class="bento-card" onclick="openDoc('doc2')"><div class="bento-icon">02</div><h3 id="card2-title">Assumptions & Scope</h3><p id="card2-desc">Project constraints and license overview</p></div>
-     <div class="bento-card" onclick="openDoc('doc3')"><div class="bento-icon">03</div><h3 id="card3-title">Architecture & Flow</h3><p id="card3-desc">7-stage processing pipeline network</p></div>
-     <div class="bento-card" onclick="openDoc('doc4')"><div class="bento-icon">04</div><h3 id="card4-title">Setup & Installation</h3><p id="card4-desc">Online & USB offline installation guide</p></div>
-     <div class="bento-card" onclick="openDoc('doc5')"><div class="bento-icon">05</div><h3 id="card5-title">Access & Dependencies</h3><p id="card5-desc">Hardware requirements and secure ports</p></div>
-     <div class="bento-card" onclick="openDoc('doc6')"><div class="bento-icon">06</div><h3 id="card6-title">Operating Guide</h3><p id="card6-desc">Daily routines and tactical processing</p></div>
-     <div class="bento-card" onclick="openDoc('doc7')"><div class="bento-icon">07</div><h3 id="card7-title">Limitations & Risks</h3><p id="card7-desc">Known bottlenecks and disaster recovery</p></div>
-     <div class="bento-card" onclick="openDoc('doc8')"><div class="bento-icon">08</div><h3 id="card8-title">Training Plan</h3><p id="card8-desc">90-day adoption roadmap and scenarios</p></div>
-     <div class="bento-card" onclick="openDoc('doc9')"><div class="bento-icon">09</div><h3 id="card9-title">Staff FAQ</h3><p id="card9-desc">Common questions for field officers</p></div>
+
+  <div class="bento-grid" id="bento-grid">
+     <div class="bento-card" data-cat="ai" data-doc="doc1" onclick="openDoc('doc1')">
+       <span class="card-category-badge badge-ai">Architecture</span>
+       <div class="bento-icon">01</div>
+       <h3 id="card1-title">Solution Overview</h3>
+       <p id="card1-desc">Platform architecture and core metrics</p>
+     </div>
+
+     <div class="bento-card" data-cat="safety" data-doc="doc2" onclick="openDoc('doc2')">
+       <span class="card-category-badge badge-safety">Scope & Safety</span>
+       <div class="bento-icon">02</div>
+       <h3 id="card2-title">Assumptions & Scope</h3>
+       <p id="card2-desc">Project constraints and license overview</p>
+     </div>
+
+     <div class="bento-card" data-cat="ai" data-doc="doc3" onclick="openDoc('doc3')">
+       <span class="card-category-badge badge-ai">Pipeline Flow</span>
+       <div class="bento-icon">03</div>
+       <h3 id="card3-title">Architecture & Flow</h3>
+       <p id="card3-desc">7-stage processing pipeline network</p>
+     </div>
+
+     <div class="bento-card" data-cat="it" data-doc="doc4" onclick="openDoc('doc4')">
+       <span class="card-category-badge badge-it">Installation</span>
+       <div class="bento-icon">04</div>
+       <h3 id="card4-title">Setup & Installation</h3>
+       <p id="card4-desc">Online & USB offline installation guide</p>
+     </div>
+
+     <div class="bento-card" data-cat="it" data-doc="doc5" onclick="openDoc('doc5')">
+       <span class="card-category-badge badge-it">System Admin</span>
+       <div class="bento-icon">05</div>
+       <h3 id="card5-title">Access & Dependencies</h3>
+       <p id="card5-desc">Hardware requirements and secure ports</p>
+     </div>
+
+     <div class="bento-card" data-cat="field" data-doc="doc6" onclick="openDoc('doc6')">
+       <span class="card-category-badge badge-field">Operations</span>
+       <div class="bento-icon">06</div>
+       <h3 id="card6-title">Operating Guide</h3>
+       <p id="card6-desc">Daily routines and tactical processing</p>
+     </div>
+
+     <div class="bento-card" data-cat="it" data-doc="doc7" onclick="openDoc('doc7')">
+       <span class="card-category-badge badge-it">Resilience</span>
+       <div class="bento-icon">07</div>
+       <h3 id="card7-title">Limitations & Risks</h3>
+       <p id="card7-desc">Known bottlenecks and disaster recovery</p>
+     </div>
+
+     <div class="bento-card" data-cat="field" data-doc="doc8" onclick="openDoc('doc8')">
+       <span class="card-category-badge badge-field">Rollout</span>
+       <div class="bento-icon">08</div>
+       <h3 id="card8-title">Training Plan</h3>
+       <p id="card8-desc">90-day adoption roadmap and scenarios</p>
+     </div>
+
+     <div class="bento-card" data-cat="field" data-doc="doc9" onclick="openDoc('doc9')">
+       <span class="card-category-badge badge-field">Staff Help</span>
+       <div class="bento-icon">09</div>
+       <h3 id="card9-title">Staff FAQ</h3>
+       <p id="card9-desc">Common questions for field officers</p>
+     </div>
   </div>
 </div>
 
 <div id="modal-container" class="modal-hide">
   <div class="modal-content">
-    <button class="close-btn" onclick="closeDoc()">✖ Close Card</button>
+    <div class="modal-top-bar">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 18px;">📖</span>
+        <span id="modal-current-badge" class="card-category-badge badge-ai" style="margin: 0;">Module Guide</span>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <button class="btn-modal-action" onclick="window.print()">🖨️ Print</button>
+        <button class="btn-modal-action" onclick="closeDoc()">✖ Close</button>
+      </div>
+    </div>
 
 <!-- DOC 1 -->
 <section id="doc1" class="doc-section active">
@@ -831,21 +1097,110 @@ CONFIDENCE: 🟢 &gt;98% Cleared  |  🟡 Review Queue  |  🔴 Manual Check
   <p>A dictionary of terms BAIF has translated 3+ times with high confidence — automatically built from your jobs. Click <strong>📄 Export DOCX</strong> to share it with external language reviewers.</p>
 </section>
 
+    <!-- Modal Navigation Footer -->
+    <div class="modal-footer-nav">
+      <button class="btn-nav" id="btn-prev-doc" onclick="navigateDoc(-1)">← Previous Module</button>
+      <span id="doc-counter" style="color: var(--text-muted); font-size: 13px; font-weight: 700;">Module 1 of 9</span>
+      <button class="btn-nav" id="btn-next-doc" onclick="navigateDoc(1)">Next Module →</button>
+    </div>
   </div>
 </div>
 
 <script>
-  function openDoc(id) {
-    document.querySelectorAll('.doc-section').forEach(s => s.classList.remove('active'));
-    document.getElementById(id).classList.add('active');
+  const DOC_IDS = ['doc1', 'doc2', 'doc3', 'doc4', 'doc5', 'doc6', 'doc7', 'doc8', 'doc9'];
+  let currentDocIndex = 0;
+
+  function updateModalNav() {
+    const prevBtn = document.getElementById('btn-prev-doc');
+    const nextBtn = document.getElementById('btn-next-doc');
+    const counter = document.getElementById('doc-counter');
+    const badge = document.getElementById('modal-current-badge');
     
+    if (counter) counter.innerText = `Module ${currentDocIndex + 1} of ${DOC_IDS.length}`;
+    if (prevBtn) prevBtn.disabled = (currentDocIndex === 0);
+    if (nextBtn) nextBtn.disabled = (currentDocIndex === DOC_IDS.length - 1);
+
+    const activeCard = document.querySelector(`.bento-card[data-doc="${DOC_IDS[currentDocIndex]}"]`);
+    if (activeCard && badge) {
+      const cardBadge = activeCard.querySelector('.card-category-badge');
+      if (cardBadge) {
+        badge.className = cardBadge.className;
+        badge.innerText = cardBadge.innerText;
+      }
+    }
+  }
+
+  function openDoc(id) {
+    const idx = DOC_IDS.indexOf(id);
+    if (idx !== -1) currentDocIndex = idx;
+
+    document.querySelectorAll('.doc-section').forEach(s => s.classList.remove('active'));
+    const target = document.getElementById(id);
+    if (target) target.classList.add('active');
+    
+    updateModalNav();
     const modal = document.getElementById('modal-container');
     modal.className = 'modal-show';
     modal.scrollTop = 0; // Scroll back to top on open
   }
 
+  function navigateDoc(direction) {
+    const newIdx = currentDocIndex + direction;
+    if (newIdx >= 0 && newIdx < DOC_IDS.length) {
+      openDoc(DOC_IDS[newIdx]);
+    }
+  }
+
   function closeDoc() {
     document.getElementById('modal-container').className = 'modal-hide';
+  }
+
+  function filterDeck(query) {
+    const q = (query || '').toLowerCase().trim();
+    const cards = document.querySelectorAll('.bento-card');
+    cards.forEach(card => {
+      const title = card.querySelector('h3')?.innerText?.toLowerCase() || '';
+      const desc = card.querySelector('p')?.innerText?.toLowerCase() || '';
+      const badge = card.querySelector('.card-category-badge')?.innerText?.toLowerCase() || '';
+      if (!q || title.includes(q) || desc.includes(q) || badge.includes(q)) {
+        card.style.display = 'flex';
+      } else {
+        card.style.display = 'none';
+      }
+    });
+  }
+
+  function filterCategory(category, btn) {
+    document.querySelectorAll('.cat-pill').forEach(p => p.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+
+    const cards = document.querySelectorAll('.bento-card');
+    cards.forEach(card => {
+      const cat = card.getAttribute('data-cat');
+      if (category === 'all' || cat === category) {
+        card.style.display = 'flex';
+      } else {
+        card.style.display = 'none';
+      }
+    });
+  }
+
+  function initCopyButtons() {
+    document.querySelectorAll('pre').forEach(pre => {
+      if (pre.querySelector('.copy-code-btn')) return;
+      const btn = document.createElement('button');
+      btn.className = 'copy-code-btn';
+      btn.innerText = '📋 Copy';
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        const code = pre.querySelector('code')?.innerText || pre.innerText.replace('📋 Copy', '').trim();
+        navigator.clipboard.writeText(code).then(() => {
+          btn.innerText = '✓ Copied!';
+          setTimeout(() => { btn.innerText = '📋 Copy'; }, 2000);
+        }).catch(() => {});
+      };
+      pre.appendChild(btn);
+    });
   }
 
   function checkAnswer(quizId, btnElement, isCorrect) {
@@ -861,12 +1216,11 @@ CONFIDENCE: 🟢 &gt;98% Cleared  |  🟡 Review Queue  |  🔴 Manual Check
     if (isCorrect) {
       btnElement.classList.add('correct');
       const successMsg = quizBox.querySelector('.quiz-success-msg');
-      successMsg.style.display = 'block';
+      if (successMsg) successMsg.style.display = 'block';
     } else {
       btnElement.classList.add('incorrect');
-      // Highlight correct one
       options.forEach(opt => {
-        if (opt.getAttribute('onclick').includes('true')) {
+        if (opt.getAttribute('onclick')?.includes('true')) {
           opt.classList.add('correct');
         }
       });
@@ -1583,6 +1937,7 @@ CONFIDENCE:  🟢 ≥85% ready  |  🟡 65-84% review  |  🔴 &lt;65% manual</p
         i18n.en[mapId] = contentDiv.innerHTML;
       }
     });
+    initCopyButtons();
   };
 
   function setLanguage(lang) {

@@ -60,8 +60,8 @@ export default function ReviewQueue() {
     <div>
       <div className="page-header flex items-center justify-between">
         <div>
-          <h2>Review Queue</h2>
-          <p>Amber and red confidence segments awaiting human review & verification</p>
+          <h2>Review & Verification Queue <span style={{ color: '#D97706', fontSize: 18, fontWeight: 700 }}>(सत्यापन कतार)</span></h2>
+          <p>Confidence Gate: Agronomist verification queue ensuring 100% precision on chemical dosages and technical terms</p>
         </div>
         {stats && (
           <div className="flex gap-2">
@@ -78,33 +78,112 @@ export default function ReviewQueue() {
         </div>
       )}
 
-      {/* Reviewer name + filter */}
-      <div className="card mb-4">
-        <div className="flex items-center gap-3" style={{ flexWrap: 'wrap' }}>
-          <div style={{ minWidth: 200 }}>
-            <label>Reviewer Name</label>
-            <input
-              className="text-input"
-              id="reviewer-name"
-              type="text"
-              value={reviewer}
-              onChange={e => setReviewer(e.target.value)}
-              placeholder="e.g. Dr. Patil (BAIF Pune HQ)"
-            />
+      {/* ── Modern Reviewer Signature & Filter Toolbar (Dark Theme) ── */}
+      <div className="card mb-6" style={{ padding: '20px 24px', background: '#111C30', borderRadius: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16, marginBottom: 18 }}>
+          {/* Reviewer Signature Field */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 280 }}>
+            <div style={{
+              width: 40,
+              height: 40,
+              borderRadius: 10,
+              background: 'rgba(245, 158, 11, 0.2)',
+              color: '#FBBF24',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 20,
+              flexShrink: 0
+            }}>
+              👨‍🔬
+            </div>
+            <div style={{ flex: 1 }}>
+              <label style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: 4 }}>
+                Reviewer Signature & Identity
+              </label>
+              <input
+                className="text-input"
+                id="reviewer-name"
+                type="text"
+                value={reviewer}
+                onChange={e => setReviewer(e.target.value)}
+                placeholder="e.g. Dr. Patil (BAIF Pune HQ Agronomist)"
+                style={{ padding: '8px 12px', fontSize: 13.5, fontWeight: 600 }}
+              />
+            </div>
           </div>
-          <div style={{ minWidth: 160 }}>
-            <label>Status Filter</label>
-            <select id="status-filter" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
-              <option value="pending">Pending ({stats?.pending || 0})</option>
-              <option value="approved">Approved ({stats?.approved || 0})</option>
-              <option value="edited">Edited ({stats?.edited || 0})</option>
-              <option value="rejected">Rejected ({stats?.rejected || 0})</option>
-              <option value="all">All ({stats?.total || 0})</option>
-            </select>
+
+          {/* Action Tools */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <button
+              className="btn btn-secondary"
+              onClick={load}
+              type="button"
+              style={{ fontSize: 13, padding: '8px 16px', borderRadius: 8 }}
+            >
+              ↻ Refresh
+            </button>
+            <button
+              className="btn btn-secondary"
+              onClick={handleClearTest}
+              type="button"
+              title="Purge legacy test entries"
+              style={{ fontSize: 13, padding: '8px 16px', borderRadius: 8 }}
+            >
+              🧹 Clean Stale Items
+            </button>
           </div>
-          <div style={{ alignSelf: 'flex-end', display: 'flex', gap: 8 }}>
-            <button className="btn btn-secondary" onClick={load}>↻ Refresh</button>
-            <button className="btn btn-secondary" onClick={handleClearTest} title="Purge legacy test entries">🧹 Clean Stale Items</button>
+        </div>
+
+        {/* Segmented Status Filter Tabs */}
+        <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.08)', paddingTop: 16 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>
+            Filter by Verification Status:
+          </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {[
+              { key: 'pending', label: '⏳ Pending', count: stats?.pending || 0, color: '#FBBF24', bg: 'rgba(245, 158, 11, 0.25)' },
+              { key: 'approved', label: '✓ Approved', count: stats?.approved || 0, color: '#34D399', bg: 'rgba(16, 185, 129, 0.25)' },
+              { key: 'edited', label: '✏️ Edited', count: stats?.edited || 0, color: '#A5B4FC', bg: 'rgba(99, 102, 241, 0.25)' },
+              { key: 'rejected', label: '✗ Rejected', count: stats?.rejected || 0, color: '#F87171', bg: 'rgba(239, 68, 68, 0.25)' },
+              { key: 'all', label: '📋 All Items', count: stats?.total || 0, color: '#CBD5E1', bg: 'rgba(255, 255, 255, 0.1)' },
+            ].map(tab => {
+              const isSelected = statusFilter === tab.key
+              return (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => setStatusFilter(tab.key)}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    padding: '8px 16px',
+                    borderRadius: 20,
+                    fontSize: 13,
+                    fontWeight: isSelected ? 700 : 600,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    border: `1.5px solid ${isSelected ? tab.color : 'rgba(255, 255, 255, 0.1)'}`,
+                    background: isSelected ? tab.bg : '#0B1120',
+                    color: isSelected ? tab.color : '#94A3B8',
+                    boxShadow: isSelected ? `0 2px 10px ${tab.color}35` : 'none'
+                  }}
+                >
+                  <span>{tab.label}</span>
+                  <span style={{
+                    fontSize: 11,
+                    fontWeight: 800,
+                    padding: '2px 7px',
+                    borderRadius: 12,
+                    background: isSelected ? 'rgba(0, 0, 0, 0.4)' : 'rgba(255, 255, 255, 0.08)',
+                    color: isSelected ? tab.color : '#94A3B8'
+                  }}>
+                    {tab.count}
+                  </span>
+                </button>
+              )
+            })}
           </div>
         </div>
       </div>

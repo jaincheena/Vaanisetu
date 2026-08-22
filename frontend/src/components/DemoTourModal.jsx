@@ -39,8 +39,8 @@ export default function DemoTourModal({ onClose, onSelectScenario }) {
     <div style={{
       position: 'fixed',
       inset: 0,
-      background: 'rgba(0,0,0,0.82)',
-      backdropFilter: 'blur(8px)',
+      background: 'rgba(15, 23, 42, 0.45)',
+      backdropFilter: 'blur(6px)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -48,14 +48,14 @@ export default function DemoTourModal({ onClose, onSelectScenario }) {
       padding: 20
     }}>
       <div style={{
-        background: 'var(--bg-card)',
-        border: '1px solid var(--border)',
+        background: '#111C30',
+        border: '1.5px solid rgba(245, 158, 11, 0.4)',
         borderRadius: 'var(--radius)',
         maxWidth: 760,
         width: '100%',
         maxHeight: '90vh',
         overflowY: 'auto',
-        boxShadow: '0 24px 48px rgba(0,0,0,0.6)',
+        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.8)',
         display: 'flex',
         flexDirection: 'column'
       }}>
@@ -66,16 +66,20 @@ export default function DemoTourModal({ onClose, onSelectScenario }) {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          background: 'var(--bg-card-hover)'
+          background: '#0B1120'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontSize: 24 }}>🌱</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div className="brand-3d-emblem" style={{ width: 40, height: 40, fontSize: 20, borderRadius: 10 }}>
+              <span>🌱</span>
+            </div>
             <div>
-              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'var(--text)' }}>
-                VaaniSetu — Field Officer & Trainer Platform Guide
+              <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: '#F8FAFC', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span>VaaniSetu</span>
+                <span className="brand-3d-devanagari">वाणीसेतु</span>
+                <span style={{ fontSize: 12, fontWeight: 600, color: '#94A3B8' }}>— Field Trainer Guide</span>
               </h3>
-              <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted)' }}>
-                Interactive Walkthrough · Bharatiya Agro Industries Foundation (BAIF)
+              <p style={{ margin: '2px 0 0', fontSize: 11.5, color: '#34D399', fontWeight: 700, letterSpacing: '0.4px' }}>
+                BAIF AGRO VOICE BRIDGE · INTERACTIVE PLATFORM TOUR
               </p>
             </div>
           </div>
@@ -139,7 +143,7 @@ export default function DemoTourModal({ onClose, onSelectScenario }) {
                       textAlign: 'center',
                       padding: '8px 4px',
                       borderRadius: 'var(--radius-sm)',
-                      background: step === s.num ? 'rgba(232,146,74,0.15)' : 'var(--bg-input)',
+                      background: step === s.num ? 'rgba(245,158,11,0.2)' : 'var(--bg-input)',
                       border: `1px solid ${step === s.num ? 'var(--accent)' : 'var(--border)'}`,
                       cursor: 'pointer',
                       transition: 'all 0.2s'
@@ -174,13 +178,13 @@ export default function DemoTourModal({ onClose, onSelectScenario }) {
                       {cur.desc}
                     </p>
                     <div style={{
-                      background: 'rgba(82, 196, 135, 0.1)',
-                      border: '1px solid rgba(82, 196, 135, 0.3)',
+                      background: 'rgba(16, 185, 129, 0.2)',
+                      border: '1px solid rgba(16, 185, 129, 0.4)',
                       borderRadius: 6,
                       padding: '10px 14px',
-                      color: '#52C487',
+                      color: '#34D399',
                       fontSize: 13,
-                      fontWeight: 600
+                      fontWeight: 700
                     }}>
                       ✓ Field Benefit: {cur.highlight}
                     </div>

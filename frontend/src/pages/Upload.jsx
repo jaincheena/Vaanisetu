@@ -338,26 +338,27 @@ export default function Upload() {
       {/* ── Page Header ── */}
       <div className="page-header flex items-center justify-between">
         <div>
-          <h2>Translation & Localization Studio</h2>
-          <p>Translate agricultural videos, audio notes, and farm advisories with voice match</p>
+          <h2>Advisory Localization Studio <span style={{ color: '#D97706', fontSize: 18, fontWeight: 700 }}>(वाणीसेतु स्टूडियो)</span></h2>
+          <p>Localize agricultural videos, farmer voice notes, and field advisories with voice match & subtitle burning</p>
         </div>
       </div>
 
-      {/* ── 3-Step Field Advisory Guide Banner ── */}
+      {/* ── 3-Step Field Advisory Quick Guide (Dark Theme) ── */}
       {!result && !submitting && (
         <div className="card mb-4" style={{
-          background: 'linear-gradient(135deg, rgba(82, 196, 135, 0.08) 0%, rgba(30, 41, 59, 0.5) 100%)',
-          borderColor: 'rgba(82, 196, 135, 0.3)',
-          padding: '14px 18px'
+          background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, #111C30 100%)',
+          borderColor: 'rgba(52, 211, 153, 0.35)',
+          padding: '16px 20px',
+          boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <span style={{ fontSize: 24 }}>💡</span>
               <div>
-                <strong style={{ fontSize: 14, color: 'var(--text)' }}>
+                <strong style={{ fontSize: 14.5, color: '#F8FAFC', fontWeight: 700 }}>
                   3-Step Advisory Localization Guide
                 </strong>
-                <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted)' }}>
+                <p style={{ margin: 0, fontSize: 12.5, color: '#CBD5E1', fontWeight: 500 }}>
                   Translate advisories, veterinary guides, and farmer voice queries in 3 simple steps
                 </p>
               </div>
@@ -375,7 +376,7 @@ export default function Upload() {
                 type="button"
                 className="btn btn-sm btn-secondary"
                 onClick={() => setShowVisualTour(v => !v)}
-                style={{ fontSize: 12, fontWeight: 600 }}
+                style={{ fontSize: 12, fontWeight: 700 }}
               >
                 {showVisualTour ? '▲ Hide Steps' : '▼ Quick Steps'}
               </button>
@@ -383,28 +384,28 @@ export default function Upload() {
           </div>
 
           {showVisualTour && (
-            <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+            <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
-                <div style={{ background: 'var(--bg-input)', padding: '12px 14px', borderRadius: 8, border: '1px solid var(--border)' }}>
+                <div style={{ background: '#0B1120', padding: '14px 16px', borderRadius: 10, border: '1px solid rgba(255, 255, 255, 0.1)', boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)' }}>
                   <div style={{ fontSize: 20, marginBottom: 4 }}>1️⃣ Choose Input</div>
-                  <strong style={{ fontSize: 13, color: 'var(--text)' }}>Upload or Pick Field Preset</strong>
-                  <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '4px 0 0 0', lineHeight: 1.4 }}>
+                  <strong style={{ fontSize: 13.5, color: '#F8FAFC', fontWeight: 700 }}>Upload or Pick Field Preset</strong>
+                  <p style={{ fontSize: 12, color: '#94A3B8', margin: '4px 0 0 0', lineHeight: 1.45, fontWeight: 500 }}>
                     Pick a 1-Click Scenario Preset below, drop an MP4 video / MP3 audio, or paste raw text.
                   </p>
                 </div>
 
-                <div style={{ background: 'var(--bg-input)', padding: '12px 14px', borderRadius: 8, border: '1px solid var(--border)' }}>
+                <div style={{ background: '#0B1120', padding: '14px 16px', borderRadius: 10, border: '1px solid rgba(255, 255, 255, 0.1)', boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)' }}>
                   <div style={{ fontSize: 20, marginBottom: 4 }}>2️⃣ Select Languages & Pack</div>
-                  <strong style={{ fontSize: 13, color: 'var(--text)' }}>Pick Regional Targets</strong>
-                  <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '4px 0 0 0', lineHeight: 1.4 }}>
+                  <strong style={{ fontSize: 13.5, color: '#F8FAFC', fontWeight: 700 }}>Pick Regional Targets</strong>
+                  <p style={{ fontSize: 12, color: '#94A3B8', margin: '4px 0 0 0', lineHeight: 1.45, fontWeight: 500 }}>
                     Choose Marathi 🚩, Hindi, Gujarati, etc. and select your delivery channel preset (WhatsApp, IVR, Print).
                   </p>
                 </div>
 
-                <div style={{ background: 'var(--bg-input)', padding: '12px 14px', borderRadius: 8, border: '1px solid var(--border)' }}>
+                <div style={{ background: '#0B1120', padding: '14px 16px', borderRadius: 10, border: '1px solid rgba(255, 255, 255, 0.1)', boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)' }}>
                   <div style={{ fontSize: 20, marginBottom: 4 }}>3️⃣ Localize & Export</div>
-                  <strong style={{ fontSize: 13, color: 'var(--text)' }}>Preview & Download</strong>
-                  <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '4px 0 0 0', lineHeight: 1.4 }}>
+                  <strong style={{ fontSize: 13.5, color: '#F8FAFC', fontWeight: 700 }}>Preview & Download</strong>
+                  <p style={{ fontSize: 12, color: '#94A3B8', margin: '4px 0 0 0', lineHeight: 1.45, fontWeight: 500 }}>
                     Click "Start AI Localization". Play audio/video, simulate WhatsApp/IVR, and download the full ZIP!
                   </p>
                 </div>
@@ -414,20 +415,20 @@ export default function Upload() {
         </div>
       )}
 
-      {/* ── 1-Click Realistic BAIF Agricultural Presets ── */}
+      {/* ── 1-Click Realistic BAIF Agricultural Presets (Dark Theme) ── */}
       {!result && !submitting && (
         <div className="card mb-4" style={{
-          background: 'linear-gradient(135deg, rgba(232, 146, 74, 0.08) 0%, rgba(30, 41, 59, 0.4) 100%)',
-          borderColor: 'rgba(232, 146, 74, 0.3)'
+          background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, #111C30 100%)',
+          borderColor: 'rgba(245, 158, 11, 0.3)'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 6 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ fontSize: 20 }}>🌾</span>
-              <strong style={{ fontSize: 14, color: 'var(--accent)' }}>
+              <strong style={{ fontSize: 14.5, color: '#FBBF24', fontWeight: 700 }}>
                 1-Click Agricultural Scenarios (BAIF Field Presets)
               </strong>
             </div>
-            <span style={{ fontSize: 11, color: 'var(--text-dim)' }}>
+            <span style={{ fontSize: 12, color: '#94A3B8', fontWeight: 500 }}>
               Click any scenario to auto-populate text, languages, and settings
             </span>
           </div>
@@ -440,22 +441,23 @@ export default function Upload() {
                   key={s.id}
                   onClick={() => loadScenario(s)}
                   style={{
-                    background: isSelected ? 'rgba(232,146,74,0.18)' : 'var(--bg-input)',
-                    border: `1px solid ${isSelected ? 'var(--accent)' : 'var(--border)'}`,
+                    background: isSelected ? 'rgba(245, 158, 11, 0.2)' : '#0B1120',
+                    border: `1.5px solid ${isSelected ? '#F59E0B' : 'rgba(255, 255, 255, 0.1)'}`,
                     borderRadius: 'var(--radius-sm)',
-                    padding: '10px 12px',
+                    padding: '12px 14px',
                     cursor: 'pointer',
                     transition: 'all 0.2s',
+                    boxShadow: isSelected ? '0 2px 10px rgba(245, 158, 11, 0.25)' : 'none'
                   }}
                 >
-                  <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text)', marginBottom: 2 }}>
+                  <div style={{ fontWeight: 700, fontSize: 13.5, color: '#F8FAFC', marginBottom: 3 }}>
                     {s.title}
                   </div>
-                  <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.3 }}>
+                  <div style={{ fontSize: 12, color: '#CBD5E1', lineHeight: 1.35, fontWeight: 500 }}>
                     {s.subtitle}
                   </div>
-                  <div style={{ marginTop: 6, display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 10, background: 'rgba(255,255,255,0.06)', padding: '2px 6px', borderRadius: 4 }}>
+                  <div style={{ marginTop: 8, display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 11, background: 'rgba(255, 255, 255, 0.08)', color: '#94A3B8', padding: '2px 8px', borderRadius: 4, fontWeight: 600 }}>
                       {s.source_lang} → {s.target_langs.join(', ')}
                     </span>
                   </div>
@@ -466,34 +468,67 @@ export default function Upload() {
         </div>
       )}
 
-      {/* ── Mode Toggle ── */}
+      {/* ── Simple Mode Selection (Dark Theme) ── */}
       <div className="card mb-4">
-        <div className="card-title">
-          <span className="card-title-icon">🔁</span> Mode
+        <div className="card-title" style={{ marginBottom: 12 }}>
+          <span className="card-title-icon">🔁</span>
+          <span>Select Operational Mode</span>
         </div>
-        <div className="mode-toggle">
-          <button
-            className={mode === 'translate' ? 'active' : ''}
+        
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div
             onClick={() => setMode('translate')}
-            type="button"
             id="mode-translate"
+            style={{
+              padding: '14px 16px',
+              borderRadius: 'var(--radius-sm)',
+              border: `1.5px solid ${mode === 'translate' ? '#F59E0B' : 'rgba(255, 255, 255, 0.1)'}`,
+              background: mode === 'translate' ? 'rgba(245, 158, 11, 0.15)' : '#0B1120',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              boxShadow: mode === 'translate' ? '0 2px 10px rgba(245, 158, 11, 0.2)' : 'none'
+            }}
           >
-            📤 HQ Advisory → Farmer Media
-          </button>
-          <button
-            className={mode === 'reverse_bridge' ? 'active' : ''}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+              <span style={{ fontSize: 20 }}>📤</span>
+              <strong style={{ fontSize: 13.5, color: '#F8FAFC' }}>
+                Advisory Translation (HQ → Farmers)
+              </strong>
+            </div>
+            <p style={{ fontSize: 12, color: '#CBD5E1', margin: 0, lineHeight: 1.45, fontWeight: 500 }}>
+              Convert English/state advisories into localized Indic videos, audio voice notes, phone calls & printed slips.
+            </p>
+          </div>
+
+          <div
             onClick={() => setMode('reverse_bridge')}
-            type="button"
             id="mode-reverse"
+            style={{
+              padding: '14px 16px',
+              borderRadius: 'var(--radius-sm)',
+              border: `1.5px solid ${mode === 'reverse_bridge' ? '#F59E0B' : 'rgba(255, 255, 255, 0.1)'}`,
+              background: mode === 'reverse_bridge' ? 'rgba(245, 158, 11, 0.15)' : '#0B1120',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              boxShadow: mode === 'reverse_bridge' ? '0 2px 10px rgba(245, 158, 11, 0.2)' : 'none'
+            }}
           >
-            🎙️ Farmer Voice → HQ English Bridge
-          </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+              <span style={{ fontSize: 20 }}>🎙️</span>
+              <strong style={{ fontSize: 13.5, color: '#F8FAFC' }}>
+                Farmer Voice Query (Farmers → HQ)
+              </strong>
+            </div>
+            <p style={{ fontSize: 12, color: '#CBD5E1', margin: 0, lineHeight: 1.45, fontWeight: 500 }}>
+              Transcribe village farmer voice queries in Marathi, Gujarati, or Hindi into structured English agronomy summaries.
+            </p>
+          </div>
         </div>
 
         {mode === 'reverse_bridge' && (
           <div style={{ marginTop: 16 }}>
-            <div className="alert alert-indigo mb-3" style={{ background: 'var(--indigo-soft)', color: 'var(--indigo)', borderColor: 'rgba(124,131,208,0.2)' }}>
-              Farmer audio query is transcribed from regional dialect, translated to English, and prepared for HQ agronomists.
+            <div className="alert alert-green mb-3">
+              🌾 <strong>Farmer Voice Query Active:</strong> Regional audio will be transcribed using faster-Whisper Silero VAD and translated to English for Pune HQ scientists.
             </div>
             <label>Field Context & Agronomy Query Notes</label>
             <textarea
@@ -672,16 +707,17 @@ export default function Upload() {
                   type="button"
                   onClick={() => applyBundle(b)}
                   style={{
-                    padding: '8px 12px',
-                    borderRadius: 6,
-                    border: `1px solid ${activeBundle === b.id ? 'var(--accent)' : 'var(--border)'}`,
-                    background: activeBundle === b.id ? 'rgba(74, 158, 122, 0.15)' : 'var(--bg-input)',
-                    color: activeBundle === b.id ? 'var(--accent)' : 'var(--text)',
+                    padding: '9px 14px',
+                    borderRadius: 8,
+                    border: `1.5px solid ${activeBundle === b.id ? '#F59E0B' : 'rgba(255, 255, 255, 0.1)'}`,
+                    background: activeBundle === b.id ? 'rgba(245, 158, 11, 0.2)' : '#0B1120',
+                    color: activeBundle === b.id ? '#FDE68A' : '#CBD5E1',
                     cursor: 'pointer',
                     textAlign: 'left',
-                    fontSize: 12,
-                    fontWeight: activeBundle === b.id ? 600 : 400,
-                    transition: 'all 0.15s ease',
+                    fontSize: 12.5,
+                    fontWeight: activeBundle === b.id ? 700 : 500,
+                    boxShadow: activeBundle === b.id ? '0 2px 8px rgba(245, 158, 11, 0.2)' : 'none',
+                    transition: 'all 0.2s ease',
                   }}
                 >
                   {b.label}
@@ -784,9 +820,23 @@ export default function Upload() {
 
       {/* ── Progress View ── */}
       {(submitting || (progress && !result)) && (
-        <div className="card mt-6">
-          <div className="card-title">
-            <span className="card-title-icon">⚙️</span> Processing Pipeline
+        <div className="card mt-6" style={{
+          border: '1.5px solid #FDE68A',
+          animation: 'glowBorder 3s infinite',
+          boxShadow: '0 8px 24px -4px rgba(217, 119, 6, 0.15)'
+        }}>
+          <div className="card-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span className="card-title-icon">⚙️</span>
+              <span>Processing Pipeline · AgriShield™ Active</span>
+            </div>
+            <div className="audio-wave">
+              <span className="audio-wave-bar" />
+              <span className="audio-wave-bar" />
+              <span className="audio-wave-bar" />
+              <span className="audio-wave-bar" />
+              <span className="audio-wave-bar" />
+            </div>
           </div>
           {progress && (
             <ProgressBar
@@ -796,8 +846,8 @@ export default function Upload() {
             />
           )}
           <div style={{ marginTop: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-            <p style={{ fontSize: 12, color: 'var(--text-dim)', margin: 0 }}>
-              ✦ Server-Sent Events stream pipeline status in real-time across the local office LAN.
+            <p style={{ fontSize: 12.5, color: '#64748B', margin: 0, fontWeight: 500 }}>
+              ✦ Streaming pipeline status in real-time across the local office LAN via SSE.
             </p>
             <button
               type="button"
@@ -815,20 +865,21 @@ export default function Upload() {
       {/* ── INTERACTIVE RESULT HUB ── */}
       {result && (
         <div className="card mt-6" style={{
-          border: '1px solid var(--accent)',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.4)'
+          border: '1.5px solid #FDE68A',
+          background: '#FFFFFF',
+          boxShadow: '0 10px 25px -5px rgba(0,0,0,0.08), 0 8px 10px -6px rgba(0,0,0,0.04)'
         }}>
           {/* Header */}
           <div className="flex items-center justify-between mb-4" style={{
-            borderBottom: '1px solid var(--border)',
+            borderBottom: '1px solid #E2E8F0',
             paddingBottom: 16
           }}>
             <div>
-              <h3 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 20, fontWeight: 700, margin: 0, color: 'var(--text)' }}>
+              <h3 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 20, fontWeight: 800, margin: 0, color: '#0F172A' }}>
                 ✅ Localization Complete & Ready
               </h3>
-              <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
-                Job ID: <span className="font-mono">{jobId?.slice(0, 8)}…</span> · Generated for {targetLangs.join(', ')}
+              <p style={{ fontSize: 13, color: '#475569', marginTop: 4, fontWeight: 500 }}>
+                Job ID: <span className="font-mono" style={{ fontWeight: 600, color: '#0F172A' }}>{jobId?.slice(0, 8)}…</span> · Generated for {targetLangs.join(', ')}
               </p>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -836,7 +887,7 @@ export default function Upload() {
                 level={result.confidence_level || 'green'}
                 score={result.avg_confidence || 0.91}
               />
-              <span className={`badge ${result.distribution_clearance === 'cleared' ? 'green' : 'amber'}`}>
+              <span className={`badge ${result.distribution_clearance === 'cleared' ? 'green' : 'amber'}`} style={{ padding: '4px 10px' }}>
                 {result.distribution_clearance === 'cleared' ? '✓ Distribution Cleared' : '⚠️ Pending Review'}
               </span>
             </div>
@@ -845,10 +896,10 @@ export default function Upload() {
           {/* Hub Navigation Tabs */}
           <div style={{
             display: 'flex',
-            gap: 6,
+            gap: 8,
             marginBottom: 20,
-            borderBottom: '1px solid var(--border)',
-            paddingBottom: 8,
+            borderBottom: '1px solid #E2E8F0',
+            paddingBottom: 10,
             overflowX: 'auto'
           }}>
             {PREVIEW_TABS.map(([tab, label]) => (
@@ -857,6 +908,7 @@ export default function Upload() {
                 type="button"
                 className={`btn btn-sm ${activePreviewTab === tab ? 'btn-primary' : 'btn-secondary'}`}
                 onClick={() => setActivePreviewTab(tab)}
+                style={{ fontWeight: 600 }}
               >
                 {label}
               </button>
@@ -866,7 +918,7 @@ export default function Upload() {
           {/* Language Selector for Result View */}
           {targetLangs.length > 1 && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-              <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Select Target Language:</span>
+              <span style={{ fontSize: 13, color: '#334155', fontWeight: 600 }}>Select Target Language:</span>
               <div style={{ display: 'flex', gap: 6 }}>
                 {targetLangs.map(l => (
                   <button
@@ -888,38 +940,48 @@ export default function Upload() {
               display: 'grid',
               gridTemplateColumns: '1fr 1fr',
               gap: 16,
-              background: 'var(--bg-input)',
-              padding: 16,
+              background: '#F8FAFC',
+              padding: 18,
               borderRadius: 'var(--radius-sm)',
-              border: '1px solid var(--border)'
+              border: '1px solid #E2E8F0'
             }}>
               <div>
-                <div className="section-label" style={{ marginBottom: 8 }}>
+                <div className="section-label" style={{ marginBottom: 8, color: '#64748B' }}>
                   Original Source ({sourceLang})
                 </div>
                 <div style={{
-                  fontSize: 13,
-                  lineHeight: 1.6,
-                  color: 'var(--text-muted)',
+                  fontSize: 13.5,
+                  lineHeight: 1.65,
+                  color: '#334155',
                   maxHeight: 280,
                   overflowY: 'auto',
-                  whiteSpace: 'pre-wrap'
+                  whiteSpace: 'pre-wrap',
+                  background: '#FFFFFF',
+                  padding: 12,
+                  borderRadius: 6,
+                  border: '1px solid #E2E8F0',
+                  fontWeight: 500
                 }}>
                   {previewData?.transcript || textContent || 'Original source transcript loading…'}
                 </div>
               </div>
 
               <div>
-                <div className="section-label" style={{ marginBottom: 8, color: 'var(--accent)' }}>
+                <div className="section-label" style={{ marginBottom: 8, color: '#B45309' }}>
                   Translated Output ({previewLang})
                 </div>
                 <div style={{
-                  fontSize: 13,
-                  lineHeight: 1.6,
-                  color: 'var(--text)',
+                  fontSize: 13.5,
+                  lineHeight: 1.65,
+                  color: '#0F172A',
                   maxHeight: 280,
                   overflowY: 'auto',
-                  whiteSpace: 'pre-wrap'
+                  whiteSpace: 'pre-wrap',
+                  background: '#FFFFFF',
+                  padding: 12,
+                  borderRadius: 6,
+                  border: '1.5px solid #FDE68A',
+                  fontWeight: 600
                 }}>
                   {previewData?.translations?.[previewLang] || 'Translating segments…'}
                 </div>
@@ -930,17 +992,17 @@ export default function Upload() {
           {/* 2. Audio Player Tab */}
           {activePreviewTab === 'audio' && (
             <div style={{
-              background: 'var(--bg-input)',
+              background: '#F8FAFC',
               padding: 24,
               borderRadius: 'var(--radius-sm)',
-              border: '1px solid var(--border)',
+              border: '1px solid #E2E8F0',
               textAlign: 'center'
             }}>
               <div style={{ fontSize: 36, marginBottom: 8 }}>🎧</div>
-              <h4 style={{ margin: '0 0 6px 0', fontSize: 16 }}>
+              <h4 style={{ margin: '0 0 6px 0', fontSize: 16, fontWeight: 700, color: '#0F172A' }}>
                 AI Synthetic Voice Track ({previewLang})
               </h4>
-              <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16 }}>
+              <p style={{ fontSize: 13, color: '#475569', marginBottom: 16, fontWeight: 500 }}>
                 Natural speech synthesized via Indic Neural TTS · Ready for WhatsApp voice notes & community radio
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
@@ -1046,29 +1108,30 @@ export default function Upload() {
                       <div
                         key={name}
                         style={{
-                          background: 'var(--bg-input)',
-                          border: '1px solid var(--border)',
-                          borderRadius: 6,
-                          padding: '12px 14px',
+                          background: '#FFFFFF',
+                          border: '1.5px solid #E2E8F0',
+                          borderRadius: 8,
+                          padding: '14px 16px',
                           display: 'flex',
                           flexDirection: 'column',
-                          gap: 4
+                          gap: 4,
+                          boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
                         }}
                       >
-                        <span style={{ fontSize: 12, fontFamily: 'monospace', fontWeight: 600, color: 'var(--text)' }}>
+                        <span style={{ fontSize: 13, fontFamily: 'monospace', fontWeight: 700, color: '#0F172A' }}>
                           📄 {name}
                         </span>
-                        <div style={{ fontSize: 11, color: 'var(--accent)', fontWeight: 500 }}>
+                        <div style={{ fontSize: 12, color: '#D97706', fontWeight: 700 }}>
                           {info.channel}
                         </div>
-                        <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+                        <div style={{ fontSize: 11.5, color: '#475569', fontWeight: 500 }}>
                           {info.desc}
                         </div>
-                        <div style={{ marginTop: 6, paddingTop: 6, borderTop: '1px dashed var(--border)' }}>
+                        <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px dashed #E2E8F0' }}>
                           <a
                             href={`/api/jobs/${jobId}/file/${encodeURIComponent(name)}`}
                             download={name}
-                            style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}
+                            style={{ fontSize: 12, color: '#D97706', textDecoration: 'none', fontWeight: 700 }}
                           >
                             ⬇️ Direct Download
                           </a>

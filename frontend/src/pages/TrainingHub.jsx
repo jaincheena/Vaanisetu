@@ -405,12 +405,13 @@ const Quiz = () => {
 
                 {/* Printable Certificate */}
                 <div style={{
-                  background: 'linear-gradient(135deg, rgba(27,67,50,0.3) 0%, rgba(232,146,74,0.1) 100%)',
-                  border: '2px solid var(--accent)',
+                  background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, #111C30 100%)',
+                  border: '2px solid #F59E0B',
                   borderRadius: 12,
                   padding: 24,
                   marginBottom: 20,
-                  textAlign: 'center'
+                  textAlign: 'center',
+                  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.5)'
                 }}>
                   <div style={{ fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--accent)', fontWeight: 700 }}>
                     Bharatiya Agro Industries Foundation (BAIF)
@@ -456,8 +457,8 @@ export default function TrainingHub() {
       {/* Header */}
       <div className="page-header flex items-center justify-between">
         <div>
-          <h2>🎓 BAIF Operational & Training Academy</h2>
-          <p>Interactive mastery tracks, practical field drills, and verified AI practitioner certification</p>
+          <h2>🎓 VaaniSetu Field Academy <span style={{ color: '#D97706', fontSize: 18, fontWeight: 700 }}>(वाणीसेतु प्रशिक्षण अकादमी)</span></h2>
+          <p>Interactive field officer training, offline speech synthesis workflows, and verified BAIF AI practitioner certification</p>
         </div>
       </div>
 
@@ -477,19 +478,19 @@ export default function TrainingHub() {
                 flex: 1,
                 minWidth: 200,
                 padding: '16px 20px',
-                borderRadius: 12,
+                borderRadius: 14,
                 cursor: 'pointer',
-                border: isActive ? '2px solid var(--accent)' : '2px solid var(--border)',
-                background: isActive ? 'rgba(74, 158, 122, 0.1)' : 'var(--bg-card)',
-                transition: 'var(--transition)',
-                boxShadow: isActive ? '0 4px 12px rgba(0,0,0,0.2)' : 'none',
+                border: isActive ? '2px solid #F59E0B' : '1px solid rgba(255, 255, 255, 0.1)',
+                background: isActive ? 'rgba(245, 158, 11, 0.2)' : '#111C30',
+                transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                boxShadow: isActive ? '0 6px 20px rgba(245, 158, 11, 0.25)' : '0 2px 6px rgba(0, 0, 0, 0.3)',
                 transform: isActive ? 'translateY(-2px)' : 'none',
                 textAlign: 'left',
                 color: 'inherit'
               }}
             >
               <div style={{ fontSize: 28, marginBottom: 8 }}>{tab.icon}</div>
-              <h3 style={{ fontSize: 15, fontWeight: 700, margin: 0, color: 'var(--text)' }}>
+              <h3 style={{ fontSize: 15, fontWeight: 800, margin: 0, color: '#F8FAFC' }}>
                 {tab.label}
               </h3>
             </button>

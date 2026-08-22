@@ -48,9 +48,9 @@ export default function TopBanner() {
                 <span className={`dot ${allModelsLoaded ? '' : 'amber'}`} />
                 <span>
                   Models: {allModelsLoaded ? (
-                    <span style={{ color: 'var(--green-accent)', fontWeight: 600 }}>Ready (AgriShield™ ON)</span>
+                    <span style={{ color: 'var(--green)', fontWeight: 700 }}>Ready (AgriShield™ ON)</span>
                   ) : (
-                    <span style={{ color: 'var(--amber)' }}>Loading…</span>
+                    <span style={{ color: 'var(--amber)', fontWeight: 700 }}>Loading…</span>
                   )}
                 </span>
               </div>
@@ -58,14 +58,14 @@ export default function TopBanner() {
               {health.queue_depth > 0 && (
                 <div className="banner-chip">
                   <span className="dot amber" />
-                  <span>Queue: {health.queue_depth} job(s)</span>
+                  <span>Queue: <strong>{health.queue_depth}</strong> job(s)</span>
                 </div>
               )}
 
               {health.review_pending > 0 && (
                 <div className="banner-chip">
                   <span className="dot amber" />
-                  <span>{health.review_pending} segment(s) need review</span>
+                  <span><strong style={{ color: '#DC2626' }}>{health.review_pending}</strong> segment(s) need review</span>
                 </div>
               )}
             </>
@@ -81,24 +81,45 @@ export default function TopBanner() {
           <button
             onClick={() => setShowTour(true)}
             style={{
-              background: 'linear-gradient(135deg, var(--accent) 0%, #c2410c 100%)',
-              color: '#fff',
+              background: 'linear-gradient(135deg, #D97706 0%, #B45309 100%)',
+              color: '#FFFFFF',
               border: 'none',
               borderRadius: 20,
-              padding: '6px 14px',
-              fontSize: 12,
+              padding: '7px 16px',
+              fontSize: 12.5,
               fontWeight: 700,
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               gap: 6,
-              boxShadow: '0 2px 8px rgba(232, 146, 74, 0.3)',
-              transition: 'transform 0.15s'
+              boxShadow: '0 2px 8px rgba(217, 119, 6, 0.3)',
+              transition: 'transform 0.15s ease, box-shadow 0.15s ease'
             }}
           >
             <span>💡</span>
             <span>BAIF User Guide & Tour</span>
           </button>
+        </div>
+
+        {/* Subtle Ambient Real-Time Water Stream Flow */}
+        <div style={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: 1.5,
+          overflow: 'hidden',
+          background: 'rgba(255, 255, 255, 0.03)',
+          pointerEvents: 'none',
+          opacity: 0.5
+        }}>
+          <div style={{
+            width: '200%',
+            height: '100%',
+            background: 'linear-gradient(90deg, transparent 0%, #059669 20%, #10B981 35%, #38BDF8 50%, #F59E0B 65%, #10B981 80%, transparent 100%)',
+            backgroundSize: '50% 100%',
+            animation: 'waterStreamShimmer 5s linear infinite'
+          }} />
         </div>
       </div>
 

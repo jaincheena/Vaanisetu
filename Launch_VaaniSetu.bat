@@ -73,7 +73,7 @@ echo Setup cancelled.
 pause
 exit /b 0
 
-:error
+:error  
 color 0C
 echo.
 echo ============================================================================

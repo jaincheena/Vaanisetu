@@ -11,6 +11,7 @@ import Glossary from './pages/Glossary'
 import TrainingHub from './pages/TrainingHub'
 import Documentation from './pages/Documentation'
 import { AuthProvider, useAuth } from './context/AuthContext'
+import AnimatedAgriBackground from './components/AnimatedAgriBackground'
 
 // Safe fetch interceptor with proper window binding
 if (typeof window !== 'undefined' && window.fetch) {
@@ -46,12 +47,12 @@ class ErrorBoundary extends Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div style={{ padding: 40, color: '#f87171', background: '#0C0E14', minHeight: '100vh', fontFamily: 'sans-serif' }}>
+        <div style={{ padding: 40, color: '#991B1B', background: '#F8FAFC', minHeight: '100vh', fontFamily: 'sans-serif' }}>
           <h2>⚠️ Interface Initialization Notice</h2>
-          <p style={{ color: '#94a3b8' }}>{this.state.error?.toString()}</p>
+          <p style={{ color: '#475569', marginTop: 8 }}>{this.state.error?.toString()}</p>
           <button 
             onClick={() => window.location.reload()} 
-            style={{ padding: '8px 16px', background: '#e8924a', border: 'none', borderRadius: 6, color: '#fff', cursor: 'pointer', marginTop: 12 }}
+            style={{ padding: '9px 18px', background: '#D97706', border: 'none', borderRadius: 6, color: '#FFFFFF', fontWeight: 600, cursor: 'pointer', marginTop: 14 }}
           >
             Reload Interface
           </button>
@@ -84,9 +85,10 @@ function AppContent() {
   return (
     <div className="app-shell">
       <Sidebar />
-      <div className="main-area">
+      <div className="main-area" style={{ position: 'relative', overflow: 'hidden' }}>
+        <AnimatedAgriBackground />
         <TopBanner />
-        <main className="page-content">
+        <main className="page-content" style={{ position: 'relative', zIndex: 1 }}>
           <Routes>
             <Route path="/" element={<Overview />} />
             <Route path="/upload" element={<ProtectedRoute><Upload /></ProtectedRoute>} />

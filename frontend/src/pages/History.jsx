@@ -97,8 +97,8 @@ export default function History() {
     <div>
       <div className="page-header flex items-center justify-between">
         <div>
-          <h2>Translation Job History</h2>
-          <p>Complete audit log of all agricultural video, voice, and advisory localization jobs</p>
+          <h2>History & Audit Trail <span style={{ color: '#D97706', fontSize: 18, fontWeight: 700 }}>(इतिहास और ऑडिट)</span></h2>
+          <p>Complete audit log of all agricultural video, voice, and advisory localization jobs across BAIF state blocks</p>
         </div>
         <div className="flex gap-2">
           <button className="btn btn-secondary" onClick={handleClearTestJobs}>
@@ -113,38 +113,140 @@ export default function History() {
         </div>
       )}
 
-      {/* Filters */}
-      <div className="card mb-4">
-        <div className="flex items-center gap-3" style={{ flexWrap: 'wrap' }}>
-          <div style={{ flex: 1, minWidth: 200 }}>
-            <label>Search Jobs</label>
+      {/* ── Modern Search & Filter Hub (Dark Theme) ── */}
+      <div className="card mb-6" style={{ padding: '22px 26px', background: '#111C30', borderRadius: 16 }}>
+        {/* Search Input Bar */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 18 }}>
+          <div style={{
+            position: 'relative',
+            flex: 1,
+            display: 'flex',
+            alignItems: 'center'
+          }}>
+            <span style={{
+              position: 'absolute',
+              left: 14,
+              fontSize: 16,
+              color: '#94A3B8',
+              pointerEvents: 'none'
+            }}>
+              🔍
+            </span>
             <input
               type="text"
               className="text-input"
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Search filename, language, or job ID…"
+              placeholder="Search by filename, language, Marathi/Hindi script, or job ID…"
+              style={{
+                paddingLeft: 42,
+                paddingRight: search ? 36 : 14,
+                fontSize: 14,
+                borderRadius: 10
+              }}
             />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch('')}
+                style={{
+                  position: 'absolute',
+                  right: 12,
+                  background: 'none',
+                  border: 'none',
+                  color: '#94A3B8',
+                  cursor: 'pointer',
+                  fontSize: 14
+                }}
+              >
+                ✕
+              </button>
+            )}
           </div>
-          <div style={{ minWidth: 160 }}>
-            <label>Mode</label>
-            <select id="filter-mode" value={filterMode} onChange={e => setFilterMode(e.target.value)}>
-              <option value="">All Modes</option>
-              <option value="translate">Standard Localization</option>
-              <option value="reverse_bridge">🎙️ Farmer Voice Bridge</option>
-            </select>
+
+          <button
+            className="btn btn-secondary"
+            onClick={load}
+            type="button"
+            style={{ fontSize: 13.5, padding: '10px 18px', borderRadius: 10 }}
+          >
+            ↻ Refresh
+          </button>
+        </div>
+
+        {/* Filter Controls Row */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 14, paddingTop: 14, borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
+          {/* Mode Segmented Controls */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 11.5, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+              Mode:
+            </span>
+            {[
+              { key: '', label: 'All Modes' },
+              { key: 'translate', label: '📤 Advisory Translation' },
+              { key: 'reverse_bridge', label: '🎙️ Farmer Voice' },
+            ].map(m => {
+              const isSelected = filterMode === m.key
+              return (
+                <button
+                  key={m.key}
+                  type="button"
+                  onClick={() => setFilterMode(m.key)}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: 20,
+                    fontSize: 12.5,
+                    fontWeight: isSelected ? 700 : 500,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                    border: `1.5px solid ${isSelected ? '#F59E0B' : 'rgba(255, 255, 255, 0.1)'}`,
+                    background: isSelected ? 'rgba(245, 158, 11, 0.25)' : '#0B1120',
+                    color: isSelected ? '#FBBF24' : '#94A3B8',
+                    boxShadow: isSelected ? '0 2px 10px rgba(245, 158, 11, 0.25)' : 'none'
+                  }}
+                >
+                  {m.label}
+                </button>
+              )
+            })}
           </div>
-          <div style={{ minWidth: 160 }}>
-            <label>Status</label>
-            <select id="filter-status" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
-              <option value="">All Statuses</option>
-              <option value="completed">Completed</option>
-              <option value="queued">Queued</option>
-              <option value="failed">Failed</option>
-            </select>
-          </div>
-          <div style={{ alignSelf: 'flex-end' }}>
-            <button className="btn btn-secondary" onClick={load}>↻ Refresh</button>
+
+          {/* Status Segmented Controls */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 11.5, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+              Status:
+            </span>
+            {[
+              { key: '', label: 'All Statuses' },
+              { key: 'completed', label: '● Completed', color: '#34D399', bg: 'rgba(16, 185, 129, 0.25)' },
+              { key: 'queued', label: '● Queued', color: '#FBBF24', bg: 'rgba(245, 158, 11, 0.25)' },
+              { key: 'failed', label: '● Failed', color: '#F87171', bg: 'rgba(239, 68, 68, 0.25)' },
+            ].map(s => {
+              const isSelected = filterStatus === s.key
+              const activeColor = s.color || '#FBBF24'
+              const activeBg = s.bg || 'rgba(245, 158, 11, 0.25)'
+              return (
+                <button
+                  key={s.key}
+                  type="button"
+                  onClick={() => setFilterStatus(s.key)}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: 20,
+                    fontSize: 12.5,
+                    fontWeight: isSelected ? 700 : 500,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                    border: `1.5px solid ${isSelected ? activeColor : 'rgba(255, 255, 255, 0.1)'}`,
+                    background: isSelected ? activeBg : '#0B1120',
+                    color: isSelected ? activeColor : '#94A3B8',
+                    boxShadow: isSelected ? `0 2px 10px ${activeColor}35` : 'none'
+                  }}
+                >
+                  {s.label}
+                </button>
+              )
+            })}
           </div>
         </div>
       </div>
