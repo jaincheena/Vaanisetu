@@ -254,33 +254,21 @@ export default function Overview() {
                 </div>
               </div>
 
-              {/* 12-Bar Organic Dynamic Sound Spectrum */}
-              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3.5, height: 32, padding: '2px 8px', background: '#080D18', borderRadius: 8, border: '1px solid rgba(255, 255, 255, 0.08)' }}>
-                {[
-                  { delay: '0.1s', dur: '1.1s', col: '#10B981' },
-                  { delay: '0.4s', dur: '1.4s', col: '#34D399' },
-                  { delay: '0.2s', dur: '0.9s', col: '#38BDF8' },
-                  { delay: '0.6s', dur: '1.3s', col: '#F59E0B' },
-                  { delay: '0.3s', dur: '1.0s', col: '#FBBF24' },
-                  { delay: '0.5s', dur: '1.5s', col: '#10B981' },
-                  { delay: '0.15s', dur: '0.8s', col: '#34D399' },
-                  { delay: '0.45s', dur: '1.2s', col: '#38BDF8' },
-                  { delay: '0.25s', dur: '1.1s', col: '#F59E0B' },
-                  { delay: '0.55s', dur: '1.3s', col: '#10B981' },
-                  { delay: '0.35s', dur: '0.9s', col: '#38BDF8' },
-                  { delay: '0.05s', dur: '1.2s', col: '#FBBF24' }
-                ].map((bar, i) => (
-                  <span
-                    key={i}
-                    style={{
-                      width: 3.5,
-                      background: bar.col,
-                      borderRadius: 2,
-                      animation: `equalizerDance ${bar.dur} ease-in-out infinite ${bar.delay}`,
-                      boxShadow: `0 0 6px ${bar.col}80`
-                    }}
-                  />
-                ))}
+              {/* Sleek Contained Audio Wave Capsule */}
+              <div className="audio-wave-capsule">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <span className="status-dot green" style={{ width: 7, height: 7, animation: 'pulse 2s infinite' }} />
+                  <span style={{ fontSize: 10.5, fontWeight: 800, color: '#34D399', letterSpacing: '0.6px' }}>
+                    16kHz VAD
+                  </span>
+                </div>
+                <div className="audio-wave" style={{ height: 16 }}>
+                  <span className="audio-wave-bar" />
+                  <span className="audio-wave-bar" />
+                  <span className="audio-wave-bar" />
+                  <span className="audio-wave-bar" />
+                  <span className="audio-wave-bar" />
+                </div>
               </div>
             </div>
 
