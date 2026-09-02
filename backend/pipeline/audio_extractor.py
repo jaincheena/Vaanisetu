@@ -216,6 +216,8 @@ def burn_subtitles(
                 "-map", "[v]",
                 "-map", "1:a:0",
                 "-c:v", "libx264",
+                "-preset", "ultrafast",
+                "-threads", "0",
                 "-c:a", "aac",
                 "-shortest",
                 output_path,
@@ -229,6 +231,8 @@ def burn_subtitles(
                 "-map", "0:v:0",
                 "-map", "1:a:0",
                 "-c:v", "libx264",
+                "-preset", "ultrafast",
+                "-threads", "0",
                 "-c:a", "aac",
                 output_path,
             ]
@@ -237,6 +241,9 @@ def burn_subtitles(
             ffmpeg_executable(), "-y",
             "-i", video_path,
             "-vf", f"subtitles='{safe_srt_path}'",
+            "-c:v", "libx264",
+            "-preset", "ultrafast",
+            "-threads", "0",
             "-c:a", "copy",
             output_path,
         ]

@@ -6,6 +6,7 @@ Batch translation with TM cache, confidence scoring, and amber routing.
 import math
 import logging
 import re
+import time
 from typing import Optional
 
 logger = logging.getLogger("vaanisetu.translator")
@@ -13,7 +14,7 @@ logger = logging.getLogger("vaanisetu.translator")
 
 # Using a simple, unlikely tag to protect parts of text from translation.
 _PLACEHOLDER_TAG = "VSP"  # VaaniSetu Protected
-_PLACEHOLDER_RE = re.compile(r'<\s*' + _PLACEHOLDER_TAG + r'(\d+)\s*>')
+_PLACEHOLDER_RE = re.compile(r'<\s*' + _PLACEHOLDER_TAG + r'\s*(\d+)[^>]*>', re.IGNORECASE)
 
 # Patterns for entities that should not be translated.
 _PROTECT_PATTERNS = [
@@ -97,10 +98,17 @@ def _preprocess_text(text: str) -> tuple[str, list[str]]:
 def _postprocess_text(text: str, protected_items: list[str]) -> str:
     """Restores placeholders and normalizes whitespace."""
     def replacer(match):
-        index = int(match.group(1))
-        return protected_items[index] if 0 <= index < len(protected_items) else match.group(0)
+        try:
+            index = int(match.group(1))
+            if 0 <= index < len(protected_items):
+                return f" {protected_items[index]} "
+        except Exception:
+            pass
+        return ""
 
     processed_text = _PLACEHOLDER_RE.sub(replacer, text)
+    # Strip any remaining unhandled < VSP... > tags
+    processed_text = re.sub(r'<\s*VSP[^\s>]*>?', '', processed_text, flags=re.IGNORECASE)
     # Normalize all whitespace (multiple spaces, newlines, etc.) into single spaces.
     return " ".join(processed_text.split()).strip()
 
@@ -212,10 +220,11 @@ def translate_segments(
     target_lang_code: str,
     job_id: str,
     num_beams: int = 4,
+    bypass_cache: bool = False,
 ) -> list[dict]:
     """
     Translate a list of segments for ONE target language.
-    Prioritizes Translation Memory (TM) cache before querying heavy neural models.
+    Prioritizes Translation Memory (TM) cache before querying heavy neural models unless bypass_cache=True.
     """
     from backend.models.registry import registry
     from backend.models.pool import get_pool
@@ -226,17 +235,23 @@ def translate_segments(
     # 1. Fast-path TM cache check
     all_cached = True
     cached_results = []
-    for seg in segments:
-        text = seg.get("text", "").strip()
-        if not text:
-            cached_results.append({**seg, "translated": "", "confidence": 1.0, "level": "green", "from_cache": True, "target_lang": target_lang_name})
-            continue
-        cached = lookup(source_lang, target_lang_name, text)
-        if cached is not None:
-            cached_results.append({**seg, "translated": cached, "confidence": 0.99, "level": "green", "from_cache": True, "target_lang": target_lang_name})
-        else:
-            all_cached = False
-            break
+    if bypass_cache:
+        logger.info(f"[DIAGNOSTIC] TM_BYPASSED=True (bypassing TM cache lookup for job {job_id})")
+        all_cached = False
+    else:
+        for seg in segments:
+            text = seg.get("text", "").strip()
+            if not text:
+                cached_results.append({**seg, "translated": "", "confidence": 1.0, "level": "green", "from_cache": True, "target_lang": target_lang_name})
+                continue
+            cached = lookup(source_lang, target_lang_name, text)
+            if cached is not None:
+                logger.info(f"[DIAGNOSTIC] TM_HIT=True | src='{text}' | cached='{cached}'")
+                cached_results.append({**seg, "translated": cached, "confidence": 0.99, "level": "green", "from_cache": True, "target_lang": target_lang_name})
+            else:
+                logger.info(f"[DIAGNOSTIC] TM_HIT=False | src='{text}'")
+                all_cached = False
+                break
 
     if all_cached and len(cached_results) == len(segments):
         logger.info(f"100% TM hit for {len(segments)} segment(s) [{source_lang} -> {target_lang_name}]")
@@ -257,6 +272,9 @@ def translate_segments(
 
     src_code = ENGLISH_CODE if source_lang == "English" else LANG_CODES.get(source_lang, "hin_Deva")
 
+    t_trans_start = time.time()
+    logger.info(f"[PERF_TIMING] IndicTrans2 starting translation [{source_lang} -> {target_lang_name}] for {len(segments)} segment(s)")
+
     results = []
     batch_indices = range(0, len(segments), BATCH_SIZE)
 
@@ -264,8 +282,9 @@ def translate_segments(
         from backend.pipeline.processor import check_cancelled
         check_cancelled(job_id)
 
+        from backend.utils.transliteration import normalize_indic_script
         batch = segments[batch_start: batch_start + BATCH_SIZE]
-        texts = [s["text"] for s in batch]
+        texts = [normalize_indic_script(s.get("text", ""), source_lang) for s in batch]
         translations: list[Optional[str]] = [None] * len(texts)
         confidences:  list[Optional[float]] = [None] * len(texts)
         from_cache   = [False] * len(texts)
@@ -319,18 +338,22 @@ def translate_segments(
 
             for local_i, global_i in enumerate(pending_idx):
                 # Post-process to restore placeholders and normalize whitespace
-                protected_items = replacements_map[global_i]
-                t = _postprocess_text(decoded[local_i], protected_items)
+                raw_nmt_output = decoded[local_i]
+                final_text = _postprocess_text(raw_nmt_output, replacements_map[global_i])
+                logger.info(f"[DIAGNOSTIC] INDICTRANS_INPUT: '{pending_texts[local_i]}' | SRC_CODE: '{src_code}' | TGT_CODE: '{target_lang_code}'")
+                logger.info(f"[DIAGNOSTIC] INDICTRANS_OUTPUT: '{raw_nmt_output}' | POSTPROCESSED_TTS_INPUT: '{final_text}'")
+                
                 c = confs[local_i] if local_i < len(confs) else 0.85
                 if c is None or not isinstance(c, (int, float)) or math.isnan(c) or math.isinf(c):
                     c = 0.85
                 else:
                     c = max(0.0, min(1.0, float(c)))
-                translations[global_i] = t
+                translations[global_i] = final_text
                 confidences[global_i]  = c
 
-                # Store to TM
-                store(source_lang, target_lang_name, texts[global_i], t, c)
+                # Store to TM unless bypass_cache is requested
+                if not bypass_cache:
+                    store(source_lang, target_lang_name, texts[global_i], final_text, c)
 
         # ---------------------------------------------------------------
         # Build results + route amber to review queue
@@ -365,6 +388,7 @@ def translate_segments(
                     confidence=conf,
                 )
 
+    logger.info(f"[PERF_TIMING] IndicTrans2 completed translation [{source_lang} -> {target_lang_name}] in {time.time() - t_trans_start:.2f}s")
     return results
 
 

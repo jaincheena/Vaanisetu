@@ -259,7 +259,7 @@ EAGER_LOAD_REVERSE_BRIDGE = os.getenv("VAANISETU_EAGER_REVERSE_BRIDGE", "0") == 
 BATCH_SIZE = 8            # IndicTrans2 segments per batch
 AUDIO_SAMPLE_RATE = 16000 # Whisper expects 16 kHz mono WAV
 TRANSLATION_MAX_LENGTH = 256  # Maximum sequence length for IndicTrans2
-TRANSLATION_NUM_BEAMS  = int(os.getenv("VAANISETU_BEAMS", "4"))
+TRANSLATION_NUM_BEAMS  = int(os.getenv("VAANISETU_BEAMS", "2"))
 TRANSLATION_DRAFT_BEAMS = 2   # Fewer beams for draft mode speed
 
 # ---------------------------------------------------------------------------

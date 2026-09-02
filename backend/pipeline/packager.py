@@ -413,34 +413,33 @@ def create_zip(
     job_meta: dict,
     zip_path: str,
 ) -> str:
+    valid_paths = set()
+    for fp in file_paths:
+        if fp and os.path.exists(fp):
+            valid_paths.add(str(fp))
+
+    output_extensions = {".mp4", ".mp3", ".srt", ".vtt", ".txt", ".docx", ".csv", ".wav"}
+    for item in out_dir.iterdir():
+        if item.is_file() and item.suffix.lower() in output_extensions:
+            if item.name not in ("audio.wav", "speaker_ref.wav", "audio_raw.wav") and not item.name.startswith("audio_raw"):
+                valid_paths.add(str(item))
+
     manifest = {
         "job_id":     job_id,
         "generated":  datetime.utcnow().isoformat(),
         "source_lang": job_meta.get("source_lang"),
         "target_langs": job_meta.get("target_langs", []),
-        "files": [os.path.basename(p) for p in file_paths if p and os.path.exists(p)],
-        "file_guide": {
-            "translation_LANG.txt":       {"size": "tiny",   "use": "Plain text — SMS, app content, offline reading"},
-            "bilingual_LANG.docx":        {"size": "small",  "use": "Printed handout for field officers & trainers"},
-            "subtitles_LANG.srt":         {"size": "tiny",   "use": "Subtitles for VLC player, video editors"},
-            "subtitles_LANG.vtt":         {"size": "tiny",   "use": "Subtitles for web/YouTube embed"},
-            "audio_LANG.mp3":             {"size": "medium", "use": "AI-spoken audio — radio, WhatsApp audio broadcast"},
-            "dubbed_LANG.mp4":            {"size": "LARGE",  "use": "Video with translated audio — gram panchayat screenings"},
-            "captioned_LANG.mp4":         {"size": "LARGE",  "use": "Video with burned subtitles — social media, WhatsApp"},
-            "ivr_LANG.wav":               {"size": "small",  "use": "8kHz telephone audio for IVR/feature phone calls"},
-            "whatsapp_partXX_LANG.mp4":   {"size": "medium", "use": "Auto-split <15MB chunks for WhatsApp delivery"},
-            "translated_LANG.csv":        {"size": "tiny",   "use": "Translated CSV data — field survey reporting"},
-        }
+        "files": sorted([os.path.basename(p) for p in valid_paths]),
     }
+
     manifest_path = str(out_dir / "manifest.json")
     with open(manifest_path, "w", encoding="utf-8") as f:
         json.dump(manifest, f, indent=2, ensure_ascii=False)
 
     with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
         zf.write(manifest_path, "manifest.json")
-        for fp in file_paths:
-            if fp and os.path.exists(fp):
-                zf.write(fp, os.path.basename(fp))
+        for fp in sorted(valid_paths):
+            zf.write(fp, os.path.basename(fp))
 
-    logger.info(f"ZIP created: {zip_path}")
+    logger.info(f"ZIP created with {len(valid_paths)} output file(s): {zip_path}")
     return zip_path

@@ -11,6 +11,7 @@ import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from pathlib import Path
+import time
 from typing import Optional
 
 from backend.config import LANG_CODES, ALLOWED_EXTENSIONS, ENGLISH_CODE
@@ -114,8 +115,14 @@ def run_pipeline(job_id: str) -> None:
             f"{threads} inference thread(s)"
         )
 
+        t_job_start = time.time()
+        logger.info(f"[PERF_TIMING] STARTING JOB {job_id} for {source_lang} -> {target_langs}")
+
         check_cancelled(job_id)
+        t_extract = time.time()
         _stage_extracting(job_id, upload_path)  # This stage might modify upload_path if it's a document
+        logger.info(f"[PERF_TIMING] Stage 1: Extraction completed in {time.time() - t_extract:.2f}s")
+
         check_cancelled(job_id)
         wav_path = _get_wav_path(job_id)  # This gets the WAV path if it's audio/video
 
@@ -123,22 +130,23 @@ def run_pipeline(job_id: str) -> None:
         voice_gender = "female"
         speaker_wav = None
         if wav_path:
+            t_voice = time.time()
             logger.info("Detecting voice gender for TTS matching…")
             from backend.pipeline.voice_detector import detect_voice
             ws = job_workspace(job_id)
             voice_gender, speaker_wav = detect_voice(wav_path, str(ws))
-            logger.info(f"Voice profile: gender={voice_gender}, clip={'yes' if speaker_wav else 'no'}")
+            logger.info(f"[PERF_TIMING] Stage 2: Voice detection completed in {time.time() - t_voice:.2f}s (gender={voice_gender})")
 
         check_cancelled(job_id)
+        t_asr = time.time()
         segments, detected_whisper_lang_code = _stage_transcribing(job_id, wav_path, source_lang, upload_path, resource_saver)
+        logger.info(f"[PERF_TIMING] Stage 3: Transcription completed in {time.time() - t_asr:.2f}s ({len(segments)} segments)")
 
-        # Length of the advisory itself, for the Impact Ledger. Recorded here
-        # rather than derived from started_at/completed_at, which measures how
-        # long this laptop took to think — a slower machine must not report
-        # more reach.
+        # Length of the advisory itself, for the Impact Ledger.
         _update_job(job_id, media_duration_s=_content_duration(wav_path, segments))
         
         check_cancelled(job_id)
+        t_trans_gen = time.time()
         # Pipelined Translation & Generation
         translated_map, output_files = _stage_translating(
             job_id=job_id,
@@ -155,10 +163,14 @@ def run_pipeline(job_id: str) -> None:
             voice_gender=voice_gender,
             speaker_wav=speaker_wav,
         )
+        logger.info(f"[PERF_TIMING] Stage 4 & 5: Translation & Media Generation completed in {time.time() - t_trans_gen:.2f}s")
         
         check_cancelled(job_id)
+        t_pkg = time.time()
         _stage_packaging(job_id, output_files, source_lang, target_langs)
+        logger.info(f"[PERF_TIMING] Stage 6: Packaging completed in {time.time() - t_pkg:.2f}s")
         _finish_job(job_id, translated_map)
+        logger.info(f"[PERF_TIMING] 🎉 TOTAL JOB {job_id} COMPLETED IN {time.time() - t_job_start:.2f}s ({(time.time() - t_job_start)/60:.2f} minutes)")
 
     except JobCancelledError as ce:
         logger.info(f"Job {job_id} stopped cleanly due to cancellation: {ce}")
@@ -324,6 +336,10 @@ def _stage_transcribing(job_id: str, wav_path: Optional[str], source_lang: str, 
     segments, detected_whisper_lang_code = transcribe(
         wav_path, source_lang, work_dir=str(ws), workers=asr_workers
     )
+    logger.info(f"[DIAGNOSTIC] RAW_WHISPER_OUTPUT count={len(segments)} | detected_code={detected_whisper_lang_code}")
+    for idx, s in enumerate(segments[:5]):
+        logger.info(f"[DIAGNOSTIC] RAW_WHISPER[{idx}]='{s['text']}'")
+
     # Save transcript
     with open(str(ws / "transcript.txt"), "w", encoding="utf-8") as f:
         for s in segments:
@@ -411,6 +427,19 @@ def _stage_translating(
         f"translate_workers={translate_workers}, gen_workers={gen_workers}"
     )
 
+    bypass_cache = False
+    try:
+        from backend.database import get_db
+        with get_db() as conn:
+            row = conn.execute("SELECT bypass_cache FROM jobs WHERE id=?", (job_id,)).fetchone()
+            if row and row["bypass_cache"]:
+                bypass_cache = True
+    except Exception:
+        pass
+
+    if bypass_cache:
+        logger.info(f"[DIAGNOSTIC] TM_BYPASSED=True for job {job_id}")
+
     # Pre-compute Indic→English pivot ONCE for all Indic→Indic targets.
     _cached_english_segments: Optional[list[dict]] = None
     _needs_pivot = (
@@ -426,6 +455,7 @@ def _stage_translating(
             target_lang_code=ENGLISH_CODE,
             job_id=job_id,
             num_beams=num_beams,
+            bypass_cache=bypass_cache,
         )
 
     def _translate_one_language(lang_name: str) -> tuple[str, list[dict]]:
@@ -444,6 +474,7 @@ def _stage_translating(
                 target_lang_code=lang_code,
                 job_id=job_id,
                 num_beams=num_beams,
+                bypass_cache=bypass_cache,
             )
         elif lang_name == "English":
             # Case 2: Indic → English (direct)
@@ -454,6 +485,7 @@ def _stage_translating(
                 target_lang_code=ENGLISH_CODE,
                 job_id=job_id,
                 num_beams=num_beams,
+                bypass_cache=bypass_cache,
             )
         else:
             # Case 3: Indic → Indic via cached English pivot
@@ -467,6 +499,7 @@ def _stage_translating(
                     target_lang_code=ENGLISH_CODE,
                     job_id=job_id,
                     num_beams=num_beams,
+                    bypass_cache=bypass_cache,
                 )
             remapped = [{**seg, "text": seg["translated"]} for seg in english_segs]
             translated = translate_segments(
@@ -476,6 +509,7 @@ def _stage_translating(
                 target_lang_code=lang_code,
                 job_id=job_id,
                 num_beams=num_beams,
+                bypass_cache=bypass_cache,
             )
 
         return lang_name, translated

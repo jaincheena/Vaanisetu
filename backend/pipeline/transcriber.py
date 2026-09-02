@@ -7,6 +7,7 @@ import logging
 import tempfile
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+import time
 from typing import Optional
 
 from backend.utils.ffmpeg import ensure_ffmpeg_on_path
@@ -14,6 +15,54 @@ from backend.utils.ffmpeg import ensure_ffmpeg_on_path
 logger = logging.getLogger("vaanisetu.transcriber")
 
 ensure_ffmpeg_on_path()
+
+
+import re
+
+_INDIC_INITIAL_PROMPTS = {
+    "mr": "शेतकरी सल्ला, पशुपोषण, कृषी आणि जनावरांचे आजार.",
+    "hi": "किसान सलाह, पशुपालन, कृषि और फसल सुरक्षा।",
+    "gu": "ખેડૂત સલાહ, પશુપાલન, પાક અને જમીન સુરક્ષા.",
+    "bn": "কৃষি এবং গবাদি পশু সম্পর্কিত পরামর্শ।",
+    "te": "రైతు సలహా, పశుపోషణ, వ్యవసాయం మరియు పంట రక్షణ.",
+    "kn": "రైతు సలహా, పశుపోషణ, వ్యవసాయం మరియు పంట రక్షణ.",
+    "pa": "ਖੇਤੀਬਾੜੀ ਅਤੇ ਪਸ਼ੂ ਪਾਲਣ ਬਾਰੇ ਸਲਾਹ।",
+}
+
+
+_AR_TO_DEV_MAP = {
+    'ا': 'ा', 'ب': 'ब', 'پ': 'प', 'ت': 'त', 'ٹ': 'ट', 'ث': 'स', 'ج': 'ज', 'چ': 'च',
+    'ح': 'ह', 'خ': 'ख', 'د': 'द', 'ڈ': 'ड', 'ذ': 'ज', 'ر': 'र', 'ڑ': 'ड़', 'ز': 'ज',
+    'ژ': 'झ', 'س': 'स', 'ش': 'श', 'ص': 'स', 'ض': 'ज', 'ط': 'त', 'ظ': 'ज', 'ع': 'अ',
+    'غ': 'ग', 'ف': 'फ', 'ق': 'क', 'ک': 'क', 'گ': 'ग', 'ل': 'ल', 'م': 'म', 'ن': 'न',
+    'ں': 'ं', 'و': 'व', 'ہ': 'ह', 'ھ': 'ह', 'ی': 'य', 'ے': 'े', 'ۃ': 'ह', 'آ': 'आ'
+}
+
+def _ar_to_dev(text: str) -> str:
+    if not text:
+        return ""
+    if re.search(r'[\u0600-\u06FF\u0750-\u077F\uFB50-\uFDFF\uFE70-\uFEFF]', text):
+        res = [_AR_TO_DEV_MAP.get(ch, ch) for ch in text]
+        return ''.join(res)
+    return text
+
+
+def _clean_whisper_text(text: str, source_lang: Optional[str] = None) -> str:
+    if not text:
+        return ""
+    # Strip repeating backslashes or slashes (\ \ \ \ \ \ ...)
+    text = re.sub(r'(\s*[\/\\]){2,}', '', text)
+    # Strip repeating dots or noise tokens
+    text = re.sub(r'(\s*\.){3,}', '.', text)
+    # Convert Perso-Arabic tokens to Devanagari instead of deleting them
+    text = _ar_to_dev(text)
+    # Strip non-Indic foreign hallucination characters (Cyrillic, CJK, Hebrew, IPA modifier symbols)
+    text = re.sub(r'[\u0400-\u04FF\u3040-\u30FF\u4E00-\u9FFF\u0590-\u05FF\u0250-\u02AF\u1D00-\u1D7F]+', '', text)
+    # Normalize any remaining Romanized text into Devanagari if applicable
+    if source_lang:
+        from backend.utils.transliteration import normalize_indic_script
+        text = normalize_indic_script(text, source_lang)
+    return text.strip()
 
 
 def _transcribe_one(
@@ -26,31 +75,51 @@ def _transcribe_one(
     if not hasattr(model, "transcribe"):
         return [{"text": "Audio segment processed.", "start": 0.0, "end": 5.0}], whisper_lang or "en"
 
+    # Default to Marathi Devanagari initial prompt if in Auto-Detect mode to lock native script
+    prompt = _INDIC_INITIAL_PROMPTS.get(whisper_lang) if whisper_lang else _INDIC_INITIAL_PROMPTS.get("mr")
+
     try:
         # faster-whisper style (generator + VadOptions)
-        segments_gen, info = model.transcribe(
-            wav_path,
-            language=whisper_lang,
-            task=task,
-            vad_filter=True,
-            vad_parameters=dict(min_silence_duration_ms=500),
-        )
+        transcribe_kwargs = {
+            "language": whisper_lang,
+            "task": task,
+            "vad_filter": True,
+            "vad_parameters": dict(min_silence_duration_ms=500),
+            "condition_on_previous_text": False,
+            "repetition_penalty": 1.2,
+            "no_repeat_ngram_size": 3,
+            "hallucination_silence_threshold": 2.0,
+            "temperature": 0.0,
+            "beam_size": 1,
+            "best_of": 1,
+        }
+        if prompt:
+            transcribe_kwargs["initial_prompt"] = prompt
+
+        segments_gen, info = model.transcribe(wav_path, **transcribe_kwargs)
         raw_segments = list(segments_gen)
         detected_language = getattr(info, "language", None) or whisper_lang or "en"
-        segments = [
-            {"text": seg.text.strip(), "start": seg.start, "end": seg.end}
-            for seg in raw_segments
-            if seg.text.strip()
-        ]
+        display_lang = _whisper_to_display(detected_language) or "Marathi"
+        segments = []
+        for seg in raw_segments:
+            logger.info(f"[DIAGNOSTIC] RAW_WHISPER_SEGMENT: '{seg.text}' | DETECTED_LANGUAGE: '{getattr(info, 'language', None)}' | REQUESTED_LANGUAGE: '{whisper_lang}' | TASK: '{task}'")
+            cleaned = _clean_whisper_text(seg.text, source_lang=display_lang)
+            logger.info(f"[DIAGNOSTIC] AFTER_WHISPER_CLEAN: '{cleaned}'")
+            if cleaned:
+                segments.append({"text": cleaned, "start": seg.start, "end": seg.end})
     except TypeError:
         # openai-whisper style (dictionary output)
-        result = model.transcribe(wav_path, language=whisper_lang, task=task)
+        transcribe_kwargs = {"language": whisper_lang, "task": task}
+        if prompt:
+            transcribe_kwargs["initial_prompt"] = prompt
+        result = model.transcribe(wav_path, **transcribe_kwargs)
         detected_language = result.get("language") or whisper_lang or "en"
-        segments = [
-            {"text": seg["text"].strip(), "start": seg["start"], "end": seg["end"]}
-            for seg in result.get("segments", [])
-            if seg.get("text", "").strip()
-        ]
+        display_lang = _whisper_to_display(detected_language) or "Marathi"
+        segments = []
+        for seg in result.get("segments", []):
+            cleaned = _clean_whisper_text(seg.get("text", ""), source_lang=display_lang)
+            if cleaned:
+                segments.append({"text": cleaned, "start": seg.get("start", 0.0), "end": seg.get("end", 0.0)})
     return segments, detected_language
 
 
@@ -92,58 +161,45 @@ def transcribe(
     # Map display name → Whisper lang code
     whisper_lang = _display_to_whisper(source_lang) if source_lang else None
 
-    # Concurrency here only pays off with faster-whisper: CTranslate2 serves
-    # several callers from one copy of the weights via num_workers. Plain
-    # openai-whisper is a torch module driven by our own threads, so N chunks
-    # each wanting the full intra-op width just oversubscribe the cores.
-    backend_name = getattr(registry, "whisper_backend", None)
-    if workers > 1 and backend_name != "faster-whisper":
-        logger.info(
-            f"Whisper backend is {backend_name or 'unknown'}; transcribing in a "
-            f"single pass. Install faster-whisper to enable parallel chunks."
-        )
-        workers = 1
-
-    logger.info(f"Transcribing {wav_path} (lang={whisper_lang or 'auto'}, workers={workers}) ...")
+    t_start = time.time()
+    logger.info(f"[PERF_TIMING] Starting Whisper ASR for {wav_path} (lang={whisper_lang or 'auto'}, workers={workers})")
 
     # One shared Whisper instance across concurrent jobs — serialize per job.
-    # Chunks *within* this job still run in parallel, below.
     from backend.pipeline.locks import TRANSCRIBE_LOCK
     temp_dir: Optional[tempfile.TemporaryDirectory] = None
     try:
         with TRANSCRIBE_LOCK:
             chunks = [None]
             if workers > 1:
+                t_chunk_start = time.time()
                 from backend.pipeline.audio_chunker import chunk_audio
                 if work_dir is None:
                     temp_dir = tempfile.TemporaryDirectory(prefix="vaanisetu_asr_")
                     work_dir = temp_dir.name
                 chunks = chunk_audio(wav_path, work_dir, target_chunks=workers)
+                logger.info(f"[PERF_TIMING] Audio chunking created {len(chunks)} chunk(s) in {time.time() - t_chunk_start:.2f}s")
 
             if workers <= 1 or len(chunks) <= 1:
+                t0 = time.time()
                 segments, detected_language = _transcribe_one(
                     model, wav_path, whisper_lang, task
                 )
+                logger.info(f"[PERF_TIMING] Single-pass Whisper transcription took {time.time() - t0:.2f}s")
             else:
-                # Detect the language once on the opening chunk and pin every
-                # other chunk to it. Per-chunk detection can disagree on a
-                # code-mixed advisory and silently switch mid-transcript.
-                lang_for_chunks = whisper_lang
+                t0 = time.time()
                 first_segments, detected_language = _transcribe_one(
                     model, chunks[0].path, whisper_lang, task
                 )
-                if lang_for_chunks is None:
-                    lang_for_chunks = detected_language
+                lang_for_chunks = whisper_lang or detected_language
+                logger.info(f"[PERF_TIMING] Whisper Chunk 1/{len(chunks)} completed in {time.time() - t0:.2f}s (detected_lang={detected_language})")
 
                 rest = chunks[1:]
-                with ThreadPoolExecutor(
-                    max_workers=min(workers, len(rest)),
-                    thread_name_prefix="vaani-asr",
-                ) as pool:
-                    results = list(pool.map(
-                        lambda c: _transcribe_one(model, c.path, lang_for_chunks, task),
-                        rest,
-                    ))
+                results = []
+                for idx, c in enumerate(rest, start=2):
+                    tc0 = time.time()
+                    res = _transcribe_one(model, c.path, lang_for_chunks, task)
+                    results.append(res)
+                    logger.info(f"[PERF_TIMING] Whisper Chunk {idx}/{len(chunks)} completed in {time.time() - tc0:.2f}s")
 
                 segments = list(first_segments)
                 for chunk, (chunk_segments, _) in zip(rest, results):
@@ -154,11 +210,12 @@ def transcribe(
                             "end": seg["end"] + chunk.offset,
                         })
                 segments.sort(key=lambda s: s["start"])
+
     finally:
         if temp_dir is not None:
             temp_dir.cleanup()
 
-    # Reclaim RAM immediately on low-memory machines before translation starts
+    logger.info(f"[PERF_TIMING] TOTAL Whisper ASR completed in {time.time() - t_start:.2f}s ({len(segments)} segments, lang={detected_language})")
     registry.release_whisper_if_low_ram()
 
     logger.info(f"Transcribed {len(segments)} segments (detected lang: {detected_language})")
