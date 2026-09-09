@@ -603,6 +603,11 @@ class ModelRegistry:
     def get_indic_pair(self, source_lang: str):
         """Return (tokenizer, model) for correct direction."""
         if source_lang == "English":
+            if not self._en_indic_loaded:
+                with self._load_lock:
+                    if not self._en_indic_loaded:
+                        logger.info("Loading en→indic now")
+                        self._load_en_indic()
             return self.en_indic_tokenizer, self.en_indic_model
 
         if not self._indic_en_loaded:

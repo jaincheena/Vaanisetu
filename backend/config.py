@@ -78,12 +78,10 @@ def _get_default_whisper_model() -> str:
         vm = psutil.virtual_memory()
         free_gb = vm.available / (1024 ** 3)
         total_gb = vm.total / (1024 ** 3)
-        if total_gb <= 8.5 or free_gb < 3.0:
-            return "tiny"   # ~75MB weights, uses only ~120MB RAM
-        elif free_gb < 6.0:
-            return "base"   # ~140MB weights, uses only ~220MB RAM
-        elif free_gb < 10.0:
-            return "small"  # ~460MB weights, uses ~700MB RAM
+        if total_gb <= 8.5 and free_gb < 1.0:
+            return "base"
+        elif free_gb < 2.5:
+            return "small"
         else:
             return "large-v3-turbo"
     except Exception:
@@ -122,8 +120,6 @@ def inference_threads(resource_saver: bool = False) -> int:
     Physical cores, not logical: two hyperthreads on one core share the same
     arithmetic units, so counting them oversubscribes and slows inference down.
     """
-    if resource_saver:
-        return 2
     try:
         import psutil
         cores = psutil.cpu_count(logical=False)
@@ -140,9 +136,9 @@ def asr_worker_plan() -> tuple[int, int]:
     than cores just makes each one slower without finishing any sooner.
     Resource Saver Mode collapses to a single serial worker.
     """
-    if IS_LOW_RAM:
-        return 1, 2
     cores = inference_threads()
+    if IS_LOW_RAM:
+        return 1, max(2, cores)
     num_workers = max(1, min(4, cores // 2))
     cpu_threads = max(1, cores // num_workers)
     return num_workers, cpu_threads
