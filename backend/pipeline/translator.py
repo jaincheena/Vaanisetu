@@ -12,9 +12,9 @@ from typing import Optional
 logger = logging.getLogger("vaanisetu.translator")
 
 
-# Using a simple, unlikely tag to protect parts of text from translation.
-_PLACEHOLDER_TAG = "VSP"  # VaaniSetu Protected
-_PLACEHOLDER_RE = re.compile(r'<\s*' + _PLACEHOLDER_TAG + r'\s*(\d+)[^>]*>', re.IGNORECASE)
+# Using purely numeric boundaries to prevent IndicTrans2 from transliterating English letters (like VSP -> व्ही एस पी)
+_PLACEHOLDER_TAG = "9999"  
+_PLACEHOLDER_RE = re.compile(r'<\s*' + _PLACEHOLDER_TAG + r'(\d+)\s*>', re.IGNORECASE)
 
 # Patterns for entities that should not be translated.
 _PROTECT_PATTERNS = [
@@ -36,7 +36,7 @@ _GLOSSARY_TERMS = [
     # Government Agricultural Schemes & Portals
     "PM-KISAN", "PMFBY", "PMKSY", "e-NAM", "KCC", "Kisan Credit Card", "Soil Health Card",
     "MGNREGA", "NABARD", "ATMA", "KVK", "ICAR", "RKVY", "NFSM", "MIDH", "APMC", "Mandi",
-    "BAIF", "Bharatiya Agro Industries Foundation",
+    "BAIF", "Bharatiya Agro Industries Foundation", "Vaani Setu", "VaaniSetu",
     
     # Agricultural Practices & Methods
     "SRI", "System of Rice Intensification", "DSR", "Direct Seeded Rice", "Zero Tillage",
@@ -107,8 +107,8 @@ def _postprocess_text(text: str, protected_items: list[str]) -> str:
         return ""
 
     processed_text = _PLACEHOLDER_RE.sub(replacer, text)
-    # Strip any remaining unhandled < VSP... > tags
-    processed_text = re.sub(r'<\s*VSP[^\s>]*>?', '', processed_text, flags=re.IGNORECASE)
+    # Strip any remaining unhandled < 9999... > tags
+    processed_text = re.sub(r'<\s*9999[^\s>]*>?', '', processed_text, flags=re.IGNORECASE)
     # Normalize all whitespace (multiple spaces, newlines, etc.) into single spaces.
     return " ".join(processed_text.split()).strip()
 
