@@ -139,7 +139,7 @@ def run_pipeline(job_id: str) -> None:
 
         check_cancelled(job_id)
         t_asr = time.time()
-        segments, detected_whisper_lang_code = _stage_transcribing(job_id, wav_path, source_lang, upload_path, resource_saver)
+        segments, detected_whisper_lang_code = _stage_transcribing(job_id, wav_path, source_lang, upload_path, resource_saver, farmer_context)
         logger.info(f"[PERF_TIMING] Stage 3: Transcription completed in {time.time() - t_asr:.2f}s ({len(segments)} segments)")
 
         # Length of the advisory itself, for the Impact Ledger.
@@ -310,7 +310,7 @@ def _get_wav_path(job_id: str) -> Optional[str]:
 # ---------------------------------------------------------------------------
 # Stage 3 — Transcribing
 # ---------------------------------------------------------------------------
-def _stage_transcribing(job_id: str, wav_path: Optional[str], source_lang: str, upload_path: str, resource_saver: bool = False) -> tuple[list[dict], str]:
+def _stage_transcribing(job_id: str, wav_path: Optional[str], source_lang: str, upload_path: str, resource_saver: bool = False, farmer_context: Optional[str] = None) -> tuple[list[dict], str]:
     _publish(job_id, "transcribing", "Transcribing speech …")
     _update_job(job_id, status="transcribing")
 
@@ -334,7 +334,7 @@ def _stage_transcribing(job_id: str, wav_path: Optional[str], source_lang: str, 
     from backend.config import asr_worker_plan
     asr_workers = 1 if resource_saver else asr_worker_plan()[0]
     segments, detected_whisper_lang_code = transcribe(
-        wav_path, source_lang, work_dir=str(ws), workers=asr_workers
+        wav_path, source_lang, work_dir=str(ws), workers=asr_workers, prompt=farmer_context
     )
     logger.info(f"[DIAGNOSTIC] RAW_WHISPER_OUTPUT count={len(segments)} | detected_code={detected_whisper_lang_code}")
     for idx, s in enumerate(segments[:5]):

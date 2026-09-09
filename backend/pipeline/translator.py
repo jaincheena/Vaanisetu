@@ -148,6 +148,8 @@ def _run_inference(tokenizer, model, pending_texts: list[str], src_code: str, ta
         "output_scores": True,
         "return_dict_in_generate": True,
         "use_cache": False,
+        "repetition_penalty": 1.2,
+        "no_repeat_ngram_size": 3,
     }
     if bos_id is not None:
         gen_kwargs["forced_bos_token_id"] = bos_id

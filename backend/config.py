@@ -122,8 +122,6 @@ def inference_threads(resource_saver: bool = False) -> int:
     Physical cores, not logical: two hyperthreads on one core share the same
     arithmetic units, so counting them oversubscribes and slows inference down.
     """
-    if resource_saver:
-        return 2
     try:
         import psutil
         cores = psutil.cpu_count(logical=False)
@@ -140,9 +138,9 @@ def asr_worker_plan() -> tuple[int, int]:
     than cores just makes each one slower without finishing any sooner.
     Resource Saver Mode collapses to a single serial worker.
     """
-    if IS_LOW_RAM:
-        return 1, 2
     cores = inference_threads()
+    if IS_LOW_RAM:
+        return 1, max(2, cores)
     num_workers = max(1, min(4, cores // 2))
     cpu_threads = max(1, cores // num_workers)
     return num_workers, cpu_threads

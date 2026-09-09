@@ -129,6 +129,7 @@ def transcribe(
     task: str = "transcribe",
     work_dir: Optional[str] = None,
     workers: int = 1,
+    prompt: Optional[str] = None,
 ) -> tuple[list[dict], str]:
     """
     Transcribe a WAV file using faster-whisper (CTranslate2 INT8) with Silero VAD.
@@ -182,13 +183,13 @@ def transcribe(
             if workers <= 1 or len(chunks) <= 1:
                 t0 = time.time()
                 segments, detected_language = _transcribe_one(
-                    model, wav_path, whisper_lang, task
+                    model, wav_path, whisper_lang, task, prompt=prompt
                 )
                 logger.info(f"[PERF_TIMING] Single-pass Whisper transcription took {time.time() - t0:.2f}s")
             else:
                 t0 = time.time()
                 first_segments, detected_language = _transcribe_one(
-                    model, chunks[0].path, whisper_lang, task
+                    model, chunks[0].path, whisper_lang, task, prompt=prompt
                 )
                 lang_for_chunks = whisper_lang or detected_language
                 logger.info(f"[PERF_TIMING] Whisper Chunk 1/{len(chunks)} completed in {time.time() - t0:.2f}s (detected_lang={detected_language})")
@@ -197,7 +198,7 @@ def transcribe(
                 results = []
                 for idx, c in enumerate(rest, start=2):
                     tc0 = time.time()
-                    res = _transcribe_one(model, c.path, lang_for_chunks, task)
+                    res = _transcribe_one(model, c.path, lang_for_chunks, task, prompt=prompt)
                     results.append(res)
                     logger.info(f"[PERF_TIMING] Whisper Chunk {idx}/{len(chunks)} completed in {time.time() - tc0:.2f}s")
 
