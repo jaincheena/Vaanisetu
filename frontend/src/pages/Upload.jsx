@@ -865,21 +865,21 @@ export default function Upload() {
       {/* ── INTERACTIVE RESULT HUB ── */}
       {result && (
         <div className="card mt-6" style={{
-          border: '1.5px solid #FDE68A',
-          background: '#FFFFFF',
-          boxShadow: '0 10px 25px -5px rgba(0,0,0,0.08), 0 8px 10px -6px rgba(0,0,0,0.04)'
+          border: '1px solid rgba(245, 158, 11, 0.4)',
+          background: 'linear-gradient(135deg, rgba(17, 24, 39, 0.95) 0%, rgba(15, 23, 42, 0.95) 100%)',
+          boxShadow: '0 10px 25px -5px rgba(0,0,0,0.5), 0 8px 10px -6px rgba(0,0,0,0.3)'
         }}>
           {/* Header */}
           <div className="flex items-center justify-between mb-4" style={{
-            borderBottom: '1px solid #E2E8F0',
+            borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
             paddingBottom: 16
           }}>
             <div>
-              <h3 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 20, fontWeight: 800, margin: 0, color: '#0F172A' }}>
+              <h3 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 20, fontWeight: 800, margin: 0, color: '#F8FAFC' }}>
                 ✅ Localization Complete & Ready
               </h3>
-              <p style={{ fontSize: 13, color: '#475569', marginTop: 4, fontWeight: 500 }}>
-                Job ID: <span className="font-mono" style={{ fontWeight: 600, color: '#0F172A' }}>{jobId?.slice(0, 8)}…</span> · Generated for {targetLangs.join(', ')}
+              <p style={{ fontSize: 13, color: '#94A3B8', marginTop: 4, fontWeight: 500 }}>
+                Job ID: <span className="font-mono" style={{ fontWeight: 600, color: '#E2E8F0' }}>{jobId?.slice(0, 8)}…</span> · Generated for {targetLangs.join(', ')}
               </p>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -898,7 +898,7 @@ export default function Upload() {
             display: 'flex',
             gap: 8,
             marginBottom: 20,
-            borderBottom: '1px solid #E2E8F0',
+            borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
             paddingBottom: 10,
             overflowX: 'auto'
           }}>
@@ -918,7 +918,7 @@ export default function Upload() {
           {/* Language Selector for Result View */}
           {targetLangs.length > 1 && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-              <span style={{ fontSize: 13, color: '#334155', fontWeight: 600 }}>Select Target Language:</span>
+              <span style={{ fontSize: 13, color: '#CBD5E1', fontWeight: 600 }}>Select Target Language:</span>
               <div style={{ display: 'flex', gap: 6 }}>
                 {targetLangs.map(l => (
                   <button
@@ -940,26 +940,26 @@ export default function Upload() {
               display: 'grid',
               gridTemplateColumns: '1fr 1fr',
               gap: 16,
-              background: '#F8FAFC',
+              background: '#0B1120',
               padding: 18,
               borderRadius: 'var(--radius-sm)',
-              border: '1px solid #E2E8F0'
+              border: '1px solid rgba(255, 255, 255, 0.1)'
             }}>
               <div>
-                <div className="section-label" style={{ marginBottom: 8, color: '#64748B' }}>
+                <div className="section-label" style={{ marginBottom: 8, color: '#94A3B8' }}>
                   Original Source ({sourceLang})
                 </div>
                 <div style={{
                   fontSize: 13.5,
                   lineHeight: 1.65,
-                  color: '#334155',
+                  color: '#F1F5F9',
                   maxHeight: 280,
                   overflowY: 'auto',
                   whiteSpace: 'pre-wrap',
-                  background: '#FFFFFF',
+                  background: '#1E293B',
                   padding: 12,
                   borderRadius: 6,
-                  border: '1px solid #E2E8F0',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
                   fontWeight: 500
                 }}>
                   {previewData?.transcript || textContent || 'Original source transcript loading…'}
@@ -967,20 +967,20 @@ export default function Upload() {
               </div>
 
               <div>
-                <div className="section-label" style={{ marginBottom: 8, color: '#B45309' }}>
+                <div className="section-label" style={{ marginBottom: 8, color: '#FBBF24' }}>
                   Translated Output ({previewLang})
                 </div>
                 <div style={{
                   fontSize: 13.5,
                   lineHeight: 1.65,
-                  color: '#0F172A',
+                  color: '#F8FAFC',
                   maxHeight: 280,
                   overflowY: 'auto',
                   whiteSpace: 'pre-wrap',
-                  background: '#FFFFFF',
+                  background: '#1E293B',
                   padding: 12,
                   borderRadius: 6,
-                  border: '1.5px solid #FDE68A',
+                  border: '1px solid rgba(245, 158, 11, 0.4)',
                   fontWeight: 600
                 }}>
                   {previewData?.translations?.[previewLang] || 'Translating segments…'}
@@ -992,17 +992,17 @@ export default function Upload() {
           {/* 2. Audio Player Tab */}
           {activePreviewTab === 'audio' && (
             <div style={{
-              background: '#F8FAFC',
+              background: '#0B1120',
               padding: 24,
               borderRadius: 'var(--radius-sm)',
-              border: '1px solid #E2E8F0',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
               textAlign: 'center'
             }}>
               <div style={{ fontSize: 36, marginBottom: 8 }}>🎧</div>
-              <h4 style={{ margin: '0 0 6px 0', fontSize: 16, fontWeight: 700, color: '#0F172A' }}>
+              <h4 style={{ margin: '0 0 6px 0', fontSize: 16, fontWeight: 700, color: '#F8FAFC' }}>
                 AI Synthetic Voice Track ({previewLang})
               </h4>
-              <p style={{ fontSize: 13, color: '#475569', marginBottom: 16, fontWeight: 500 }}>
+              <p style={{ fontSize: 13, color: '#94A3B8', marginBottom: 16, fontWeight: 500 }}>
                 Natural speech synthesized via Indic Neural TTS · Ready for WhatsApp voice notes & community radio
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
@@ -1108,30 +1108,30 @@ export default function Upload() {
                       <div
                         key={name}
                         style={{
-                          background: '#FFFFFF',
-                          border: '1.5px solid #E2E8F0',
+                          background: '#1E293B',
+                          border: '1px solid rgba(255, 255, 255, 0.1)',
                           borderRadius: 8,
                           padding: '14px 16px',
                           display: 'flex',
                           flexDirection: 'column',
                           gap: 4,
-                          boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
                         }}
                       >
-                        <span style={{ fontSize: 13, fontFamily: 'monospace', fontWeight: 700, color: '#0F172A' }}>
+                        <span style={{ fontSize: 13, fontFamily: 'monospace', fontWeight: 700, color: '#F8FAFC' }}>
                           📄 {name}
                         </span>
-                        <div style={{ fontSize: 12, color: '#D97706', fontWeight: 700 }}>
+                        <div style={{ fontSize: 12, color: '#FBBF24', fontWeight: 700 }}>
                           {info.channel}
                         </div>
-                        <div style={{ fontSize: 11.5, color: '#475569', fontWeight: 500 }}>
+                        <div style={{ fontSize: 11.5, color: '#94A3B8', fontWeight: 500 }}>
                           {info.desc}
                         </div>
-                        <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px dashed #E2E8F0' }}>
+                        <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px dashed rgba(255, 255, 255, 0.1)' }}>
                           <a
                             href={`/api/jobs/${jobId}/file/${encodeURIComponent(name)}`}
                             download={name}
-                            style={{ fontSize: 12, color: '#D97706', textDecoration: 'none', fontWeight: 700 }}
+                            style={{ fontSize: 12, color: '#FBBF24', textDecoration: 'none', fontWeight: 700 }}
                           >
                             ⬇️ Direct Download
                           </a>
