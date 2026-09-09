@@ -137,11 +137,7 @@ def asr_worker_plan() -> tuple[int, int]:
     Resource Saver Mode collapses to a single serial worker.
     """
     cores = inference_threads()
-    if IS_LOW_RAM:
-        return 1, max(2, cores)
-    num_workers = max(1, min(4, cores // 2))
-    cpu_threads = max(1, cores // num_workers)
-    return num_workers, cpu_threads
+    return 1, max(2, cores)
 
 # FFmpeg / ffprobe executable paths
 FFMPEG_PATH = os.getenv("VAANISETU_FFMPEG", "ffmpeg")
