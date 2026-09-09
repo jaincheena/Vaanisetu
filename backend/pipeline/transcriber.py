@@ -62,6 +62,15 @@ def _clean_whisper_text(text: str, source_lang: Optional[str] = None) -> str:
     if source_lang:
         from backend.utils.transliteration import normalize_indic_script
         text = normalize_indic_script(text, source_lang)
+        
+    # Auto-correct common Whisper phonetic hallucinations in Marathi
+    text = re.sub(r'पस्युसकी|पशिसखी', 'पशुसखी', text)
+    text = re.sub(r'\bशेली\b|\bशडी\b|\bशेडी\b|\bश्यली\b|\bशली\b', 'शेळी', text)
+    text = re.sub(r'व्यवस्तापन|व्यवस्तापना', 'व्यवस्थापन', text)
+    text = re.sub(r'प्रचिक्षन', 'प्रशिक्षण', text)
+    text = re.sub(r'सर्वत्तम|सरुवत्थम', 'सर्वोत्तम', text)
+    text = re.sub(r'लसकरण', 'लसीकरण', text)
+
     return text.strip()
 
 
