@@ -14,7 +14,7 @@ logger = logging.getLogger("vaanisetu.translator")
 
 # Using purely numeric boundaries to prevent IndicTrans2 from transliterating English letters (like VSP -> व्ही एस पी)
 _PLACEHOLDER_TAG = "9999"  
-_PLACEHOLDER_RE = re.compile(r'<\s*' + _PLACEHOLDER_TAG + r'(\d+)\s*>', re.IGNORECASE)
+_PLACEHOLDER_RE = re.compile(r'<\s*' + _PLACEHOLDER_TAG + r'\s*(\d+)[^>]*>', re.IGNORECASE)
 
 # Patterns for entities that should not be translated.
 _PROTECT_PATTERNS = [
