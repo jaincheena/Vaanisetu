@@ -119,55 +119,68 @@ def _run_inference(tokenizer, model, pending_texts: list[str], src_code: str, ta
     Caller owns exclusivity: holds replica from pool or holds TRANSLATE_LOCK.
     """
     import torch
+    from backend.services.confidence import batch_confidence
 
-    formatted_texts = [
-        f"{src_code} {target_lang_code} {text}"
-        for text in pending_texts
-    ]
+    all_decoded = []
+    all_confs = []
+    BATCH_SIZE = 4
 
-    inputs = tokenizer(
-        formatted_texts,
-        return_tensors="pt",
-        padding=True,
-        truncation=True,
-        max_length=max_length,
-    )
+    for i in range(0, len(pending_texts), BATCH_SIZE):
+        batch_texts = pending_texts[i:i+BATCH_SIZE]
+        
+        formatted_texts = [
+            f"{src_code} {target_lang_code} {text}"
+            for text in batch_texts
+        ]
 
-    # Dynamic generation max length: prevent runaway 256-token loops on short advisory sentences
-    input_tokens_len = inputs["input_ids"].shape[1] if "input_ids" in inputs else 32
-    effective_max_length = min(max_length, max(48, int(input_tokens_len * 2.2)))
-
-    bos_id = getattr(tokenizer, "lang_code_to_id", {}).get(target_lang_code)
-    gen_kwargs = {
-        "num_beams": num_beams,
-        "max_length": effective_max_length,
-        "early_stopping": True if num_beams > 1 else False,
-        "output_scores": True,
-        "return_dict_in_generate": True,
-        "use_cache": False,  # MUST be False due to custom modeling_indictrans.py bug with past_key_values
-    }
-    if bos_id is not None:
-        gen_kwargs["forced_bos_token_id"] = bos_id
-
-    with torch.no_grad():
-        outputs = model.generate(
-            **inputs,
-            **gen_kwargs,
+        inputs = tokenizer(
+            formatted_texts,
+            return_tensors="pt",
+            padding=True,
+            truncation=True,
+            max_length=max_length,
         )
 
-    if hasattr(tokenizer, "_switch_to_target_mode"):
-        tokenizer._switch_to_target_mode()
+        input_tokens_len = inputs["input_ids"].shape[1] if "input_ids" in inputs else 32
+        effective_max_length = min(max_length, max(48, int(input_tokens_len * 2.2)))
 
-    decoded = tokenizer.batch_decode(
-        outputs.sequences,
-        skip_special_tokens=True,
-        clean_up_tokenization_spaces=False,
-    )
+        bos_id = getattr(tokenizer, "lang_code_to_id", {}).get(target_lang_code)
+        gen_kwargs = {
+            "num_beams": num_beams,
+            "max_length": effective_max_length,
+            "early_stopping": True if num_beams > 1 else False,
+            "output_scores": True,
+            "return_dict_in_generate": True,
+            "use_cache": False,
+        }
+        if bos_id is not None:
+            gen_kwargs["forced_bos_token_id"] = bos_id
 
-    if hasattr(tokenizer, "_switch_to_input_mode"):
-        tokenizer._switch_to_input_mode()
+        with torch.no_grad():
+            outputs = model.generate(
+                **inputs,
+                **gen_kwargs,
+            )
 
-    return decoded, outputs
+        if hasattr(tokenizer, "_switch_to_target_mode"):
+            tokenizer._switch_to_target_mode()
+
+        decoded = tokenizer.batch_decode(
+            outputs.sequences,
+            skip_special_tokens=True,
+            clean_up_tokenization_spaces=False,
+        )
+
+        if hasattr(tokenizer, "_switch_to_input_mode"):
+            tokenizer._switch_to_input_mode()
+            
+        scores_list = list(outputs.scores) if outputs.scores else []
+        confs = batch_confidence(scores_list, outputs.sequences)
+        
+        all_decoded.extend(decoded)
+        all_confs.extend(confs)
+
+    return all_decoded, all_confs
 
 
 class TranslationUnavailableError(RuntimeError):
@@ -329,18 +342,15 @@ def translate_segments(
 
             if pool is not None:
                 with pool.acquire() as (tok, mdl):
-                    decoded, outputs = _run_inference(
+                    decoded, confs = _run_inference(
                         tok, mdl, pending_texts, src_code, target_lang_code, TRANSLATION_MAX_LENGTH, num_beams=num_beams
                     )
             else:
                 from backend.pipeline.locks import TRANSLATE_LOCK
                 with TRANSLATE_LOCK:
-                    decoded, outputs = _run_inference(
+                    decoded, confs = _run_inference(
                         tokenizer, model, pending_texts, src_code, target_lang_code, TRANSLATION_MAX_LENGTH, num_beams=num_beams
                     )
-
-            scores_list = list(outputs.scores) if outputs.scores else []
-            confs = batch_confidence(scores_list, outputs.sequences)
 
             for local_i, global_i in enumerate(pending_idx):
                 # Post-process to restore placeholders and normalize whitespace
