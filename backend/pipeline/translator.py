@@ -123,7 +123,7 @@ def _run_inference(tokenizer, model, pending_texts: list[str], src_code: str, ta
 
     all_decoded = []
     all_confs = []
-    BATCH_SIZE = 4
+    BATCH_SIZE = 1  # Force single-item batching to prevent past_key_values AttributeError and OOM
 
     for i in range(0, len(pending_texts), BATCH_SIZE):
         batch_texts = pending_texts[i:i+BATCH_SIZE]
@@ -151,7 +151,7 @@ def _run_inference(tokenizer, model, pending_texts: list[str], src_code: str, ta
             "early_stopping": True if num_beams > 1 else False,
             "output_scores": True,
             "return_dict_in_generate": True,
-            "use_cache": False,
+            "use_cache": True,
         }
         if bos_id is not None:
             gen_kwargs["forced_bos_token_id"] = bos_id
