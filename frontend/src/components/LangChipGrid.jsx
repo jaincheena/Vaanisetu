@@ -28,9 +28,7 @@ const ALL_LANGS = [
 ]
 
 export const ACTIVE_LANGS = new Set([
-  'Marathi', 'Hindi', 'Gujarati', 'English', 'Telugu', 'Kannada',
-  'Bengali', 'Tamil', 'Malayalam', 'Punjabi', 'Odia', 'Urdu',
-  'Assamese', 'Nepali',
+  'Marathi', 'Hindi', 'Gujarati', 'Kannada', 'Bengali'
 ])
 
 export default function LangChipGrid({ selected, onChange, exclude = [] }) {
@@ -49,7 +47,7 @@ export default function LangChipGrid({ selected, onChange, exclude = [] }) {
   const selectActive = () => onChange(active)
   const selectMaharashtra = () => onChange(['Marathi', 'Hindi'])
   const selectWestern = () => onChange(['Marathi', 'Hindi', 'Gujarati'])
-  const selectSouth = () => onChange(['Telugu', 'Kannada', 'Tamil', 'Malayalam'])
+  const selectSouth = () => onChange(['Kannada'])
   const clearAll = () => onChange([])
 
   return (
@@ -69,7 +67,7 @@ export default function LangChipGrid({ selected, onChange, exclude = [] }) {
             🌴 South Hub
           </button>
           <button className="btn btn-sm btn-secondary" onClick={selectActive} type="button">
-            All 14 Active
+            All 5 Active
           </button>
           <button className="btn btn-sm btn-danger" onClick={clearAll} type="button">
             Clear

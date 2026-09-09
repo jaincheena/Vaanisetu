@@ -5,13 +5,8 @@ const INDIC_SCRIPTS = [
   { script: 'मराठी', lang: 'Marathi', icon: '🚩', color: '#FBBF24' },
   { script: 'हिन्दी', lang: 'Hindi', icon: '🌾', color: '#34D399' },
   { script: 'ગુજરાતી', lang: 'Gujarati', icon: '🌱', color: '#F59E0B' },
-  { script: 'తెలుగు', lang: 'Telugu', icon: '☀️', color: '#38BDF8' },
   { script: 'ಕನ್ನಡ', lang: 'Kannada', icon: '🌴', color: '#34D399' },
   { script: 'বাংলা', lang: 'Bengali', icon: '🌊', color: '#67E8F9' },
-  { script: 'தமிழ்', lang: 'Tamil', icon: '🏛️', color: '#FB923C' },
-  { script: 'ਪੰਜਾਬੀ', lang: 'Punjabi', icon: '🌾', color: '#FACC15' },
-  { script: 'ଓଡ଼ିଆ', lang: 'Odia', icon: '🌿', color: '#34D399' },
-  { script: 'മലയാളം', lang: 'Malayalam', icon: '🥥', color: '#C084FC' },
 ]
 
 export default function Overview() {
