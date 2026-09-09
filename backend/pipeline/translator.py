@@ -146,12 +146,12 @@ def _run_inference(tokenizer, model, pending_texts: list[str], src_code: str, ta
 
         bos_id = getattr(tokenizer, "lang_code_to_id", {}).get(target_lang_code)
         gen_kwargs = {
-            "num_beams": 1,  # FORCE greedy decoding to completely bypass the IndicTrans2 _reorder_cache bug
+            "num_beams": 1,  # FORCE greedy decoding to prevent OOM
             "max_length": effective_max_length,
             "early_stopping": False,
             "output_scores": True,
             "return_dict_in_generate": True,
-            "use_cache": True,
+            "use_cache": False, # MUST BE FALSE. custom modeling_indictrans.py crashes on this environment with use_cache=True
         }
         if bos_id is not None:
             gen_kwargs["forced_bos_token_id"] = bos_id
