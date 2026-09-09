@@ -140,16 +140,11 @@ def _run_inference(tokenizer, model, pending_texts: list[str], src_code: str, ta
     bos_id = getattr(tokenizer, "lang_code_to_id", {}).get(target_lang_code)
     gen_kwargs = {
         "num_beams": num_beams,
-        "max_length": max_length,
         "max_length": effective_max_length,
-        "no_repeat_ngram_size": 3,
-        "repetition_penalty": 1.2,
         "early_stopping": True if num_beams > 1 else False,
         "output_scores": True,
         "return_dict_in_generate": True,
-        "use_cache": False,
-        "repetition_penalty": 1.2,
-        "no_repeat_ngram_size": 3,
+        "use_cache": True,
     }
     if bos_id is not None:
         gen_kwargs["forced_bos_token_id"] = bos_id
