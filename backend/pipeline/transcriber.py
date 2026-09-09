@@ -70,13 +70,15 @@ def _transcribe_one(
     wav_path: str,
     whisper_lang: Optional[str],
     task: str,
+    prompt: Optional[str] = None,
 ) -> tuple[list[dict], str]:
     """Transcribe a single file. Timestamps are relative to that file."""
     if not hasattr(model, "transcribe"):
         return [{"text": "Audio segment processed.", "start": 0.0, "end": 5.0}], whisper_lang or "en"
 
     # Default to Marathi Devanagari initial prompt if in Auto-Detect mode to lock native script
-    prompt = _INDIC_INITIAL_PROMPTS.get(whisper_lang) if whisper_lang else _INDIC_INITIAL_PROMPTS.get("mr")
+    if not prompt:
+        prompt = _INDIC_INITIAL_PROMPTS.get(whisper_lang) if whisper_lang else _INDIC_INITIAL_PROMPTS.get("mr")
 
     try:
         # faster-whisper style (generator + VadOptions)
