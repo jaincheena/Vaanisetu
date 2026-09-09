@@ -144,7 +144,7 @@ def _run_inference(tokenizer, model, pending_texts: list[str], src_code: str, ta
         "early_stopping": True if num_beams > 1 else False,
         "output_scores": True,
         "return_dict_in_generate": True,
-        "use_cache": True,
+        "use_cache": False,  # MUST be False due to custom modeling_indictrans.py bug with past_key_values
     }
     if bos_id is not None:
         gen_kwargs["forced_bos_token_id"] = bos_id
