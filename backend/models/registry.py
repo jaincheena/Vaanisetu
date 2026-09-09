@@ -46,7 +46,6 @@ try:
     _orig_get_class = transformers.dynamic_module_utils.get_class_from_dynamic_module
     def _patched_get_class(*args, **kwargs):
         cls = _orig_get_class(*args, **kwargs)
-        if isinstance(cls, type) and hasattr(cls, "tie_weights"):
         if isinstance(cls, type) and cls.__name__ == "IndicTransForConditionalGeneration":
             def safe_tie(self, *a, **k):
                 if getattr(self.config, "share_decoder_input_output_embed", False):

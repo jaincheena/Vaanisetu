@@ -78,13 +78,10 @@ def _get_default_whisper_model() -> str:
         vm = psutil.virtual_memory()
         free_gb = vm.available / (1024 ** 3)
         total_gb = vm.total / (1024 ** 3)
-        if total_gb <= 8.5 or free_gb < 3.0:
         if total_gb <= 4.0 or free_gb < 1.2:
             return "tiny"   # ~75MB weights, uses only ~120MB RAM
-        elif free_gb < 6.0:
         elif free_gb < 4.0:
             return "base"   # ~140MB weights, uses only ~220MB RAM
-        elif free_gb < 10.0:
         elif free_gb < 8.0:
             return "small"  # ~460MB weights, uses ~700MB RAM
         else:
