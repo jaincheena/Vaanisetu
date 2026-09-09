@@ -446,8 +446,31 @@ def _stage_translating(
         source_lang != "English"
         and any(ln != "English" for ln in target_langs if LANG_CODES.get(ln))
     )
+
+    valid_langs = [ln for ln in target_langs if LANG_CODES.get(ln)]
+    total_passes = (1 if _needs_pivot else 0) + len(valid_langs)
+    batches_per_pass = max(1, (len(segments) + 7) // 8)
+    total_translation_work = max(1, total_passes * batches_per_pass)
+
+    import threading
+    _progress_lock = threading.Lock()
+    _completed_batches = 0
+
+    def _on_translation_progress(batch_num: int, total_b: int, current_target: str):
+        nonlocal _completed_batches
+        with _progress_lock:
+            _completed_batches += 1
+            pct = 60 + min(19, int(19 * (_completed_batches / total_translation_work)))
+            _publish(
+                job_id,
+                "translating",
+                f"Translating → {current_target} (batch {batch_num}/{total_b}) …",
+                {"pct": pct}
+            )
+
     if _needs_pivot:
         _publish(job_id, "translating", f"Pre-translating {source_lang}→English pivot …")
+        _publish(job_id, "translating", f"Pre-translating {source_lang}→English pivot …", {"pct": 60})
         _cached_english_segments = translate_segments(
             segments=segments,
             source_lang=source_lang,
@@ -456,6 +479,7 @@ def _stage_translating(
             job_id=job_id,
             num_beams=num_beams,
             bypass_cache=bypass_cache,
+            progress_callback=_on_translation_progress,
         )
 
     def _translate_one_language(lang_name: str) -> tuple[str, list[dict]]:
@@ -475,6 +499,7 @@ def _stage_translating(
                 job_id=job_id,
                 num_beams=num_beams,
                 bypass_cache=bypass_cache,
+                progress_callback=_on_translation_progress,
             )
         elif lang_name == "English":
             # Case 2: Indic → English (direct)
@@ -486,6 +511,7 @@ def _stage_translating(
                 job_id=job_id,
                 num_beams=num_beams,
                 bypass_cache=bypass_cache,
+                progress_callback=_on_translation_progress,
             )
         else:
             # Case 3: Indic → Indic via cached English pivot
@@ -500,6 +526,7 @@ def _stage_translating(
                     job_id=job_id,
                     num_beams=num_beams,
                     bypass_cache=bypass_cache,
+                    progress_callback=_on_translation_progress,
                 )
             remapped = [{**seg, "text": seg["translated"]} for seg in english_segs]
             translated = translate_segments(
@@ -510,6 +537,7 @@ def _stage_translating(
                 job_id=job_id,
                 num_beams=num_beams,
                 bypass_cache=bypass_cache,
+                progress_callback=_on_translation_progress,
             )
 
         return lang_name, translated
@@ -555,6 +583,7 @@ def _stage_translating(
 
         if gen_futures:
             _publish(job_id, "generating", "Generating output files …")
+            _publish(job_id, "generating", "Generating output files …", {"pct": 80})
             _update_job(job_id, status="generating")
 
         for fut in as_completed(gen_futures):

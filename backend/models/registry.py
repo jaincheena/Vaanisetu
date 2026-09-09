@@ -47,6 +47,15 @@ try:
     def _patched_get_class(*args, **kwargs):
         cls = _orig_get_class(*args, **kwargs)
         if isinstance(cls, type) and hasattr(cls, "tie_weights"):
+        if isinstance(cls, type) and cls.__name__ == "IndicTransForConditionalGeneration":
+            def safe_tie(self, *a, **k):
+                if getattr(self.config, "share_decoder_input_output_embed", False):
+                    if hasattr(self, "lm_head") and hasattr(self, "model") and hasattr(self.model, "decoder") and hasattr(self.model.decoder, "embed_tokens"):
+                        self.lm_head.weight = self.model.decoder.embed_tokens.weight
+                        logger.info(f"IndicTrans2 ({cls.__name__}): tied lm_head.weight to decoder.embed_tokens.weight via safe_tie")
+            cls.tie_weights = safe_tie
+            cls._tie_or_clone_weights = lambda self, *a, **k: None
+        elif isinstance(cls, type) and hasattr(cls, "tie_weights"):
             orig_tie = getattr(cls, "tie_weights")
 
             def safe_tie(self, *a, **k):
@@ -465,6 +474,12 @@ class ModelRegistry:
                     f"directly from the checkpoint ({', '.join(repaired)})"
                 )
 
+            # Enforce parameter tying for IndicTrans2: lm_head must share decoder.embed_tokens.weight
+            if getattr(model.config, "share_decoder_input_output_embed", False):
+                if hasattr(model, "lm_head") and hasattr(model, "model") and hasattr(model.model, "decoder") and hasattr(model.model.decoder, "embed_tokens"):
+                    model.lm_head.weight = model.model.decoder.embed_tokens.weight
+                    logger.info(f"IndicTrans2 {name}: verified tied lm_head.weight to decoder.embed_tokens.weight ({tuple(model.lm_head.weight.shape)})")
+
             model = model.to(DEVICE)
             model.eval()
 
@@ -603,6 +618,11 @@ class ModelRegistry:
     def get_indic_pair(self, source_lang: str):
         """Return (tokenizer, model) for correct direction."""
         if source_lang == "English":
+            if not self._en_indic_loaded:
+                with self._load_lock:
+                    if not self._en_indic_loaded:
+                        logger.info("Forward Bridge (en→indic) selected — loading en→indic now")
+                        self._load_en_indic()
             return self.en_indic_tokenizer, self.en_indic_model
 
         if not self._indic_en_loaded:

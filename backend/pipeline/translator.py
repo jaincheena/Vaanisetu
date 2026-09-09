@@ -133,10 +133,18 @@ def _run_inference(tokenizer, model, pending_texts: list[str], src_code: str, ta
         max_length=max_length,
     )
 
+    # Dynamic generation max length: prevent runaway 256-token loops on short advisory sentences
+    input_tokens_len = inputs["input_ids"].shape[1] if "input_ids" in inputs else 32
+    effective_max_length = min(max_length, max(48, int(input_tokens_len * 2.2)))
+
     bos_id = getattr(tokenizer, "lang_code_to_id", {}).get(target_lang_code)
     gen_kwargs = {
         "num_beams": num_beams,
         "max_length": max_length,
+        "max_length": effective_max_length,
+        "no_repeat_ngram_size": 3,
+        "repetition_penalty": 1.2,
+        "early_stopping": True if num_beams > 1 else False,
         "output_scores": True,
         "return_dict_in_generate": True,
         "use_cache": False,
@@ -221,6 +229,7 @@ def translate_segments(
     job_id: str,
     num_beams: int = 4,
     bypass_cache: bool = False,
+    progress_callback = None,
 ) -> list[dict]:
     """
     Translate a list of segments for ONE target language.
@@ -387,6 +396,14 @@ def translate_segments(
                     target_lang=target_lang_name,
                     confidence=conf,
                 )
+
+        if progress_callback:
+            batch_num = (batch_start // BATCH_SIZE) + 1
+            total_batches = max(1, (len(segments) + BATCH_SIZE - 1) // BATCH_SIZE)
+            try:
+                progress_callback(batch_num, total_batches, target_lang_name)
+            except Exception:
+                pass
 
     logger.info(f"[PERF_TIMING] IndicTrans2 completed translation [{source_lang} -> {target_lang_name}] in {time.time() - t_trans_start:.2f}s")
     return results

@@ -89,6 +89,14 @@ async def review_item(item_id: int, body: ReviewAction, current_user: dict = Dep
                 """,
                 (key, row["source_text"], row["source_lang"], row["target_lang"], edited_text, now, now),
             )
+            # Synchronize corrections directly into the job's output ZIP archive
+            _sync_review_to_zip(
+                job_id=row["job_id"],
+                target_lang=row["target_lang"],
+                old_text=row["translated_text"],
+                new_text=edited_text,
+                reviewer=reviewer_name,
+            )
 
         # Check if all items for this job are now resolved
         job_id = row["job_id"]
@@ -106,6 +114,71 @@ async def review_item(item_id: int, body: ReviewAction, current_user: dict = Dep
             logger.info(f"Job {job_id} cleared for distribution")
 
     return {"success": True, "new_status": new_status, "item_id": item_id}
+
+
+def _sync_review_to_zip(job_id: str, target_lang: str, old_text: str, new_text: str, reviewer: str) -> None:
+    """Update outputs ZIP archive with human review corrections so downloads always match."""
+    import os
+    import zipfile
+    import tempfile
+    import json
+    from pathlib import Path
+    from backend.utils.file_utils import job_zip_path
+
+    zip_path = job_zip_path(job_id)
+    if not zip_path.exists():
+        return
+
+    try:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = Path(tmp_dir)
+            with zipfile.ZipFile(str(zip_path), "r") as z_in:
+                z_in.extractall(tmp_path)
+
+            modified = False
+            # 1. Update text file
+            txt_file = tmp_path / f"translation_{target_lang}.txt"
+            if txt_file.exists():
+                content = txt_file.read_text(encoding="utf-8")
+                if old_text and old_text in content:
+                    content = content.replace(old_text, new_text)
+                    txt_file.write_text(content, encoding="utf-8")
+                    modified = True
+
+            # 2. Update subtitle files
+            for sub_ext in ("srt", "vtt"):
+                sub_file = tmp_path / f"subtitles_{target_lang}.{sub_ext}"
+                if sub_file.exists():
+                    sub_content = sub_file.read_text(encoding="utf-8")
+                    if old_text and old_text in sub_content:
+                        sub_content = sub_content.replace(old_text, new_text)
+                        sub_file.write_text(sub_content, encoding="utf-8")
+                        modified = True
+
+            # 3. Update manifest
+            manifest_file = tmp_path / "manifest.json"
+            if manifest_file.exists():
+                try:
+                    manifest = json.loads(manifest_file.read_text(encoding="utf-8"))
+                    manifest["last_reviewed"] = datetime.utcnow().isoformat()
+                    manifest["reviewer"] = reviewer
+                    manifest["verified"] = True
+                    manifest_file.write_text(json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8")
+                    modified = True
+                except Exception:
+                    pass
+
+            if modified:
+                temp_zip = tmp_path / "updated.zip"
+                with zipfile.ZipFile(str(temp_zip), "w", zipfile.ZIP_DEFLATED) as z_out:
+                    for f in tmp_path.iterdir():
+                        if f.is_file() and f.name != "updated.zip":
+                            z_out.write(str(f), f.name)
+                import shutil
+                shutil.move(str(temp_zip), str(zip_path))
+                logger.info(f"Updated ZIP package for job {job_id} with human review corrections")
+    except Exception as e:
+        logger.warning(f"Could not update ZIP for job {job_id} after review: {e}")
 
 
 @router.delete("/clear-all")

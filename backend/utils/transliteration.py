@@ -153,6 +153,8 @@ def normalize_indic_script(text: str, source_lang: Optional[str]) -> str:
             p_dev = phonetic_roman_to_devanagari(clean_w)
             converted.append(p_dev if p_dev else w)
         else:
+            # Preserve original word (English loanwords, acronyms, or proper nouns)
+            # IndicTrans2 natively handles code-mixed Latin/Indic text cleanly.
             converted.append(w)
 
     result = " ".join(converted)
