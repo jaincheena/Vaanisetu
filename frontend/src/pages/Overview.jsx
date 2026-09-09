@@ -7,6 +7,7 @@ const INDIC_SCRIPTS = [
   { script: 'ગુજરાતી', lang: 'Gujarati', icon: '🌱', color: '#F59E0B' },
   { script: 'ಕನ್ನಡ', lang: 'Kannada', icon: '🌴', color: '#34D399' },
   { script: 'বাংলা', lang: 'Bengali', icon: '🌊', color: '#67E8F9' },
+  { script: 'English', lang: 'English', icon: '🌐', color: '#CBD5E1' },
 ]
 
 export default function Overview() {

@@ -28,7 +28,7 @@ const ALL_LANGS = [
 ]
 
 export const ACTIVE_LANGS = new Set([
-  'Marathi', 'Hindi', 'Gujarati', 'Kannada', 'Bengali'
+  'Marathi', 'Hindi', 'Gujarati', 'Kannada', 'Bengali', 'English'
 ])
 
 export default function LangChipGrid({ selected, onChange, exclude = [] }) {
